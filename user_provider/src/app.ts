@@ -14,7 +14,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use("/api", authRouter);
 
-
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });
 });

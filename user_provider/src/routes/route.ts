@@ -1,8 +1,9 @@
 import express, { Request, Response } from "express";
-import { getOtp } from "../controllers/userController";
+import { getOtp, verifyOtp } from "../controllers/userController";
 
 const router = express.Router();
 
-router.post("/otp", getOtp); 
+router.post("/get-otp", getOtp); 
+router.post("/verify-otp", verifyOtp);
 
 export default router;
