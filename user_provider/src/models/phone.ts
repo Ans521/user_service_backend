@@ -10,4 +10,4 @@ const phoneSchema = new mongoose.Schema(
     }
 )
 
-export default mongoose.model("phoneNumber", phoneSchema);
+export default mongoose.model("PhoneNumber", phoneSchema);
