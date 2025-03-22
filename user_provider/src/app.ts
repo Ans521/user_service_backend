@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import {connectDb} from "./config/db";
 import authRouter from "./routes/route";
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 connectDb();
@@ -13,6 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use("/api", authRouter);
+app.use(cookieParser());
 
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });

@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import phoneNumber from "./phone"
 
-const userSchema = new mongoose.Schema(
+const serviceProviderSchema = new mongoose.Schema(
     {
         name : {
             type : String,
@@ -16,10 +15,7 @@ const userSchema = new mongoose.Schema(
             type : String,
             required : true,
         },
-        category : {
-            type : String,
-        },
-        subcategory : {
+        mpin : {
             type : String,
         },
         phoneNo : {
@@ -30,4 +26,4 @@ const userSchema = new mongoose.Schema(
     }
 )
 
-export default mongoose.model("User", userSchema) 
+export default mongoose.model("ServiceProvider", serviceProviderSchema)

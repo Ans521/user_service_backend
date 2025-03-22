@@ -1,10 +1,10 @@
-import e from "express";
-
-const mongose = require("mongoose");
+import dotenv from 'dotenv';
+import mongose from 'mongoose';
+dotenv.config();
 
 export const connectDb = async () =>{
     try{
-        await mongose.connect('mongodb+srv://anshsharma:mukeshsh@cluster0.lg1bd.mongodb.net/');
+        await mongose.connect(process.env.MONGO_URL as string);
         console.log("Database connected...");
     }catch(error){
         console.log(error);
