@@ -2,17 +2,24 @@ import { Request, Response } from "express";
 import { connectDb } from "../config/db";
 import User from "../models/user";
 import PhoneNumber from "../models/phone";
+import ServiceProvider from "../models/serviceProvider";
 import Redis from "ioredis";
 import jwt from "jsonwebtoken";
-import phone from "../models/phone";
-
+import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
+dotenv.config()
 connectDb()
-const secretKey = 'bdaic193cakjnc';
+const secretKey = process.env.SECRET_KEY || '1n1b484n39886ni124114inai';
 
 const client = new Redis({
-    host : '192.168.29.103',
+    host : '192.168.7.12',
     port : 6379
 });
+
+const storeInRedis = async(phone : string, otp : number)=>{
+    await client.set(`otp:${phone}`, otp.toString(), "EX", 600)
+    await client.set(`phone:${otp}`, phone.toString(), "EX", 600)
+}
 
 export const getOtp = async (req : any, res : any) => {
     try {
@@ -20,27 +27,22 @@ export const getOtp = async (req : any, res : any) => {
         const otp = Math.floor(1000 + Math.random() * 9999);
 
         const response = await PhoneNumber.findOne({phoneNumber : phone})
-        const phoneNo = response?.phoneNumber;
+        
         //user enter the phone number checking that is in the mongodb or not
-        if(!phoneNo){
-            // if the phone number is not found in the mongodb
-            const newPhoneNumber = new PhoneNumber({phoneNumber : phone})
-            await newPhoneNumber.save();
-
-            await client.set(`otp:${phone}`, otp.toString(), "EX", 600);
-            await client.set(`phone:${otp}`, phone.toString(), "EX", 600);
+        if(!response){
+            await new PhoneNumber({phoneNumber : phone}).save()
+            await storeInRedis(phone, otp)
+            return res.status(200).json({ message: "otp generated", otp });
         }else{
             // if phone number is found in mongodb
-            const otpRedis = await client.get(`otp:${phoneNo}`)
+            const otpRedis = await client.get(`otp:${phone}`)
+            const phoneNo = response.phoneNumber;
             if(!otpRedis){
-                await client.set(`otp:${phoneNo}`, otp.toString(), "EX", 600,)
-                await client.set(`phone:${otp}`, phoneNo.toString(), "EX", 600,)
-                const newOtp = await client.get(`otp:${phoneNo}`)
-                return res.status(200).json({message : "otp generated", newOtp})
+                await storeInRedis(phoneNo, otp)
+                return res.status(200).json({message : "otp generated", otp})
             }
             return res.status(200).json({message : "fetched otp", otpRedis})
         }
-        return res.status(200).json({ message: "Done", otp });
     } catch (error) {
         return res.status(500).send(error);
     }
@@ -50,95 +52,116 @@ export const verifyOtp = async (req: any, res : any) => {
     try{
         const {userOtp} = req.body;
         if(!userOtp){
-            return res.status(200).json("Enter OTP ")
+            return res.status(200).json("Enter OTP")
         }
         const phoneNo = await client.get(`phone:${userOtp}`)
-        // const response = await PhoneNumber.findOne({phoneNumber : phoneNo})
-        // const id = response?._id
-
+        
         if(!phoneNo){
-            return res.status(404).json("Invalid Otp")
+            return res.status(404).json("Invalid OTP or OTP ")
         }
+
         const storedOtp = await client.get(`otp:${phoneNo}`);
         
         if(storedOtp != userOtp){
             return res.status(200).json({message : "Enter valid otp", userOtp})
         }
 
-        const token = jwt.sign({
-            // id,
-            phoneNo
-        }, secretKey, {expiresIn : '1h'})
-
         await client.del(`phone:${userOtp}`)
         await client.del(`otp:${phoneNo}`)
-        res.cookie("token", token).status(200).json("user loggedIn");
+        res.status(200).json("user loggedIn");
     }catch(err){
         res.status(500).json({message : "not verified"});
     }
 }
 
 export const registerUser = async (req : any, res : any) =>{
-    const { phoneNumber} = req.cookies;
+    const { name, email, address, category, subcategory, phone } = req.body;
 
-    if(!phoneNumber){
-        return res.status(400).json({ message: "Not Authenticated" });
-    }
-
-    const {name, email, address, category, subcategory} = req.body;
-
-    if (!name || !email || !address || !category || !subcategory) {
+    if (!name || !email || !address || !category || !subcategory || !phone) {
         return res.status(400).json({ message: "All fields are required." });
     }
 
     try{
+        const userData : any = await PhoneNumber.findOne({phoneNumber : phone});
 
-    const existingEmail : any = await User.findOne({email});
+        if(!userData){
+            return res.status(404).json({message : "Phone Number has not been stored"})
+        }
 
-    if(existingEmail){
-        return res.json(400).json("email is already registered")
-    }
+        const existingUser: any = await User.findOne({ email })
 
-    const existingPhone : any = await User.findOne({phoneNumber});
+        if (existingUser) {
+            return res.status(400).json({ message: "Email is already registered." });
+        }
 
-    if(!existingPhone){
-        return res.status(400).json({ message: "Not Authenticated" });
-    }
+        // need to check this --> 
+        const phoneNoId = userData?._id;
+      
+        const phoneNumber = await User.findOne({phoneNo : phoneNoId})
 
-    const existingUser : any = await User.findOne({email})
+        if(phoneNumber){
+            return res.status(406).json({message : "phoneNo stored already"})
+        }
+        const id = userData?._id;
+        const registerData : any = { name, email, address, category, subcategory, phoneNo: userData?._id}
+        const newUser = new User(registerData)
+        await newUser.save()
+        const token = jwt.sign({id : id.toString()}, secretKey)
+        res.cookie("token", token).status(200).json({ message: "User registered successfully", user: newUser });
 
-    if(existingUser){
-        return res.status(400).json({ message: "Email is already registered." });
-    }
-
-    const userData : any = {name, email, address, category, subcategory, phoneNo : existingUser?._id}
-    const newUser = new User(userData)
-    await newUser.save()
-    res.status(201).json({ message: "User registered successfully", user: newUser });
     } catch (err) {
-        res.status(500).json({message : err});
+        console.log(err)
+        return res.status(500).json({ message: "An error occurred, please try again later"});
     }
 }
 
-export const registerProvider = async (req : any, res : any) => {
-    const {name, email, address, mpin} = req.body;
-    // 406 ==> is for the not accceptable
-    if(!name || !email || !address || !mpin){
-        return res.status(400).json({message : "provide all the field"})
+
+export const registerProvider = async (req: any, res: any) => {
+    const { name, email, address, mpin, phone } : { name: string; email: string; address: string; mpin?: string; phone: string } = req.body;
+
+    if (!name || !email || !address || !phone) {
+        return res.status(400).json({ message: "Provide all the fields" });
     }
-    const existingEmail = await User.findOne({email});
-    
-    if(existingEmail){
-        return res.json(400).json("email is already registered")
+
+    const existingEmail = await ServiceProvider.findOne({ email });
+
+    if (existingEmail) {
+        return res.status(400).json({ message: "Email is already registered" });
     }
+
+    const userData: any = await PhoneNumber.findOne({ phoneNumber: phone });
     
-    const {token} = req.cookies
-    const userData = {name, email, address};
+    if (!userData) {
+        return res.status(404).json({ message: "Phone number not found" });
+    }
+
+    const phoneNoId = userData?._id;
+
+    const alreadyUser = await ServiceProvider.findOne({ phoneNo: phoneNoId });
     
+    if (alreadyUser) {
+        return res.status(406).json({ message: "Phone number already stored" });
+    }
     try {
-        const hashedMpin = await bcrypt.hash(mpin, 10);
-// suppose i have two input field password and confirm password we have to validate this password in the frontend then store it in the backend  
+        const serviceProviderData: any = { name, email, address, phoneNo: phoneNoId };
+
+        if (mpin && typeof mpin === "string") {
+            const hashedMpin = await bcrypt.hash(mpin, 10);
+            console.log("hashedMpin", hashedMpin);
+            serviceProviderData.mpin = hashedMpin;
+        }
+
+        const newServiceProvider = new ServiceProvider(serviceProviderData);
+
+        await newServiceProvider.save();
+        const token: string = jwt.sign({id : phoneNoId.toString()}, secretKey);
+
+        res.cookie("token", token).status(200).json({
+            message: "User registered successfully",
+            user: newServiceProvider,
+        });
     } catch (error) {
-        
+        console.log(error)
+        return res.status(500).json({ message: "An error occurred, please try again later" });
     }
-}
+};
