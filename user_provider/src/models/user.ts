@@ -1,33 +1,13 @@
+import { Base } from "./baseSchema";
+
 import mongoose from "mongoose";
-import phoneNumber from "./phone"
+const userSchema = new mongoose.Schema({
+  category: {
+    type: String,
+  },
+  subcategory: {
+    type: String,
+  },
+});
 
-const userSchema = new mongoose.Schema(
-    {
-        name : {
-            type : String,
-            required : true
-        },
-        email : {
-            type : String,
-            required : true,
-            unique : true
-        },
-        address : {
-            type : String,
-            required : true,
-        },
-        category : {
-            type : String,
-        },
-        subcategory : {
-            type : String,
-        },
-        phoneNo : {
-            type : mongoose.Types.ObjectId,
-            ref : 'phoneNumber',
-            required : true
-        }
-    }
-)
-
-export default mongoose.model("User", userSchema) 
+export const User = Base.discriminator("User", userSchema);
