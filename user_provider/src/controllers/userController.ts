@@ -3,8 +3,6 @@ import { connectDb } from "../config/db";
 import PhoneNumber from "../models/phone";
 import { User } from "../models/user";
 import { ServiceProvider } from "../models/serviceProvider";
-import { Base } from "../models/baseSchema";
-import Redis from "ioredis";
 import jwt from "jsonwebtoken";
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
@@ -12,22 +10,32 @@ import mutler from 'multer';
 import path from 'path';
 import multer from "multer";
 import fs from 'fs';
-import phone from "../models/phone";
-import { log } from "console";
+import {createClient} from 'redis';
+
 
 dotenv.config()
 connectDb()
 const secretKey = process.env.SECRET_KEY || '1n1b484n39886ni124114inai';
 
-const client = new Redis({
-    host : '192.168.7.12',
-    port : 6379
-});
+const client = createClient();
+
+client.on('error', (err) => {
+    console.error('Redis error:', err);
+  });
+  
+  (async () => {
+    try {
+      await client.connect();
+      console.log('Connected to Redis!');
+    } catch (error) {
+      console.error('Error connecting to Redis:', error);
+    }
+  })();
 
 const redisOperation = async(phone : string, otp : number, toStore : boolean = true)=>{
     if(toStore){
-        await client.set(`otp:${phone}`, otp.toString(), "EX", 600)
-        await client.set(`phone:${otp}`, phone.toString(), "EX", 600)
+        await client.setEx(`otp:${phone}`, 600, otp.toString());
+        await client.setEx(`phone:${otp}`, 600, phone.toString());
     }else{
         await client.del(`phone:${otp}`)
         await client.del(`otp:${phone}`)
