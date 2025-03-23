@@ -12,7 +12,6 @@ import multer from "multer";
 import fs from 'fs';
 import {createClient} from 'redis';
 
-
 dotenv.config()
 connectDb()
 const secretKey = process.env.SECRET_KEY || '1n1b484n39886ni124114inai';
@@ -45,8 +44,8 @@ const redisOperation = async(phone : string, otp : number, toStore : boolean = t
 export const getOtp = async (req : any, res : any) => {
     try {
         const {phone} = req.body;
-        const otp = Math.floor(1000 + Math.random() * 9999);
-
+        // const otp = Math.floor(1000 + Math.random() * 9999);
+        const otp : number = 1111;
         const response = await PhoneNumber.findOne({phoneNumber : phone})
         
         //user enter the phone number checking that is in the mongodb or not
@@ -82,7 +81,8 @@ export const verifyOtp = async (req: any, res : any) => {
         }
 
         const storedOtp = await client.get(`otp:${phoneNo1}`);
-
+        console.log(storedOtp)
+        console.log(userOtp)
         if(storedOtp != userOtp){
             return res.status(200).json({message : "Enter valid otp", userOtp})
         }
@@ -95,7 +95,7 @@ export const verifyOtp = async (req: any, res : any) => {
             if(role === "user"){
                // find the user with the phone number, update the isUserLo
                const userData = await User.findOne({phoneNo : phoneRef?._id}) as typeof User & {loggedInBefore?: boolean};
-
+                console.log(userData)
                if(userData?.loggedInBefore){
                     redisOperation(phoneNo1, userOtp, false)
                     return res.status(200).json({message : "user is loggedin before, you can redirect it", userData})
