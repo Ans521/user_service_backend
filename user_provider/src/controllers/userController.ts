@@ -52,99 +52,90 @@ export const getOtp = async (req : any, res : any) => {
         if(!response){
             await new PhoneNumber({phoneNumber : phone}).save()
             await redisOperation(phone, otp)
-            return res.status(200).json({ message: "otp generated", otp });
+            return res.status(200).json({data : { message: "otp generated", otp }});
         }else{
             // if phone number is found in mongodb
             const otpRedis = await client.get(`otp:${phone}`)
             const phoneNo = response.phoneNumber;
             if(!otpRedis){
                 await redisOperation(phoneNo, otp)
-                return res.status(200).json({message : "otp generated", otp})
+                return res.status(200).json({data : {message : "otp generated", otp}})
             }
-            return res.status(200).json({message : "fetched otp", otpRedis})
+            return res.status(200).json({data : {message : "fetched otp", otpRedis}})
         }
     } catch (error) {
         return res.status(500).send(error);
     }
 };
 
-export const verifyOtp = async (req: any, res : any) => {
-    try{
-        const {userOtp, role} = req.body;
-        if(!userOtp || !role){
-            return res.status(200).json("Enter OTP || Provide user role")
+export const verifyOtp = async (req: any, res: any) => {
+    try {
+        const { userOtp, isEmployeeLogin } = req.body;
+      
+        if (!userOtp || typeof isEmployeeLogin === 'undefined') {
+            return res.status(400).json({ message: "Enter OTP and provide user role" });
         }
-        const phoneNo1 = await client.get(`phone:${userOtp}`)
+
+        const phoneNo1 = await client.get(`phone:${userOtp}`);
+        if (!phoneNo1) {
+            return res.status(404).json({ message: "Invalid OTP or OTP Expired" });
+        }
+        console.log(typeof userOtp)
         
-        if(!phoneNo1){
-            return res.status(404).json("Invalid OTP or OTP Expired")
-        }
-
         const storedOtp = await client.get(`otp:${phoneNo1}`);
-        console.log(storedOtp)
-        console.log(userOtp)
-        if(storedOtp != userOtp){
-            return res.status(200).json({message : "Enter valid otp", userOtp})
+        console.log(typeof storedOtp);
+        if (storedOtp !== userOtp) {
+            return res.status(400).json({data : { message: "Enter valid OTP", userOtp }});
         }
-        const phoneRef = await PhoneNumber.findOne({phoneNumber : String(phoneNo1)})
 
-        if(!phoneRef){
-            return res.json("phoneref is not there ")
+        const phoneRef = await PhoneNumber.findOne({ phoneNumber: String(phoneNo1) });
+        if (!phoneRef) {
+            return res.status(404).json({ message: "No phone reference found" });
         }
-        if(role && typeof role === "string"){
-            if(role === "user"){
-               // find the user with the phone number, update the isUserLo
-               const userData = await User.findOne({phoneNo : phoneRef?._id}) as typeof User & {loggedInBefore?: boolean};
-                console.log(userData)
-               if(userData?.loggedInBefore){
-                    redisOperation(phoneNo1, userOtp, false)
-                    return res.status(200).json({message : "user is loggedin before, you can redirect it", userData})
-                }else{
-                    try{
-                        const notLoggedUserData = await new User({phoneNo : phoneRef?._id}).save()
-                        console.log("User is logging in for the first time.");
-                        redisOperation(phoneNo1, userOtp, false)
-                        return res.status(200).json({message : "User is logging in for the first time", "notLoggedUserData" : notLoggedUserData})
-                    }catch(error){
-                        console.log(error)
-                        return res.status(500).json({message : "Error Occured"});
-                    }
-                } 
-            }else if(role === "serviceprovider"){
 
-                const providerData = await ServiceProvider.findOne({phoneNo : phoneRef}) as typeof ServiceProvider & {loggedInBefore?: boolean, isUserVerifed? : boolean}
-
-               if(providerData?.loggedInBefore){
-                    const isUserLoggedInBefore = providerData?.loggedInBefore;
-                   const isUserVerifed = providerData?.isUserVerifed;
-                   if(providerData?.isUserVerifed){
-                        redisOperation(phoneNo1, userOtp, false)
-                        return res.status(200).json({message : "Service provider verified"}, providerData)
-                   }else{
-                        redisOperation(phoneNo1, userOtp, false)
-                        return res.status(200).json({
-                            message: "Service provider is loggedInBefore but not verified yet by admin",
-                            isUserLoggedInBefore: isUserLoggedInBefore,
-                            isUserVerifed: isUserVerifed,
-                          });                          
-                   }
-                }else{
-                    try {
-                        const newProvider = await new ServiceProvider({phoneNo : phoneRef?._id}).save();
-                        console.log("provider logging in for the first time")
-                        redisOperation(phoneNo1, userOtp, false)
-                        return res.status(200).json({message : "new user loggedIn", newProvider})
-                    } catch (error) {
-                        console.log(error);
-                        return res.status(500).json({message : "Error Occured"});
-                    }
+        if (!isEmployeeLogin) {
+            const userData = await User.findOne({ phoneNo: phoneRef?._id }) as typeof User & { loggedInBefore?: boolean };
+            if (userData?.loggedInBefore) {
+                redisOperation(phoneNo1, userOtp, false);
+                return res.status(200).json({data : { message: "User logged in before", userData }});
+            } else {
+                try {
+                    const newUser = await new User({ phoneNo: phoneRef?._id }).save();
+                    redisOperation(phoneNo1, userOtp, false);
+                    return res.status(200).json({data : { message: "User logging in for the first time", newUser }});
+                } catch (error) {
+                    console.log(error);
+                    return res.status(500).json({ message: "Error occurred while saving new user" });
+                }
+            }
+        } else {
+            const providerData = await ServiceProvider.findOne({ phoneNo: phoneRef }) as typeof ServiceProvider & { loggedInBefore?: boolean, isUserVerified?: boolean };
+            if (providerData?.loggedInBefore) {
+                if (providerData?.isUserVerified) {
+                    redisOperation(phoneNo1, userOtp, false);
+                    return res.status(200).json({data : { message: "Service provider verified", providerData }});
+                } else {
+                    redisOperation(phoneNo1, userOtp, false);
+                    return res.status(200).json({
+                        message: "Service provider logged in before but not verified yet",
+                        providerData
+                    });
+                }
+            } else {
+                try {
+                    const newProvider = await new ServiceProvider({ phoneNo: phoneRef?._id }).save();
+                    redisOperation(phoneNo1, userOtp, false);
+                    return res.status(200).json({data : { message: "New service provider logged in", newProvider }});
+                } catch (error) {
+                    console.log(error);
+                    return res.status(500).json({ message: "Error occurred while saving new provider" });
                 }
             }
         }
-        return res.status(200).json("user loggedIn");
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message : "not verified"});
+        return res.status(200).json({ message: "User logged in successfully" });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Verification failed" });
     }
 }
 
@@ -179,7 +170,7 @@ export const registerUser = async (req : any, res : any) =>{
             {new : true}
         )
         const token = jwt.sign({id : phoneNoId.toString()}, secretKey)
-        res.cookie("token", token).status(200).json({ message: "User registered successfully", user: newUser });
+        res.cookie("token", token).status(200).json({data : { message: "User registered successfully", user: newUser }});
 
     } catch (err) {
         console.log(err)
@@ -224,10 +215,10 @@ export const registerProvider = async (req: any, res: any) => {
 
         await newServiceProvider.save();
 
-        res.status(200).json({
+        res.status(200).json({data : {
             message: "User registered successfully",
             user: newServiceProvider,
-        });
+        }});
     } catch (error) {
         console.log(error)
         return res.status(500).json({ message: "An error occurred, please try again later" });
@@ -249,9 +240,11 @@ const uploadImage  = mutler.diskStorage({
         const fileName = Date.now() + path.extname(file.originalname)
         cb(null, fileName)
         console.log(file.originalname)
-        req.fileUrl  = `http://localhost:3000/uploads/${fileName}`
+        req.fileUrl = `${process.env.SERVER_URL}/uploads/${fileName}`
+        console.log(req.fileUrl);
+        
     }
-})
+})  
 
 export const upload = multer({storage : uploadImage})
 
@@ -259,7 +252,8 @@ export const handleImage = (req : any, res : any) => {
     if(!req.file || !req.fileUrl){
         return res.status(400).send("No file uploaded.");
     }
-    return res.status(200).json({message: "File uploaded successfully", file: req.fileUrl})
+    console.log(req.fileUrl)
+    return res.status(200).json({data : {message: "File uploaded successfully", file: req.fileUrl}})
 }
 
 export const handleImageUrl = async (req: any, res: any) => {
@@ -289,7 +283,7 @@ export const handleImageUrl = async (req: any, res: any) => {
         }}, {new : true}
       );
       
-      res.cookie("token", token).status(200).json({ message: "URLs updated successfully.", providerData });
+      res.cookie("token", token).status(200).json({data :{ message: "URLs updated successfully.", providerData }});
     } catch (err) {
       res.status(500).json({ message: "Internal server error.", error: err });
     }

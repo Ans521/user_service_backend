@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 import {connectDb} from "./config/db";
 import authRouter from "./routes/route";
 import cookieParser from 'cookie-parser';
-
+import path from 'path';
 dotenv.config();
 connectDb();
 
@@ -14,6 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use("/api", authRouter);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(cookieParser());
 
 app.use((req, res) => {
