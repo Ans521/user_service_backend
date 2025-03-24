@@ -116,10 +116,10 @@ export const verifyOtp = async (req: any, res: any) => {
                     return res.status(200).json({data : { message: "Service provider verified", providerData }});
                 } else {
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({
-                        message: "Service provider logged in before but not verified yet",
+                    return res.status(200).json({data : {
+                        message: "Service provider logged in before but not verified yet by admin",
                         providerData
-                    });
+                    }});
                 }
             } else {
                 try {
@@ -132,7 +132,6 @@ export const verifyOtp = async (req: any, res: any) => {
                 }
             }
         }
-        return res.status(200).json({ message: "User logged in successfully" });
     } catch (err) {
         console.log(err);
         return res.status(500).json({ message: "Verification failed" });
@@ -199,8 +198,6 @@ export const registerProvider = async (req: any, res: any) => {
     }
 
     const phoneNoId = userData?._id;
-
-    const alreadyUser = await ServiceProvider.findOne({ phoneNo: phoneNoId });
 
     try {
         const serviceProviderData: any = { name, email, address, phoneNo: phoneNoId };
