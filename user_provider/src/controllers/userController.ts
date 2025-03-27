@@ -11,6 +11,7 @@ import path from 'path';
 import multer from "multer";
 import fs from 'fs';
 import {createClient} from 'redis';
+import verifyToken from "../middlewares/auth";
 
 dotenv.config()
 connectDb()
@@ -73,7 +74,7 @@ export const verifyOtp = async (req: any, res: any) => {
         const { userOtp, isEmployeeLogin } = req.body;
       
         if (!userOtp || typeof isEmployeeLogin === 'undefined') {
-            return res.status(400).json({ message: "Enter OTP and provide user role" });
+            return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin" });
         }
 
         const phoneNo1 = await client.get(`phone:${userOtp}`);
@@ -83,7 +84,7 @@ export const verifyOtp = async (req: any, res: any) => {
         console.log(typeof userOtp)
         
         const storedOtp = await client.get(`otp:${phoneNo1}`);
-        console.log(typeof storedOtp);
+        
         if (storedOtp !== userOtp) {
             return res.status(400).json({data : { message: "Enter valid OTP", userOtp }});
         }
@@ -96,8 +97,9 @@ export const verifyOtp = async (req: any, res: any) => {
         if (!isEmployeeLogin) {
             const userData = await User.findOne({ phoneNo: phoneRef?._id }) as typeof User & { loggedInBefore?: boolean };
             if (userData?.loggedInBefore) {
-                redisOperation(phoneNo1, userOtp, false);
-                return res.status(200).json({data : { message: "User logged in before", userData }});
+                redisOperation(phoneNo1, userOtp, false); 
+                const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
+                return res.cookie("token", token).status(200).json({data : { message: "User logged in before", userData }});
             } else {
                 try {
                     const newUser = await new User({ phoneNo: phoneRef?._id }).save();
@@ -113,10 +115,12 @@ export const verifyOtp = async (req: any, res: any) => {
             if (providerData?.loggedInBefore) {
                 if (providerData?.isUserVerified) {
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "Service provider verified", providerData }});
+                    const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
+                    return res.cookie("token", token).status(200).json({data : { message: "Service provider verified", providerData }});
                 } else {
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : {
+                    const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
+                    return res.cookie("token", token).status(200).json({data : {
                         message: "Service provider logged in before but not verified yet by admin",
                         providerData
                     }});
@@ -168,7 +172,7 @@ export const registerUser = async (req : any, res : any) =>{
             {$set : registerData},
             {new : true}
         )
-        const token = jwt.sign({id : phoneNoId.toString()}, secretKey)
+        const token = jwt.sign({id : phoneNoId.toString()}, secretKey, { expiresIn: '12h' })
         res.cookie("token", token).status(200).json({data : { message: "User registered successfully", user: newUser }});
 
     } catch (err) {
@@ -269,20 +273,62 @@ export const handleImageUrl = async (req: any, res: any) => {
       }
   
      const isUserVerifed = false;
-     const isloggedInBefore = true
-     const token: string = jwt.sign({id : phoneData?._id.toString()}, secretKey);
-      const providerData = await ServiceProvider.findOneAndUpdate(
-        {phoneNo: phoneData?._id},
-        {$set : {
-            imageUrl: imageUrl,
-            isUserVerifed,
-            loggedInBefore : isloggedInBefore
-        }}, {new : true}
-      );
-      
-      res.cookie("token", token).status(200).json({data :{ message: "URLs updated successfully.", providerData }});
+     const isloggedInBefore = true;
+     const providerData = await ServiceProvider.findOneAndUpdate(
+         {phoneNo: phoneData?._id},
+         {$set : {
+             imageUrl: imageUrl,
+             isUserVerifed,
+             loggedInBefore : isloggedInBefore
+            }}, {new : true}
+        );
+
+        const token: string = jwt.sign({id : phoneData?._id.toString()}, secretKey, { expiresIn: '12h' });
+        res.cookie("token", token).status(200).json({data :{ message: "URLs updated successfully.", providerData }});
     } catch (err) {
       res.status(500).json({ message: "Internal server error.", error: err });
     }
   };
-  
+
+export const getProviderList = async (req : any, res : any) => {
+    try {
+        const providers = await ServiceProvider.find({ role: 'ServiceProvider' });
+        res.status(200).json({ success: true, data: providers });
+    } catch (error) {
+        console.error('Error fetching service providers:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
+
+export const updateStatusProvider = async (req: any, res: any) => {
+    const { status, providerId } = req.body;
+    
+    let providerStatus = '';  
+
+    if (status) {
+        providerStatus = 'approved';
+    } else {
+        providerStatus = 'rejected';
+    }
+ 
+    try {
+        if(status){
+            await ServiceProvider.findOneAndUpdate(
+                { _id: providerId },   
+                { status: providerStatus, isUserVerified : true },
+                { new : true } 
+            )
+        }else{
+            await ServiceProvider.findOneAndUpdate(
+                { _id: providerId },   
+                { status: providerStatus}, // no need to change the isuserverifed by default it is false
+                { new : true }
+            );
+        }
+
+        res.status(200).json({ success: true, message: 'Status updated successfully' });
+    } catch (error) {
+        console.error('Error updating service provider:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
