@@ -10,6 +10,11 @@ const serviceProviderSchema = new mongoose.Schema({
  },
  imageUrl : {
   type : [String]
+ },
+ status : {
+  type : String,
+  enum : ['pending', 'approved', 'rejected'],
+  default : "pending" 
  }
 });
 
