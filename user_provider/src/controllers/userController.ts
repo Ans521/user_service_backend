@@ -332,3 +332,24 @@ export const updateStatusProvider = async (req: any, res: any) => {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
+
+export const addProvider = async (req : any, res : any) => {
+    try {
+        const { name, email, address, mpin } = req.body;
+        const providerData = { name, email, address, mpin }
+        if (!name || !email || !address ) {
+            return res.status(500).json({ message: "Please provide all the required fields." });
+        }
+        if(mpin){
+            const hashedMpin = await bcrypt.hash(mpin, 10);
+            providerData.mpin = hashedMpin;
+        }
+        const newServiceProvider = new ServiceProvider(providerData);  
+        await newServiceProvider.save();
+
+        res.status(200).json({data :{ message: "Service provider registered successfully.", newServiceProvider }});
+    } catch (error) {
+        console.error('Error adding service provider:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
