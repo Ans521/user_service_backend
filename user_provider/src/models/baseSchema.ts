@@ -15,7 +15,6 @@
       phoneNo: {
         type: mongoose.Types.ObjectId,
         ref: "phoneNumber",
-        required: true,
       },
       role: {
         type: String,
