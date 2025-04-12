@@ -232,20 +232,33 @@ if(!fs.existsSync(directoryPath)) {
     fs.mkdirSync(directoryPath);
 }
 
-const uploadImage  = mutler.diskStorage({
+const uploadImage = mutler.diskStorage({
     destination : function(req : any, file, cb){
+        console.log("File being uploaded:", file);
         cb(null, directoryPath)
     },
 
     filename : function(req : any, file, cb){
+        console.log("Original filename:", file.originalname);
         const fileName = Date.now() + path.extname(file.originalname)
         cb(null, fileName)
-        console.log(file.originalname)
-        req.fileUrl = `${process.env.SERVER_URL}/uploads/${fileName}`
-        console.log(req.fileUrl);
-        
+
+        if(req.file){
+            req.fileUrl = `http://13.202.163.238:4000/uploads/${fileName}`;
+        }else{
+            if(!req.fileUrls){
+                req.fileUrls = []
+            }
+            req.fileUrls.push(`http://13.202.163.238:4000/uploads/${fileName}`)
+        }
     }
-})  
+})
+
+export const uploadMultiple = multer({ storage: uploadImage }).fields([
+    { name: 'aadharCard', maxCount: 1 },
+    { name: 'drivingLicense', maxCount: 1 },
+    { name: 'panCard', maxCount: 1 }
+]);
 
 export const upload = multer({storage : uploadImage})
 
@@ -253,7 +266,6 @@ export const handleImage = (req : any, res : any) => {
     if(!req.file || !req.fileUrl){
         return res.status(400).send("No file uploaded.");
     }
-    console.log(req.fileUrl)
     return res.status(200).json({data : {message: "File uploaded successfully", file: req.fileUrl}})
 }
 
@@ -333,23 +345,85 @@ export const updateStatusProvider = async (req: any, res: any) => {
     }
 }
 
+export const storePhone = async (req : any, res : any) => {
+    try {
+        const { phoneNumber } = req.body;
+        console.log(phoneNumber)
+        const phoneNo = await PhoneNumber.findOne({phoneNumber}); 
+        if(phoneNo){
+            return res.status(400).json({data :{ message: "Phone number already stored."}});
+        }
+        const newPhoneNumber = new PhoneNumber({ phoneNumber });
+        await newPhoneNumber.save();
+        return res.status(200).json({data :{ message: "Phone number stored successfully."}});
+    } catch (error) {
+        console.error('Error storing phone number:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
 export const addProvider = async (req : any, res : any) => {
     try {
-        const { name, email, address, mpin } = req.body;
-        const providerData = { name, email, address, mpin }
-        if (!name || !email || !address ) {
+        
+        const { name, email, address, mpin, phone} = req.body;
+        
+        const imageUrl = req.fileUrls;
+        
+        const isUserVerifed = true;
+        const status = "approved";
+        const loggedInBefore = true;
+        const phoneNo = await PhoneNumber.findOne({phoneNumber : phone});
+        console.log("phone",phoneNo?._id)
+        const providerExist = await ServiceProvider.findOne({email : email});
+
+        if(providerExist){
+            return res.status(400).json({ message: "Email is already registered." });
+        }
+        const providerData = { phoneNo : phoneNo?._id, name, email, address, imageUrl, isUserVerifed, status, loggedInBefore, mpin };
+
+        if (!name || !email || !address) {
             return res.status(500).json({ message: "Please provide all the required fields." });
         }
+
         if(mpin){
             const hashedMpin = await bcrypt.hash(mpin, 10);
             providerData.mpin = hashedMpin;
         }
+
         const newServiceProvider = new ServiceProvider(providerData);  
         await newServiceProvider.save();
 
-        res.status(200).json({data :{ message: "Service provider registered successfully.", newServiceProvider }});
+        res.status(200).json({data :{ message: "Service provider registered successfully." }});
     } catch (error) {
         console.error('Error adding service provider:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 }
+
+export const updateProviderStatus = async (req : any, res : any) => {
+    const { status } = req.body;
+    const {id} = req.params;
+
+    try {
+        if(status == 'approved' && id != undefined){
+            await ServiceProvider.findOneAndUpdate(
+                { _id: id },   
+                { status: status, isUserVerified : true },
+                { new : true } 
+            )
+            return res.status(200).json({ success: true, message: 'successfully' });
+
+        }else if(status == 'rejected' && id != undefined){
+            await ServiceProvider.findOneAndUpdate(
+                { _id: id },   
+                { status: status, isUserVerified : false},
+                { new : true }
+            );
+            return res.status(200).json({ success: true, message: 'successfully' });
+        }
+        return res.status(500).json({ success: false, message: 'something went wrong' });
+    } catch (error) {
+        console.error('Error updating service provider:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}  
