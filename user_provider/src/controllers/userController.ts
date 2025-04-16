@@ -143,37 +143,48 @@ export const verifyOtp = async (req: any, res: any) => {
 }
 
 export const registerUser = async (req : any, res : any) =>{
-    const { name, email, address, category, subcategory, phone } = req.body;
+    const { name, email, address, mpin, phone } = req.body;
 
-    if (!name || !email || !address || !category || !subcategory || !phone) {
+    if (!name || !email || !address || !phone) {
         return res.status(400).json({ message: "All fields are required." });
     }
-
+  
     try{
         const userData : any = await PhoneNumber.findOne({phoneNumber : phone});
         console.log(userData)
+
         if(!userData){
             return res.status(404).json({message : "Phone Number has not been stored"})
         }
-
-        const existingUser: any = await User.findOne({ email })
+        
+        const existingUser : any = await User.findOne({ email })
+        
         console.log(existingUser)
+        
         if (existingUser) {
             return res.status(400).json({ message: "Email is already registered." });
         }
-
+        
         // need to check this --> 
         const phoneNoId = userData?._id;
         
         const loggedInBefore = true;
-        const registerData : any = { name, email, address, category, subcategory, loggedInBefore}
+        const registerData : any = { name, email, address, loggedInBefore}
+
+        if (mpin && typeof mpin === "string") {
+            const hashedMpin = await bcrypt.hash(mpin, 10);
+            console.log("hashedMpin", hashedMpin);
+            registerData.mpin = hashedMpin;
+        }
+    
         const newUser = await User.findOneAndUpdate(
             {phoneNo : phoneNoId},
             {$set : registerData},
             {new : true}
         )
+
         const token = jwt.sign({id : phoneNoId.toString()}, secretKey, { expiresIn: '12h' })
-        res.cookie("token", token).status(200).json({data : { message: "User registered successfully", user: newUser }});
+        return res.cookie("token", token).status(200).json({data : { message: "User registered successfully", user: newUser }});
 
     } catch (err) {
         console.log(err)
@@ -183,9 +194,9 @@ export const registerUser = async (req : any, res : any) =>{
 
 
 export const registerProvider = async (req: any, res: any) => {
-    const { name, email, address, mpin, phone } : { name: string; email: string; address: string; mpin?: string; phone: string } = req.body;
+    const { name, email, address, address2, category, subcategory, phone } : { name: string; email: string; address: string; address2? : string, category? : string, subcategory? : string, phone: string } = req.body;
 
-    if (!name || !email || !address || !phone) {
+    if (!name || !email || !address || !phone || !category || !subcategory) {
         return res.status(400).json({ message: "Provide all the fields" });
     }
 
@@ -204,19 +215,13 @@ export const registerProvider = async (req: any, res: any) => {
     const phoneNoId = userData?._id;
 
     try {
-        const serviceProviderData: any = { name, email, address, phoneNo: phoneNoId };
-
-        if (mpin && typeof mpin === "string") {
-            const hashedMpin = await bcrypt.hash(mpin, 10);
-            console.log("hashedMpin", hashedMpin);
-            serviceProviderData.mpin = hashedMpin;
-        }
+        const serviceProviderData: any = { name, email, address, aadharAddress: address2, phoneNo: phoneNoId, category, subcategory };
 
         const newServiceProvider = new ServiceProvider(serviceProviderData);
 
         await newServiceProvider.save();
 
-        res.status(200).json({data : {
+        return res.status(200).json({data : {
             message: "User registered successfully",
             user: newServiceProvider,
         }});
@@ -256,7 +261,8 @@ const uploadImage = mutler.diskStorage({
 
 export const uploadMultiple = multer({ storage: uploadImage }).fields([
     { name: 'aadharCard', maxCount: 1 },
-    { name: 'drivingLicense', maxCount: 1 },
+    {name : 'aadharCardBack', maxCount : 1},
+    { name: 'photo', maxCount: 1 },
     { name: 'panCard', maxCount: 1 }
 ]);
 
@@ -365,7 +371,7 @@ export const storePhone = async (req : any, res : any) => {
 export const addProvider = async (req : any, res : any) => {
     try {
         
-        const { name, email, address, mpin, phone} = req.body;
+        const { name, email, category, subcategory, address, aadharAddress, phone} = req.body;
         
         const imageUrl = req.fileUrls;
         
@@ -379,15 +385,10 @@ export const addProvider = async (req : any, res : any) => {
         if(providerExist){
             return res.status(400).json({ message: "Email is already registered." });
         }
-        const providerData = { phoneNo : phoneNo?._id, name, email, address, imageUrl, isUserVerifed, status, loggedInBefore, mpin };
+        const providerData = { phoneNo : phoneNo?._id, name, email,category, subcategory, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
 
-        if (!name || !email || !address) {
+        if (!name || !email || !address || category || !subcategory || !aadharAddress) {
             return res.status(500).json({ message: "Please provide all the required fields." });
-        }
-
-        if(mpin){
-            const hashedMpin = await bcrypt.hash(mpin, 10);
-            providerData.mpin = hashedMpin;
         }
 
         const newServiceProvider = new ServiceProvider(providerData);  
