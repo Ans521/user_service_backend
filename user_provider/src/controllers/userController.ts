@@ -395,9 +395,10 @@ export const addProvider = async (req : any, res : any) => {
         if(providerExist){
             return res.status(400).json({ message: "Email is already registered." });
         }
-        const providerData = { phoneNo : phoneNo?._id, name, email,category, subcategory, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
 
-        if (!name || !email || !address || category || !subcategory || !aadharAddress) {
+        const providerData = { phoneNo : phoneNo?._id, name, email,category, subcategory, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
+        
+        if (!name || !email || !address || !category || !subcategory || !aadharAddress) {
             return res.status(500).json({ message: "Please provide all the required fields." });
         }
 
