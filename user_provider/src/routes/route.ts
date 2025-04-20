@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, registerUser, verifyOtp, upload, handleImage, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone} from "../controllers/userController";
+import { getOtp, registerProvider, registerUser, verifyOtp, upload, handleImage, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory} from "../controllers/userController";
 
 const router = express.Router();
 
@@ -17,5 +17,7 @@ router.post('/add-provider', (req : any, res : any, next : any) => {
     next();
 }, uploadMultiple, addProvider);
 router.put('/update-provider-status/:id', updateProviderStatus)
-
+router.post('/categories', addCategory)
+router.get('/get-all-category', seeAllCategory)
+router.delete('/delete-category/:id', deleteCategory)
 export default router;

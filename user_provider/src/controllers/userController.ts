@@ -12,6 +12,7 @@ import multer from "multer";
 import fs from 'fs';
 import {createClient} from 'redis';
 import verifyToken from "../middlewares/auth";
+import { Category } from "../models/categorySchema";
 
 dotenv.config()
 connectDb()
@@ -310,11 +311,20 @@ export const handleImageUrl = async (req: any, res: any) => {
 
 export const getProviderList = async (req : any, res : any) => {
     try {
-        const providers = await ServiceProvider.find({ role: 'ServiceProvider' });
-        res.status(200).json({ success: true, data: providers });
+        const providerData = await ServiceProvider.find({ role: 'ServiceProvider' }).populate('phoneNo');
+        const providers = providerData.map((provider: any) => {
+            return {
+                _id: provider._id,
+                name: provider.name,
+                phoneNo: provider.phoneNo?.phoneNumber,
+                imageUrl: provider.imageUrl,
+                status: provider.status
+        }
+        });
+        return res.status(200).json({ success: true, data: providers });
     } catch (error) {
         console.error('Error fetching service providers:', error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
 
@@ -428,3 +438,45 @@ export const updateProviderStatus = async (req : any, res : any) => {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }  
+
+
+export const addCategory = async (req : any, res : any) => {
+    try {
+        const { category, subcategories } = req.body;
+
+        const categoryExist = await Category.findOne({category : category});
+
+        if(categoryExist){
+            return res.status(400).json({data :{ message: "Category already exist."}});
+        }
+        const categoryData = { category, subcategories };
+        const newCategory = new Category(categoryData);
+        await newCategory.save();
+        return res.status(200).json({data :{ message: "Category added successfully."}});
+    } catch (error) {
+        console.error('Error adding category:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+
+export const seeAllCategory = async (req : any, res : any) => {
+    try {
+        const categories = await Category.find();
+        return res.status(200).json({ success: true, data: categories });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const deleteCategory = async (req : any, res : any) => {
+    try {
+        const { id } = req.params;
+        await Category.findByIdAndDelete(id);
+        return res.status(200).json({data :{ message: "Category deleted successfully."}});
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
