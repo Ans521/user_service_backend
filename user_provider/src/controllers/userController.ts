@@ -16,7 +16,7 @@ import { Category } from "../models/categorySchema";
 
 dotenv.config()
 connectDb()
-const secretKey = process.env.SECRET_KEY || '1n1b484n39886ni124114inai';
+const secretKey = '1n1b484n39886ni124114inai';
 
 const client = createClient();
 
@@ -100,7 +100,11 @@ export const verifyOtp = async (req: any, res: any) => {
             if (userData?.loggedInBefore) {
                 redisOperation(phoneNo1, userOtp, false); 
                 const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
-                return res.cookie("token", token).status(200).json({data : { message: "User logged in before", userData }});
+                return res.status(200).json({
+                    message: "User logged in before",
+                    userData: userData,
+                    token: token
+                  });
             } else {
                 try {
                     const newUser = await new User({ phoneNo: phoneRef?._id }).save();
@@ -117,14 +121,19 @@ export const verifyOtp = async (req: any, res: any) => {
                 if (providerData?.isUserVerified) {
                     redisOperation(phoneNo1, userOtp, false);
                     const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
-                    return res.cookie("token", token).status(200).json({data : { message: "Service provider verified", providerData }});
+                    return res.status(200).json({
+                        message: "Service provider verified",
+                        providerData: providerData,
+                        token: token
+                      });
                 } else {
                     redisOperation(phoneNo1, userOtp, false);
                     const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
-                    return res.cookie("token", token).status(200).json({data : {
+                    return res.status(200).json({
                         message: "Service provider logged in before but not verified yet by admin",
-                        providerData
-                    }});
+                        providerData: providerData,
+                        token: token
+                      });    
                 }
             } else {
                 try {
@@ -185,8 +194,12 @@ export const registerUser = async (req : any, res : any) =>{
         )
 
         const token = jwt.sign({id : phoneNoId.toString()}, secretKey, { expiresIn: '12h' })
-        return res.cookie("token", token).status(200).json({data : { message: "User registered successfully", user: newUser }});
-
+        return res.status(200).json({
+            message: "User registered successfully",
+            user: newUser,
+            token: token
+          });
+          
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: "An error occurred, please try again later"});
@@ -303,8 +316,12 @@ export const handleImageUrl = async (req: any, res: any) => {
         );
 
         const token: string = jwt.sign({id : phoneData?._id.toString()}, secretKey, { expiresIn: '12h' });
-        res.cookie("token", token).status(200).json({data :{ message: "URLs updated successfully.", providerData }});
-    } catch (err) {
+        return res.status(200).json({
+            message: "URLs updated successfully.",
+            providerData: providerData,
+            token: token
+          });
+              } catch (err) {
       res.status(500).json({ message: "Internal server error.", error: err });
     }
   };
@@ -481,3 +498,14 @@ export const deleteCategory = async (req : any, res : any) => {
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 }
+
+
+export const getProviderInfo = async (req : any, res : any) => {
+    try {
+        const providers = await ServiceProvider.find({}).populate('phoneNo');
+        return res.status(200).json({ success: true, data: providers });
+    } catch (error) {
+        console.error('Error fetching service providers:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
