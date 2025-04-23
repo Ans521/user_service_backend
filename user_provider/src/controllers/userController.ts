@@ -500,11 +500,11 @@ export const deleteCategory = async (req : any, res : any) => {
 }
 
 export const getProviderWithCategory = async (req : any, res : any) => {
-    const {subcat, page, limit} = req.params;
-    if(!subcat || !page || !limit) return res.status(401).json({ success: false, message: 'Failed to fetch the provider with category' });
+    const {subcat, page} = req.params;
+    if(!subcat || !page) return res.status(401).json({ success: false, message: 'Failed to fetch the provider with category' });
 
     const skip = (page - 1) * 10;
-
+    const limit = 10;
     try {
         const response = await ServiceProvider.find({subcategory : subcat, status : "approved"}).populate('phoneNo').skip(skip).limit(limit);
         const providerWithCategory = response.map((provider : any) => {
