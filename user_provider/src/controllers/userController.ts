@@ -275,9 +275,9 @@ const uploadImage = mutler.diskStorage({
 
 export const uploadMultiple = multer({ storage: uploadImage }).fields([
     { name: 'aadharCard', maxCount: 1 },
-    {name : 'aadharCardBack', maxCount : 1},
+    { name : 'aadharCardBack', maxCount : 1},
+    { name: 'panCard', maxCount: 1 },
     { name: 'photo', maxCount: 1 },
-    { name: 'panCard', maxCount: 1 }
 ]);
 
 export const upload = multer({storage : uploadImage})
@@ -499,13 +499,71 @@ export const deleteCategory = async (req : any, res : any) => {
     }
 }
 
+export const getProviderWithCategory = async (req : any, res : any) => {
+    const {subcat, page, limit} = req.params;
+    if(!subcat || !page || !limit) return res.status(401).json({ success: false, message: 'Failed to fetch the provider with category' });
+
+    const skip = (page - 1) * 10;
+
+    try {
+        const response = await ServiceProvider.find({subcategory : subcat, status : "approved"}).populate('phoneNo').skip(skip).limit(limit);
+        const providerWithCategory = response.map((provider : any) => {
+            return {
+                _id : provider?.id,
+                name : provider.name || "John doe",
+                category : provider.category || "",
+                review : provider.avgRating || 0,
+                totalReviews : provider.totalReviews || 0,
+                experience : provider.experience || 0,
+                visitingTime : provider.visitingTime || "30 min", 
+                phone : provider?.phoneNo?.phoneNumber,
+                providerPic : provider?.imageUrl?.photo || ""
+            };
+        })
+        return res.status(200).json({data : {message : "Provider fetched with limit", providerWithCategory}})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ success: false, message: 'Failed to fetch the provider with category' });
+    }
+}
 
 export const getProviderInfo = async (req : any, res : any) => {
+    const { id } = req.params;
     try {
-        const providers = await ServiceProvider.find({}).populate('phoneNo');
-        return res.status(200).json({ success: true, data: providers });
+        // const newProvider = await ServiceProvider.findOneAndUpdate(
+        //     { _id: id}, 
+        //     {
+        //       $push: { 
+        //         reviewComments: { totalStar: 4, comment: "good service" }
+        //       }
+        //     },
+        //     { new: true }
+        //   );
+        const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate('phoneNo')
+        if(provider){
+            if(provider?.services?.length === 0){
+                provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
+            }
+            const providerInfo = {
+                    name : provider?.name || "John doe",
+                    avgRating : provider?.avgRating || 0,
+                    totalReviews : provider?.totalReviews || 0,
+                    experience : provider.experience || 0,
+                    phone : provider?.phoneNo?.phoneNumber,
+                    providerPic : provider?.imageUrl?.photo || "", 
+                    completedTasks :  provider.completedTasks || 0,
+                    dailyAvailable : provider?.dailyHoursAvailable || "Monday-Sat : 10AM : 5PM",
+                    galleryImages : provider?.galleryImages || [],
+                    reviewByUser : provider?.reviewComments || [], 
+                    aboutUs : provider?.aboutUs || "",
+                    serviceList : provider?.services || [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]
+                };
+                return res.status(200).json({ data : {message: 'Fetched the provider info', providerInfo }});
+        }else{
+            return res.status(401).json({ data : {message: 'Provided Id have no info'}});
+        }
     } catch (error) {
-        console.error('Error fetching service providers:', error);
-        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
     }
-};
+}

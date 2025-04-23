@@ -6,8 +6,14 @@ const serviceProviderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  imageUrl: {
-    type: [String]
+  // imageUrl: {
+  //     "addharCard" : String,
+  //     "addharCardBack" : String, 
+  //     "panCard" : String, 
+  //     "photo" :  String
+  // },
+  imageUrl:{
+    type : [String]
   },
   status: {
     type: String,
@@ -15,26 +21,32 @@ const serviceProviderSchema = new mongoose.Schema({
     default: "pending"
   },
   category: {
-    type: mongoose.Types.ObjectId,
-    ref: "Category"
+    type:String,
+  },
+  subcategory : {
+    type : String
   },
   aadharAddress: {
     type: String
   },
-  review: {
-    type: Number, // changed from Float
+  avgRating: {
+    type: Number,
     default: 0
   },
   reviewComments: {
-    type: [String], // array of review strings
-    default: []
+    type : [{
+      "totalStar" :  Number,
+      "comment" : String
+    }],
+    default: [], 
+    _id : false
   },
   totalReviews: {
     type: Number,
     default: 0
   },
   experience: {
-    type: Number, // in years
+    type: Number,
     default: 0
   },
   totalDelivery: {
@@ -49,11 +61,11 @@ const serviceProviderSchema = new mongoose.Schema({
     default: []
   },
   weekDaysAvailable: {
-    type: [String], // like ["Monday", "Tuesday"]
+    type: [String], 
     default: []
   },
   dailyHoursAvailable: {
-    type: String // like "10:00 AM - 6:00 PM"
+    type: String
   },
   completedTasks: {
     type: Number,
@@ -62,9 +74,12 @@ const serviceProviderSchema = new mongoose.Schema({
   visitingTime : {
     type : String
   },
-  ChargePerTask: {
-    type : Number
-  }
+  services : {
+    type : [{
+      "service" : String,
+      "serviceList" : [String] 
+    }]
+ }
 });
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);
