@@ -13,6 +13,7 @@ import fs from 'fs';
 import {createClient} from 'redis';
 import verifyToken from "../middlewares/auth";
 import { Category } from "../models/categorySchema";
+import phone from "../models/phone";
 
 dotenv.config()
 connectDb()
@@ -45,7 +46,7 @@ const redisOperation = async(phone : string, otp : number, toStore : boolean = t
 
 export const getOtp = async (req : any, res : any) => {
     try {
-        const {phone} = req.body;
+        const {phone } = req.body;
         // const otp = Math.floor(1000 + Math.random() * 9999);
         const otp : number = 1111;
         const response = await PhoneNumber.findOne({phoneNumber : phone})
@@ -500,11 +501,10 @@ export const deleteCategory = async (req : any, res : any) => {
 }
 
 export const getProviderWithCategory = async (req : any, res : any) => {
-    const {subcat, page} = req.params;
-    if(!subcat || !page) return res.status(401).json({ success: false, message: 'Failed to fetch the provider with category' });
+    const {subcat, limit, page} = req.params;
+    if(!subcat || !page || !limit) return res.status(401).json({ success: false, message: 'Failed to fetch the provider with category' });
 
     const skip = (page - 1) * 10;
-    const limit = 10;
     try {
         const response = await ServiceProvider.find({subcategory : subcat, status : "approved"}).populate('phoneNo').skip(skip).limit(limit);
         const providerWithCategory = response.map((provider : any) => {
@@ -562,6 +562,129 @@ export const getProviderInfo = async (req : any, res : any) => {
         }else{
             return res.status(401).json({ data : {message: 'Provided Id have no info'}});
         }
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
+    }
+}
+
+
+export const updateProviderProfile = async (req : any, res : any) => {
+    try {
+        const { name, email, phone, aboutUs, experience, workingHours, workingDays } = req.body;
+        
+        const updateData : any = {}; 
+        // const {id} = req.user
+        const id : any = "6808e941eb7847eae9da2a46"
+        const response : any = await ServiceProvider.findOne({_id : id}).populate('phoneNo')
+
+        const phoneId = response?.phoneNo?._id
+        console.log("phoneId", phoneId)
+
+        const existingNumber = await PhoneNumber.findOne({phoneNumber : phone})
+
+        if(existingNumber){
+            return res.status(400).json({ message: "Phone number already exists" });
+        }
+
+        if (phone){
+            const response : any = await PhoneNumber.findOneAndUpdate(
+                {_id : phoneId},
+                {phoneNumber : phone},
+                {new : true}
+            )
+        }
+
+        if (name) updateData.name = name;              
+        if (email) updateData.email = email;            
+        if (aboutUs) updateData.aboutUs = aboutUs;  
+        if (experience) updateData.experience = experience;
+        if (workingHours) updateData.workingHours = workingHours; 
+        if (workingDays) updateData.workingDays = workingDays; 
+    
+        const updatedUser = await User.findByIdAndUpdate(
+            {_id : id},
+            { $set: updateData },  
+            { new: true }
+        );
+    
+        return res.status(200).json({data : {message: 'Profile updated successfully', updatedUser}});
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to update the provider info' });
+    }
+  };
+
+
+  export const updateUserInfo = async (req: any, res: any) => {
+    try {
+        const { name, email, phone, address } = req.body;
+    
+        const updateData: any = {};
+        const id: any = "6807cfcb32f40459a4c6e80d"; 
+        // const id = req.user;
+
+        const response : any = await ServiceProvider.findOne({ _id: id })
+            .populate("phoneNo");
+            // .populate("email");
+    
+        const phoneId = response?.phone?._id;
+        //   const emailId = user?.email?._id;
+        const existingNumber = await PhoneNumber.findOne({phoneNumber : phone})
+
+        if(existingNumber){
+            return res.status(400).json({ message: "Phone number already exists" });
+        }
+
+        if (phone) {
+            await PhoneNumber.findOneAndUpdate(
+            { _id: phoneId },
+            { phoneNumber: phone },
+            { new: true }
+            );
+        }
+    
+        // Update email if provided
+        //   if (email) {
+        //     await Email.findOneAndUpdate(
+        //       { _id: emailId },
+        //       { emailAddress: email },
+        //       { new: true }
+        //     );
+        //   }
+    
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+        if (address) updateData.address = address;
+    
+        const updatedUser = await User.findByIdAndUpdate(
+            { _id: id },
+            { $set: updateData },
+            { new: true }
+        );
+    
+        return res.status(200).json({
+            data: {
+            message: "User info updated successfully",
+            updatedUser,
+            },
+        });
+
+    } catch (error) {
+      console.error("Update failed:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to update user info" });
+    }
+  };
+  
+export const filterProvider = async (req : any, res : any) => {
+    try {
+        const { service, location } = req.query;
+        const providers = await ServiceProvider.find({
+            services: { $elemMatch: { service: service } },
+            address: { $near: { $geometry: { type: "Point", coordinates: location } } },
+        });
+        return res.status(200).json({ data : {message: 'Fetched the provider info', providers }});
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
