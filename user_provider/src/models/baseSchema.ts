@@ -5,12 +5,13 @@
       name: {
         type: String,
       },
-      email: {
-        type: String,
-        sparse: true,
-      },
       address: {
         type: String,
+      },
+      email: {
+        type: mongoose.Schema.Types.String,
+        ref : "PhoneNumber",
+        // unique: true,
       },
       phoneNo: {
         type: mongoose.Types.ObjectId,

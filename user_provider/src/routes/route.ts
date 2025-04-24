@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, registerUser, verifyOtp, upload, handleImage, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory} from "../controllers/userController";
+import { getOtp, registerProvider, registerUser, verifyOtp, upload, handleImage, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProviderProfile, updateUserInfo} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 
 const router = express.Router();
@@ -22,8 +22,8 @@ router.post('/categories', addCategory)
 router.get('/get-all-category', seeAllCategory)
 router.get('/get-category', verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory)
-router.get('/provider-with-subcat/:page/:subcat',verifyToken, getProviderWithCategory)
+router.get('/provider-with-subcat/:page/:limit/:subcat',verifyToken, getProviderWithCategory)
 router.get('/get-provider-info/:id', verifyToken, getProviderInfo)
-// router.put('/update-provider-info', updateProviderProfile)
-
+router.put('/update-provider-info', updateProviderProfile)
+router.put('/update-user-info', updateUserInfo)
 export default router;
