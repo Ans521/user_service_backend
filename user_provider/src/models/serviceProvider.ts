@@ -21,10 +21,12 @@ const serviceProviderSchema = new mongoose.Schema({
     default: "pending"
   },
   category: {
-    type:String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref : "Category"
   },
   subcategory : {
-    type : String
+    type : mongoose.Schema.Types.ObjectId,
+    ref : "SubCategory"
   },
   aadharAddress: {
     type: String
@@ -79,6 +81,9 @@ const serviceProviderSchema = new mongoose.Schema({
       "service" : String,
       "serviceList" : [String] 
     }]
+ },
+ servicePrice : {
+  type : Number
  }
 });
 

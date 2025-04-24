@@ -1,6 +1,5 @@
-import { Request, Response } from "express";
 import { connectDb } from "../config/db";
-import PhoneNumber from "../models/phone";
+import PhoneNumber from "../models/phoneEmail";
 import { User } from "../models/user";
 import { ServiceProvider } from "../models/serviceProvider";
 import jwt from "jsonwebtoken";
@@ -11,9 +10,9 @@ import path from 'path';
 import multer from "multer";
 import fs from 'fs';
 import {createClient} from 'redis';
-import verifyToken from "../middlewares/auth";
-import { Category } from "../models/categorySchema";
-import phone from "../models/phone";
+import {Category} from "../models/categorySchema";
+import { SubCategory } from "../models/subCategory";
+import phoneEmail from "../models/phoneEmail";
 
 dotenv.config()
 connectDb()
@@ -46,22 +45,33 @@ const redisOperation = async(phone : string, otp : number, toStore : boolean = t
 
 export const getOtp = async (req : any, res : any) => {
     try {
-        const {phone } = req.body;
+        const {phone, email} = req.body;
+        if(!phone || !email){
+            return res.status(400).json({message : "Please provide phone number and email"})
+        }
         // const otp = Math.floor(1000 + Math.random() * 9999);
         const otp : number = 1111;
-        const response = await PhoneNumber.findOne({phoneNumber : phone})
-        
+        const response = await PhoneNumber.findOne({phoneNumber : phone, email})
+    
         //user enter the phone number checking that is in the mongodb or not
         if(!response){
-            await new PhoneNumber({phoneNumber : phone}).save()
-            await redisOperation(phone, otp)
+            const responseEmail = await PhoneNumber.findOne({email})
+            const responsePhone = await PhoneNumber.findOne({phoneNumber : phone})
+
+            if(responseEmail || responsePhone){
+                return res.status(400).json({message : "Phone number or email already exist"})
+            }
+
+            await new PhoneNumber({phoneNumber : phone, email}).save()
+            await redisOperation(email, otp)
             return res.status(200).json({data : { message: "otp generated", otp }});
         }else{
             // if phone number is found in mongodb
-            const otpRedis = await client.get(`otp:${phone}`)
-            const phoneNo = response.phoneNumber;
+            const otpRedis = await client.get(`otp:${email}`)
+            // const phoneNo = response.phoneNumber;
+            const providerEmail = response.email;
             if(!otpRedis){
-                await redisOperation(phoneNo, otp)
+                await redisOperation(providerEmail, otp)
                 return res.status(200).json({data : {message : "otp generated", otp}})
             }
             return res.status(200).json({data : {message : "fetched otp", otpRedis}})
@@ -161,22 +171,19 @@ export const registerUser = async (req : any, res : any) =>{
     }
   
     try{
-        const userData : any = await PhoneNumber.findOne({phoneNumber : phone});
-        console.log(userData)
+        const userData : any = await PhoneNumber.findOne({phoneNumber : phone, email : email});
 
         if(!userData){
             return res.status(404).json({message : "Phone Number has not been stored"})
         }
+
+        // const existingUser : any = await User.findOne({ email })
+        const existingUser : any = await PhoneNumber.findOne({email})
         
-        const existingUser : any = await User.findOne({ email })
+        // if (existingUser) {
+        //     return res.status(400).json({ message: "Email is already registered." });
+        // }
         
-        console.log(existingUser)
-        
-        if (existingUser) {
-            return res.status(400).json({ message: "Email is already registered." });
-        }
-        
-        // need to check this --> 
         const phoneNoId = userData?._id;
         
         const loggedInBefore = true;
@@ -398,7 +405,6 @@ export const storePhone = async (req : any, res : any) => {
 
 export const addProvider = async (req : any, res : any) => {
     try {
-        
         const { name, email, category, subcategory, address, aadharAddress, phone} = req.body;
         
         const imageUrl = req.fileUrls;
@@ -413,12 +419,18 @@ export const addProvider = async (req : any, res : any) => {
         if(providerExist){
             return res.status(400).json({ message: "Email is already registered." });
         }
-
-        const providerData = { phoneNo : phoneNo?._id, name, email,category, subcategory, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
-        
         if (!name || !email || !address || !category || !subcategory || !aadharAddress) {
             return res.status(500).json({ message: "Please provide all the required fields." });
         }
+
+        const catResponse = await Category.findOne({category});
+        const categoryId = catResponse?._id; 
+
+        const subCatResponse = await SubCategory.findOne({subcategory});
+        const subcategoryId = subCatResponse?._id;
+
+        const providerData = { phoneNo : phoneNo?._id, name, email, category : categoryId, subcategory : subcategoryId, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
+        
 
         const newServiceProvider = new ServiceProvider(providerData);  
         await newServiceProvider.save();
@@ -459,6 +471,7 @@ export const updateProviderStatus = async (req : any, res : any) => {
 }  
 
 
+
 export const addCategory = async (req : any, res : any) => {
     try {
         const { category, subcategories } = req.body;
@@ -468,9 +481,14 @@ export const addCategory = async (req : any, res : any) => {
         if(categoryExist){
             return res.status(400).json({data :{ message: "Category already exist."}});
         }
-        const categoryData = { category, subcategories };
+        const categoryData = { category };
         const newCategory = new Category(categoryData);
         await newCategory.save();
+        const subcategoryData = subcategories.map((subcat : any) => ({
+            name : subcat, 
+            category : newCategory._id
+        }))
+        await SubCategory.insertMany(subcategoryData);
         return res.status(200).json({data :{ message: "Category added successfully."}});
     } catch (error) {
         console.error('Error adding category:', error);
@@ -482,7 +500,14 @@ export const addCategory = async (req : any, res : any) => {
 export const seeAllCategory = async (req : any, res : any) => {
     try {
         const categories = await Category.find();
-        return res.status(200).json({ success: true, data: categories });
+        const subcategories = await SubCategory.find().select('_id name category');
+
+        const response = await Promise.all(categories.map(async (cat : any) =>( {
+            category : cat?._doc.category,
+            subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
+        })))
+
+        return res.status(200).json({ success: true, data: response });
     } catch (error) {
         console.error('Error fetching categories:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -501,12 +526,22 @@ export const deleteCategory = async (req : any, res : any) => {
 }
 
 export const getProviderWithCategory = async (req : any, res : any) => {
-    const {subcat, limit, page} = req.params;
-    if(!subcat || !page || !limit) return res.status(401).json({ success: false, message: 'Failed to fetch the provider with category' });
+    const {limit, page} = req.query;
+    if(!page || !limit) return res.status(401).json({ success: false, message: 'page and limt is required' });  
+    const pageNumber = parseInt(page) || 1;     
+    const limitNumber = parseInt(limit) || 10;
 
-    const skip = (page - 1) * 10;
+    const {rating, subcat, minPrice, maxPrice} = req.body;
+
+    const skip = (pageNumber - 1) * 10;
     try {
-        const response = await ServiceProvider.find({subcategory : subcat, status : "approved"}).populate('phoneNo').skip(skip).limit(limit);
+        const response = await ServiceProvider.find({
+            subcategory : subcat,
+            status : "approved",
+            avgRating : {$gte : rating},
+            price : {$gte : minPrice, $lte : maxPrice}
+        }).populate('phoneNo').skip(skip).limit(limitNumber);
+
         const providerWithCategory = response.map((provider : any) => {
             return {
                 _id : provider?.id,
@@ -517,7 +552,8 @@ export const getProviderWithCategory = async (req : any, res : any) => {
                 experience : provider.experience || 0,
                 visitingTime : provider.visitingTime || "30 min", 
                 phone : provider?.phoneNo?.phoneNumber,
-                providerPic : provider?.imageUrl?.photo || ""
+                providerPic : provider?.imageUrl?.photo || "",
+                price : provider.servicePrice || 100
             };
         })
         return res.status(200).json({data : {message : "Provider fetched with limit", providerWithCategory}})
@@ -539,7 +575,7 @@ export const getProviderInfo = async (req : any, res : any) => {
         //     },
         //     { new: true }
         //   );
-        const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate('phoneNo')
+        const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate('phoneNo, category, subcategory');
         if(provider){
             if(provider?.services?.length === 0){
                 provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
@@ -567,7 +603,6 @@ export const getProviderInfo = async (req : any, res : any) => {
         return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
     }
 }
-
 
 export const updateProviderProfile = async (req : any, res : any) => {
     try {
