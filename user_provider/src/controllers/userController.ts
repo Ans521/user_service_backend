@@ -178,8 +178,12 @@ export const registerUser = async (req : any, res : any) =>{
         }
 
         // const existingUser : any = await User.findOne({ email })
-        const existingUser : any = await PhoneNumber.findOne({email})
-        
+        const responseEmail = await PhoneNumber.findOne({email})
+        const responsePhone = await PhoneNumber.findOne({phoneNumber : phone})
+
+        if(responseEmail || responsePhone){
+            return res.status(400).json({message : "Phone number or email already exist"})
+        }
         // if (existingUser) {
         //     return res.status(400).json({ message: "Email is already registered." });
         // }
@@ -187,7 +191,8 @@ export const registerUser = async (req : any, res : any) =>{
         const phoneNoId = userData?._id;
         
         const loggedInBefore = true;
-        const registerData : any = { name, email, address, loggedInBefore}
+        // const registerData : any = { name, email, address, loggedInBefore}
+        const registerData : any = { name,address, loggedInBefore}
 
         if (mpin && typeof mpin === "string") {
             const hashedMpin = await bcrypt.hash(mpin, 10);
