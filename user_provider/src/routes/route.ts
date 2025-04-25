@@ -19,11 +19,11 @@ router.post('/add-provider', (req : any, res : any, next : any) => {
 }, uploadMultiple, addProvider);
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory)
-router.get('/get-all-category', seeAllCategory)
+router.get('/get-all-category',verifyToken, seeAllCategory)
 router.get('/get-category', verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory)
-router.get('/provider-with-subcat/:page/:limit/:subcat',verifyToken, getProviderWithCategory)
-router.get('/get-provider-info/:id', verifyToken, getProviderInfo)
-router.put('/update-provider-info', updateProviderProfile)
-router.put('/update-user-info', updateUserInfo)
+router.get('/provider-with-filter',verifyToken, getProviderWithCategory)
+router.get('/get-provider-info',verifyToken, getProviderInfo)
+router.put('/update-provider-info',verifyToken, updateProviderProfile)
+router.put('/update-user-info',verifyToken, updateUserInfo)
 export default router;
