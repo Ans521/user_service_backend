@@ -56,15 +56,27 @@ const serviceProviderSchema = new mongoose.Schema({
     default: 0
   },
   aboutUs: {
-    type: String
+    type: String, 
+    default: ""
   },
   galleryImages: {
     type: [String],
     default: []
   },
-  weekDaysAvailable: {
-    type: [String], 
-    default: []
+  workingHours: {
+    type: {
+        start : String,
+        end : String
+    }, 
+    default: {
+        start : "",
+        end : ""
+    },
+    _id : false
+  },
+  workingDays: {
+    type: [String],
+    default: ""
   },
   dailyHoursAvailable: {
     type: String

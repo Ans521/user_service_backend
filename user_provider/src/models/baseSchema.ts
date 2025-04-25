@@ -11,7 +11,6 @@
       email: {
         type: mongoose.Schema.Types.String,
         ref : "PhoneNumber",
-        // unique: true,
       },
       phoneNo: {
         type: mongoose.Types.ObjectId,
