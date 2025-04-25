@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const phoneSchema = new mongoose.Schema(
     {
         phoneNumber : {
-            type : String,
+            type : Number,
             required : true,
             unique : true
         },
