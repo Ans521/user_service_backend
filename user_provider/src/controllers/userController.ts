@@ -12,7 +12,6 @@ import fs from 'fs';
 import {createClient} from 'redis';
 import {Category} from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
-import phoneEmail from "../models/phoneEmail";
 
 dotenv.config()
 connectDb()
@@ -100,8 +99,11 @@ export const verifyOtp = async (req: any, res: any) => {
         if (storedOtp !== userOtp) {
             return res.status(400).json({data : { message: "Enter valid OTP", userOtp }});
         }
+        console.log("phoneNo1", phoneNo1)
+        
+        // const phoneRef = await PhoneNumber.findOne({ phoneNumber: String(phoneNo1) });
+        const phoneRef = await PhoneNumber.findOne({ email : phoneNo1});
 
-        const phoneRef = await PhoneNumber.findOne({ phoneNumber: String(phoneNo1) });
         if (!phoneRef) {
             return res.status(404).json({ message: "No phone reference found" });
         }
@@ -187,12 +189,12 @@ export const registerUser = async (req : any, res : any) =>{
         // if (existingUser) {
         //     return res.status(400).json({ message: "Email is already registered." });
         // }
-        
+
         const phoneNoId = userData?._id;
         
         const loggedInBefore = true;
         // const registerData : any = { name, email, address, loggedInBefore}
-        const registerData : any = { name,address, loggedInBefore}
+        const registerData : any = { name, email : phoneNoId, address, loggedInBefore}
 
         if (mpin && typeof mpin === "string") {
             const hashedMpin = await bcrypt.hash(mpin, 10);
@@ -227,22 +229,33 @@ export const registerProvider = async (req: any, res: any) => {
         return res.status(400).json({ message: "Provide all the fields" });
     }
 
-    const existingEmail = await ServiceProvider.findOne({ email });
+    // const existingEmail = await ServiceProvider.findOne({ email });
 
-    if (existingEmail) {
-        return res.status(400).json({ message: "Email is already registered" });
-    }
+    // if (existingEmail) {
+    //     return res.status(400).json({ message: "Email is already registered" });
+    // }
 
-    const userData: any = await PhoneNumber.findOne({ phoneNumber: phone });
+    // const userData: any = await PhoneNumber.findOne({ phoneNumber: phone });
     
-    if (!userData) {
-        return res.status(404).json({ message: "Phone number not found" });
+    // if (!userData) {
+    //     return res.status(404).json({ message: "Phone number not found" });
+    // }
+
+    const userData : any = await PhoneNumber.findOne({phoneNumber : phone, email : email});
+
+    if(!userData){
+        return res.status(404).json({message : "Phone Number has not been stored"})
     }
 
     const phoneNoId = userData?._id;
-
+    const categoryId = await Category.findOne({category});
+    const subcategoryId = await SubCategory.findOne({name : subcategory});
+    console.log(categoryId, subcategoryId)
+    if(!categoryId || !subcategoryId){
+        return res.status(404).json({message : "Category or subcategory not found"})
+    }
     try {
-        const serviceProviderData: any = { name, email, address, aadharAddress: address2, phoneNo: phoneNoId, category, subcategory };
+        const serviceProviderData: any = { name, email : phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category : categoryId?._id, subcategory : subcategoryId?._id };
 
         const newServiceProvider = new ServiceProvider(serviceProviderData);
 
@@ -418,7 +431,7 @@ export const addProvider = async (req : any, res : any) => {
         const status = "approved";
         const loggedInBefore = true;
         const phoneNo = await PhoneNumber.findOne({phoneNumber : phone});
-        console.log("phone",phoneNo?._id)
+
         const providerExist = await ServiceProvider.findOne({email : email});
 
         if(providerExist){
@@ -473,9 +486,7 @@ export const updateProviderStatus = async (req : any, res : any) => {
         console.error('Error updating service provider:', error);
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
-}  
-
-
+}
 
 export const addCategory = async (req : any, res : any) => {
     try {
@@ -544,9 +555,9 @@ export const getProviderWithCategory = async (req : any, res : any) => {
             subcategory : subcat,
             status : "approved",
             avgRating : {$gte : rating},
-            price : {$gte : minPrice, $lte : maxPrice}
+            servicePrice : {$gte : minPrice, $lte : maxPrice}
         }).populate('phoneNo').skip(skip).limit(limitNumber);
-
+        console.log("response", response)
         const providerWithCategory = response.map((provider : any) => {
             return {
                 _id : provider?.id,
@@ -569,7 +580,7 @@ export const getProviderWithCategory = async (req : any, res : any) => {
 }
 
 export const getProviderInfo = async (req : any, res : any) => {
-    const { id } = req.params;
+    const { id } = req.query;
     try {
         // const newProvider = await ServiceProvider.findOneAndUpdate(
         //     { _id: id}, 
@@ -580,11 +591,15 @@ export const getProviderInfo = async (req : any, res : any) => {
         //     },
         //     { new: true }
         //   );
-        const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate('phoneNo, category, subcategory');
+        console.log("id", id)
+        const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate(['phoneNo', 'email', 'category', 'subcategory']);
+
+        console.log("provider", provider)
         if(provider){
             if(provider?.services?.length === 0){
                 provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
             }
+
             const providerInfo = {
                     name : provider?.name || "John doe",
                     avgRating : provider?.avgRating || 0,
@@ -596,7 +611,7 @@ export const getProviderInfo = async (req : any, res : any) => {
                     dailyAvailable : provider?.dailyHoursAvailable || "Monday-Sat : 10AM : 5PM",
                     galleryImages : provider?.galleryImages || [],
                     reviewByUser : provider?.reviewComments || [], 
-                    aboutUs : provider?.aboutUs || "",
+                    aboutUs : provider?.aboutUs || "user service backend is working",
                     serviceList : provider?.services || [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]
                 };
                 return res.status(200).json({ data : {message: 'Fetched the provider info', providerInfo }});
@@ -612,29 +627,28 @@ export const getProviderInfo = async (req : any, res : any) => {
 export const updateProviderProfile = async (req : any, res : any) => {
     try {
         const { name, email, phone, aboutUs, experience, workingHours, workingDays } = req.body;
-        
+        if(!phone || !email){
+            return res.status(400).json({ message: "Phone number or email is required" });
+        }
         const updateData : any = {}; 
-        // const {id} = req.user
-        const id : any = "6808e941eb7847eae9da2a46"
-        const response : any = await ServiceProvider.findOne({_id : id}).populate('phoneNo')
+        const {id} = req.user
+        const response : any = await ServiceProvider.findOne({_id : id}).populate(['phoneNo', 'email']);
 
         const phoneId = response?.phoneNo?._id
-        console.log("phoneId", phoneId)
 
         const existingNumber = await PhoneNumber.findOne({phoneNumber : phone})
-
-        if(existingNumber){
-            return res.status(400).json({ message: "Phone number already exists" });
+        const existingEmail = await PhoneNumber.findOne({email})
+        if(existingNumber || existingEmail){
+            return res.status(400).json({ message: "Phone number or email already exists" });
         }
 
-        if (phone){
-            const response : any = await PhoneNumber.findOneAndUpdate(
+        if (phone || email){
+            await PhoneNumber.findOneAndUpdate(
                 {_id : phoneId},
-                {phoneNumber : phone},
+                {phoneNumber : phone, email : email},
                 {new : true}
             )
         }
-
         if (name) updateData.name = name;              
         if (email) updateData.email = email;            
         if (aboutUs) updateData.aboutUs = aboutUs;  
@@ -717,16 +731,16 @@ export const updateProviderProfile = async (req : any, res : any) => {
     }
   };
   
-export const filterProvider = async (req : any, res : any) => {
-    try {
-        const { service, location } = req.query;
-        const providers = await ServiceProvider.find({
-            services: { $elemMatch: { service: service } },
-            address: { $near: { $geometry: { type: "Point", coordinates: location } } },
-        });
-        return res.status(200).json({ data : {message: 'Fetched the provider info', providers }});
-    } catch (error) {
-        console.log("error", error)
-        return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
-    }
-}
+// export const filterProvider = async (req : any, res : any) => {
+//     try {
+//         const { service, location } = req.query;
+//         const providers = await ServiceProvider.find({
+//             services: { $elemMatch: { service: service } },
+//             address: { $near: { $geometry: { type: "Point", coordinates: location } } },
+//         });
+//         return res.status(200).json({ data : {message: 'Fetched the provider info', providers }});
+//     } catch (error) {
+//         console.log("error", error)
+//         return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
+//     }
+// }

@@ -83,7 +83,8 @@ const serviceProviderSchema = new mongoose.Schema({
     }]
  },
  servicePrice : {
-  type : Number
+  type : Number, 
+  default: 0
  }
 });
 
