@@ -9,7 +9,7 @@
         type: String,
       },
       email: {
-        type: mongoose.Schema.Types.String,
+        type: mongoose.Types.ObjectId,
         ref : "PhoneNumber",
       },
       phoneNo: {
