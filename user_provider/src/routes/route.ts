@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, registerUser, verifyOtp, upload, handleImage, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProviderProfile, updateUserInfo, getInfoUserProvider} from "../controllers/userController";
+import { getOtp, registerProvider, registerUser, verifyOtp, upload, handleImage, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, getInfoUserProvider, updateProfile, searchProvider} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 
 const router = express.Router();
@@ -24,7 +24,7 @@ router.get('/get-category', verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory)
 router.get('/provider-with-filter',verifyToken, getProviderWithCategory)
 router.get('/get-provider-info',verifyToken, getProviderInfo)
-router.put('/update-provider-info',verifyToken, updateProviderProfile)
-router.put('/update-user-info',verifyToken, updateUserInfo)
+router.put('/update-info',verifyToken, updateProfile)
 router.get('/get-info',verifyToken, getInfoUserProvider)
+router.get('/search-provider', searchProvider)
 export default router;

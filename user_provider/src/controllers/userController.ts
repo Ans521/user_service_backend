@@ -13,6 +13,8 @@ import {createClient} from 'redis';
 import {Category} from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
 import { start } from "repl";
+import { queryObjects } from "v8";
+import { availableMemory } from "process";
 
 dotenv.config()
 connectDb()
@@ -113,7 +115,7 @@ export const verifyOtp = async (req: any, res: any) => {
             const userData = await User.findOne({ phoneNo: phoneRef?._id }) as typeof User & { loggedInBefore?: boolean };
             if (userData?.loggedInBefore) {
                 redisOperation(phoneNo1, userOtp, false); 
-                const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
+                const token = jwt.sign({id : phoneRef?._id.toString(),isEmployeeLogin : false }, secretKey, { expiresIn: '12h' })
                 return res.status(200).json({
                     message: "User logged in before",
                     userData: userData,
@@ -134,7 +136,7 @@ export const verifyOtp = async (req: any, res: any) => {
             if (providerData?.loggedInBefore) {
                 if (providerData?.isUserVerified) {
                     redisOperation(phoneNo1, userOtp, false);
-                    const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
+                    const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
                     return res.status(200).json({
                         message: "Service provider verified",
                         providerData: providerData,
@@ -142,7 +144,7 @@ export const verifyOtp = async (req: any, res: any) => {
                       });
                 } else {
                     redisOperation(phoneNo1, userOtp, false);
-                    const token = jwt.sign({id : phoneRef?._id.toString()}, secretKey, { expiresIn: '12h' })
+                    const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
                     return res.status(200).json({
                         message: "Service provider logged in before but not verified yet by admin",
                         providerData: providerData,
@@ -210,7 +212,7 @@ export const registerUser = async (req : any, res : any) =>{
             {new : true}
         )
 
-        const token = jwt.sign({id : phoneNoId.toString()}, secretKey, { expiresIn: '12h' })
+        const token = jwt.sign({id : phoneNoId.toString(), isEmployeeLogin : false}, secretKey, { expiresIn: '12h' })
         return res.status(200).json({
             message: "User registered successfully",
             user: newUser,
@@ -450,7 +452,6 @@ export const addProvider = async (req : any, res : any) => {
         const subcategoryId = subCatResponse?._id;
 
         const providerData = { phoneNo : phoneNo?._id, name, email, category : categoryId, subcategory : subcategoryId, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
-        
 
         const newServiceProvider = new ServiceProvider(providerData);  
         await newServiceProvider.save();
@@ -626,144 +627,78 @@ export const getProviderInfo = async (req : any, res : any) => {
     }
 }
 
-export const updateProviderProfile = async (req : any, res : any) => {
-    try {
-        const { name, email, phone, aboutUs, experience, workingHours, workingDays } = req.body;
-        
-        const updateData : any = {}; 
-        const {id} = req.user
-        // const id = "680b14f0231d43a6d9d41169"
-        const response : any = await ServiceProvider.findOne({phoneNo : id}).populate('phoneNo');
+export const updateProfile = async (req : any, res : any) => {
+    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays} = req.body;
 
-        const phoneId = response?.phoneNo?._id
-        if(phone || email){
-            const updateProviderData :  any = {}
-            if (phone) {
-                const existingNumber : any = await PhoneNumber.findOne({phoneNumber : phone})
-                if(!existingNumber){
-                    updateProviderData.phoneNumber = phone
-                }else{
-                    console.log("existing number", existingNumber._id)
-                    console.log("phoneId", phoneId)
-                    if(existingNumber?._id.toString() != phoneId.toString()){
-                        return res.status(400).json({ message: "Phone number or email already exists in another account" });
-                    }
-                    updateProviderData.phoneNumber = phone
-                }
+    const updateData : any = {};
+
+    const {id, isEmployeeLogin} = req.user;
+
+    const response : any = isEmployeeLogin ? await ServiceProvider.findOne({ phoneNo: id }).populate("phoneNo") : await User.findOne({ phoneNo: id }).populate("phoneNo");
+    const phoneId = response?.phoneNo?._id.toString();
+
+    if(phone || email){
+        const updateProviderData : any = {}
+        if (phone) {
+            const existingNumber : any = await PhoneNumber.findOne({phoneNumber : phone})
+            if(!existingNumber || existingNumber?._id.toString() == phoneId.toString()){
+                updateProviderData.phoneNumber = phone
+            }else{
+                    return res.status(400).json({ message: "Phone number or email already exists in another account" });
             }
-            if(email){
-                const existingEmail : any = await PhoneNumber.findOne({email})
-                if(!existingEmail){
-                    updateProviderData.email = email
-                }else{
-                    if(existingEmail?._id.toString() != phoneId.toString()){
-                        return res.status(400).json({ message: "Phone number or email already exists in another account" });
-                    }
-                    updateProviderData.email = email
-                }
+        }
+        if(email){
+            const existingEmail : any = await PhoneNumber.findOne({email})
+            if(!existingEmail || existingEmail?._id.toString() == phoneId.toString()){
+                updateProviderData.email = email
+            }else{
+                return res.status(400).json({ message: "Email already exists in another account" });
             }
+        }
+
+          
+        if(Object.keys(updateProviderData).length > 0){
             await PhoneNumber.findOneAndUpdate(
                 {_id : phoneId},
                 {$set : updateProviderData},
                 {new : true}
             )
+
         }
-        if (name) updateData.name = name;              
-        if (email) updateData.email = email;            
-        if (aboutUs) updateData.aboutUs = aboutUs;  
-        if (experience) updateData.experience = experience;
-        if (workingHours) updateData.workingHours = workingHours; 
-        if (workingDays) updateData.workingDays = workingDays; 
-        
+    }
+    if(name) updateData.name = name;
+    if(isEmployeeLogin){
+        if(aboutUs) updateData.aboutUs = aboutUs;
+        if(experience) updateData.experience = experience;
+        if(workingHours) updateData.workingHours = workingHours;
+        if(workingDays) updateData.workingDays = workingDays;
 
         const updatedUser = await ServiceProvider.findOneAndUpdate(
             {phoneNo : id},
             { $set: updateData },
             {upsert: true, new: true }
-        );
-    
-        return res.status(200).json({data : {message: 'Profile updated successfully', updatedUser}});
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({ success: false, message: 'Failed to update the provider info' });
-    }
-  };
-
-
-  export const updateUserInfo = async (req: any, res: any) => {
-    try {
-        const { name, email, phone, address } = req.body;
-        
-        const updateData: any = {};
-        // const id: any = "680b138cc20c48d016c7a057"; 
-        const {id} = req.user;
-        console.log(id)
-        const response : any = await User.findOne({ phoneNo: id })
-            .populate("phoneNo");
-        console.log("response", response)
-        const phoneId = response?.phoneNo?._id.toString();
-
-        if (phone) {
-            const existingNumber = await PhoneNumber.findOne({ phoneNumber: phone });
-            if (!existingNumber) {
-                await PhoneNumber.findByIdAndUpdate(phoneId, { phoneNumber: phone });
-            } else {
-                if (existingNumber?._id.toString() !== phoneId) {
-                    return res.status(400).json({ message: "Phone number already exists in another account" });
-                }
-                await PhoneNumber.findByIdAndUpdate(phoneId, { phoneNumber: phone });
-            }
-        }
-        
-        if (email) {
-            const existingEmail = await PhoneNumber.findOne({ email });
-            if (!existingEmail) {
-                await PhoneNumber.findByIdAndUpdate(phoneId, { email });
-            } else {
-                if (existingEmail?._id.toString() !== phoneId) {
-                    return res.status(400).json({ message: "Email already exists in another account" });
-                }
-                await PhoneNumber.findByIdAndUpdate(phoneId, { email });
-            }
-        }     
-    
-        if (name) updateData.name = name;
-        if (address) updateData.address = address;
-       
-        const updatedUser = await User.findOneAndUpdate(
-            { phoneNo : id },
-            { $set: updateData },
-            { new: true }
-        );
-    
+        )
         return res.status(200).json({
-            data: {
-            message: "User info updated successfully",
-            updatedUser,
-            },
-        });
-
-    } catch (error) {
-      console.error("Update failed:", error);
-      return res
-        .status(500)
-        .json({ success: false, message: "Failed to update user info" });
+            data : {
+                message : "User info updated successfully",
+                updatedUser
+            }
+        })
+    }else{
+        if(address) updateData.address = address;
+        const updatedUser = await User.findOneAndUpdate(
+            {phoneNo : id},
+            { $set: updateData },
+            {upsert: true, new: true }
+        )
+        return res.status(200).json({
+            data : {
+                message : "User info updated successfully",
+                updatedUser
+            }
+        })
     }
-  };
-  
-// export const filterProvider = async (req : any, res : any) => {
-//     try {
-//         const { service, location } = req.query;
-//         const providers = await ServiceProvider.find({
-//             services: { $elemMatch: { service: service } },
-//             address: { $near: { $geometry: { type: "Point", coordinates: location } } },
-//         });
-//         return res.status(200).json({ data : {message: 'Fetched the provider info', providers }});
-//     } catch (error) {
-//         console.log("error", error)
-//         return res.status(500).json({ success: false, message: 'Failed to fetch the provider info' });
-//     }
-// }
+}
 
 export const getInfoUserProvider = async (req: any, res: any) => {
     try {
@@ -789,6 +724,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
                 workingDays : provider?.workingDays || "Everyday",
             }
+
             return res.status(200).json({ data: { message: 'Fetched the provider info', providerData } });
         } else {
             const user: any = await User.findOne({ _id: id }).populate(['phoneNo', 'email']);
@@ -809,4 +745,42 @@ export const getInfoUserProvider = async (req: any, res: any) => {
   };
 
 
-  
+    export const searchProvider = async (req : any, res : any) => {
+        try {
+            const { search } = req.body;
+            console.log("search", search)   
+            // agr mei chahta hu kii user chahe phn number fill kree ya fir email kuch bhi then i can use $or to search across multiple field.
+            //  $or is used to search across multiple fields
+            const providers : any = await SubCategory.find({
+                    name: { $regex: search, $options: 'i' },
+                    // { address: { $regex: search, $options: 'i' } },
+            })
+            const searchData = await Promise.all(providers.map(async(provider : any) => {
+                console.log("provider", provider._id)
+                const providerInfo : any = await ServiceProvider.findOne({ subcategory : provider._id, status : "approved" })
+                console.log("providerInfo", providerInfo)
+                if(providerInfo){
+                    return {
+                        _id : providerInfo?.id,
+                        name : providerInfo?.name,
+                        phone : providerInfo?.phoneNo?.phoneNumber,
+                        review : providerInfo?.avgRating || 2,
+                        price : providerInfo?.servicePrice || 100,
+                        totalReviews : providerInfo?.totalReviews || 0,
+                        experience : providerInfo?.experience || 0,
+                        workingHrs : providerInfo?.workingHours || {start : "10AM", end : "5PM"},
+                        workingDays : providerInfo?.workingDays || "Everyday",
+                        visitingTime : providerInfo?.visitingTime || "30 min",
+                    }
+                }else{
+                    return null
+                }
+
+            }))
+
+            const searchedData = searchData.filter((provider : any) => provider !== null)
+            return res.status(200).json({ data: { message: 'Fetched the provider info', searchedData } });
+        }catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
+        }
+    }   

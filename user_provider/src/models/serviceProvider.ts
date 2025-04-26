@@ -21,7 +21,7 @@ const serviceProviderSchema = new mongoose.Schema({
     default: "pending"
   },
   category: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Types.ObjectId,
     ref : "Category"
   },
   subcategory : {
