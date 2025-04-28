@@ -12,9 +12,7 @@ import fs from 'fs';
 import {createClient} from 'redis';
 import {Category} from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
-import { start } from "repl";
-import { queryObjects } from "v8";
-import { availableMemory } from "process";
+import { imagesKey } from "../shortObj";
 
 dotenv.config()
 connectDb()
@@ -61,7 +59,7 @@ export const getOtp = async (req : any, res : any) => {
             const responsePhone = await PhoneNumber.findOne({phoneNumber : phone})
 
             if(responseEmail || responsePhone){
-                return res.status(400).json({message : "Phone number or email already exist"})
+                return res.status(400).json({message : "Phone number or email already exist in another account"})
             }
 
             await new PhoneNumber({phoneNumber : phone, email}).save()
@@ -144,16 +142,16 @@ export const verifyOtp = async (req: any, res: any) => {
                       });
                 } else {
                     redisOperation(phoneNo1, userOtp, false);
-                    const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
+                    const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h'})
                     return res.status(200).json({
                         message: "Service provider logged in before but not verified yet by admin",
                         providerData: providerData,
                         token: token
                       });    
-                }
-            } else {
+                } 
+             } else {
                 try {
-                    const newProvider = await new ServiceProvider({ phoneNo: phoneRef?._id }).save();
+                    const newProvider = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
                     redisOperation(phoneNo1, userOtp, false);
                     return res.status(200).json({data : { message: "New service provider logged in", newProvider }});
                 } catch (error) {
@@ -205,12 +203,16 @@ export const registerUser = async (req : any, res : any) =>{
             console.log("hashedMpin", hashedMpin);
             registerData.mpin = hashedMpin;
         }
-    
+
+        console.log("registerData", phoneNoId)
+
         const newUser = await User.findOneAndUpdate(
             {phoneNo : phoneNoId},
             {$set : registerData},
             {new : true}
         )
+
+        console.log("newUser", newUser)
 
         const token = jwt.sign({id : phoneNoId.toString(), isEmployeeLogin : false}, secretKey, { expiresIn: '12h' })
         return res.status(200).json({
@@ -240,7 +242,7 @@ export const registerProvider = async (req: any, res: any) => {
     // }
 
     // const userData: any = await PhoneNumber.findOne({ phoneNumber: phone });
-    
+ 
     // if (!userData) {
     //     return res.status(404).json({ message: "Phone number not found" });
     // }
@@ -248,22 +250,31 @@ export const registerProvider = async (req: any, res: any) => {
     const userData : any = await PhoneNumber.findOne({phoneNumber : phone, email : email});
 
     if(!userData){
+        const existingEmail = await PhoneNumber.findOne({ email });
+
+        if (existingEmail) {
+            return res.status(400).json({ message: "Email and phone no is already registered by another user" });
+        }
+
         return res.status(404).json({message : "Phone Number has not been stored"})
     }
 
     const phoneNoId = userData?._id;
     const categoryId = await Category.findOne({category});
     const subcategoryId = await SubCategory.findOne({name : subcategory});
-    console.log(categoryId, subcategoryId)
+
     if(!categoryId || !subcategoryId){
         return res.status(404).json({message : "Category or subcategory not found"})
     }
+
     try {
         const serviceProviderData: any = { name, email : phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category : categoryId?._id, subcategory : subcategoryId?._id };
 
-        const newServiceProvider = new ServiceProvider(serviceProviderData);
-
-        await newServiceProvider.save();
+        const newServiceProvider = await ServiceProvider.findOneAndUpdate(
+            {phoneNo : phoneNoId},
+            {$set : serviceProviderData},
+            {new : true}
+        );
 
         return res.status(200).json({data : {
             message: "User registered successfully",
@@ -276,83 +287,84 @@ export const registerProvider = async (req: any, res: any) => {
 };
 
 const directoryPath = path.join(__dirname, '../../uploads');
-
 if(!fs.existsSync(directoryPath)) {
     fs.mkdirSync(directoryPath);
 }
 
 const uploadImage = mutler.diskStorage({
     destination : function(req : any, file, cb){
-        console.log("File being uploaded:", file);
         cb(null, directoryPath)
     },
 
     filename : function(req : any, file, cb){
-        console.log("Original filename:", file.originalname);
         const fileName = Date.now() + path.extname(file.originalname)
         cb(null, fileName)
-
-        if(req.file){
-            req.fileUrl = `http://13.202.163.238:4000/uploads/${fileName}`;
-        }else{
-            if(!req.fileUrls){
-                req.fileUrls = []
-            }
-            req.fileUrls.push(`http://13.202.163.238:4000/uploads/${fileName}`)
-        }
     }
 })
 
 export const uploadMultiple = multer({ storage: uploadImage }).fields([
-    { name: 'aadharCard', maxCount: 1 },
-    { name : 'aadharCardBack', maxCount : 1},
-    { name: 'panCard', maxCount: 1 },
-    { name: 'photo', maxCount: 1 },
+    { name: imagesKey.aadharCard, maxCount: 1 },
+    { name : imagesKey.aadharCardBack, maxCount : 1},
+    { name: imagesKey.panCard, maxCount: 1 },
+    { name: imagesKey.photo, maxCount: 1 },
 ]);
 
 export const upload = multer({storage : uploadImage})
 
-export const handleImage = (req : any, res : any) => {
-    if(!req.file || !req.fileUrl){
-        return res.status(400).send("No file uploaded.");
-    }
-    return res.status(200).json({data : {message: "File uploaded successfully", file: req.fileUrl}})
-}
 
 export const handleImageUrl = async (req: any, res: any) => {
     try {
-      const { imageUrl, phone } = req.body;
-        if(!imageUrl || !phone){
+      const {phone, email } = req.body;
+
+        if(!req.files){
+            return res.status(400).send("No file uploaded.");
+        }
+        
+        const files : any = {};
+        if(req.files.AC){
+            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
+        }
+
+        if(req.files.ACB){
+            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
+        }
+
+        if(req.files.PC){
+            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
+        }
+
+        if(req.files.PH){
+            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
+        }
+
+        if(!phone || !email){
             return res.status(406).json({ message: "Please provide required field" });
         }
-      if (!Array.isArray(imageUrl) || imageUrl.length === 0) {
-        return res.status(400).json({ message: "Invalid or empty URL array." });
-      }
-  
-      const phoneData = await PhoneNumber.findOne({ phoneNumber: phone });
-      if (!phoneData) {
-        return res.status(404).json({ message: "Phone number not found." });
-      }
-  
-     const isUserVerifed = false;
-     const isloggedInBefore = true;
-     const providerData = await ServiceProvider.findOneAndUpdate(
-         {phoneNo: phoneData?._id},
-         {$set : {
-             imageUrl: imageUrl,
-             isUserVerifed,
-             loggedInBefore : isloggedInBefore
-            }}, {new : true}
-        );
+        
+        const phoneData = await PhoneNumber.findOne({ phoneNumber: phone, email });
 
-        const token: string = jwt.sign({id : phoneData?._id.toString()}, secretKey, { expiresIn: '12h' });
-        return res.status(200).json({
-            message: "URLs updated successfully.",
-            providerData: providerData,
-            token: token
-          });
-              } catch (err) {
-      res.status(500).json({ message: "Internal server error.", error: err });
+        if (!phoneData) {
+            return res.status(404).json({ message: "Phone number not found." });
+        }
+
+        const isUserVerifed = false;
+        const isloggedInBefore = true;
+        const providerData = await ServiceProvider.findOneAndUpdate(
+            {phoneNo: phoneData?._id},
+            {$set : {
+                imageUrl: files,
+                isUserVerifed,
+                loggedInBefore : isloggedInBefore
+                }}, {new : true}
+            );
+            const token: string = jwt.sign({id : phoneData?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' });
+            return res.status(200).json({
+                message: "URLs updated successfully.",
+                providerData: providerData,
+                token: token
+            });
+        } catch (err) {
+            return res.status(500).json({ message: "Internal server error.", error: err });
     }
   };
 
@@ -400,7 +412,6 @@ export const updateStatusProvider = async (req: any, res: any) => {
                 { new : true }
             );
         }
-
         res.status(200).json({ success: true, message: 'Status updated successfully' });
     } catch (error) {
         console.error('Error updating service provider:', error);
@@ -429,7 +440,28 @@ export const addProvider = async (req : any, res : any) => {
     try {
         const { name, email, category, subcategory, address, aadharAddress, phone} = req.body;
         
-        const imageUrl = req.fileUrls;
+        if(!req.files){
+            return res.status(400).send("No file uploaded.");
+        }
+        
+        const files : any = {};
+
+        if(req.files.AC){
+            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
+        }
+
+        if(req.files.ACB){
+            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
+        }
+
+        if(req.files.PC){
+            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
+        }
+
+        if(req.files.PH){
+            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
+        }
+
         
         const isUserVerifed = true;
         const status = "approved";
@@ -451,7 +483,7 @@ export const addProvider = async (req : any, res : any) => {
         const subCatResponse = await SubCategory.findOne({subcategory});
         const subcategoryId = subCatResponse?._id;
 
-        const providerData = { phoneNo : phoneNo?._id, name, email, category : categoryId, subcategory : subcategoryId, address, aadharAddress, imageUrl, isUserVerifed, status, loggedInBefore };
+        const providerData = { phoneNo : phoneNo?._id, name, email, category : categoryId, subcategory : subcategoryId, address, aadharAddress, files, isUserVerifed, status, loggedInBefore };
 
         const newServiceProvider = new ServiceProvider(providerData);  
         await newServiceProvider.save();
@@ -716,6 +748,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 
             const providerData = {
                 name: provider?.name || "John Doe",
+                providerPic : provider?.imageUrl?.PH || "",
                 // address: provider?.address || "123 Main St",
                 email: provider?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
@@ -756,13 +789,12 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                     // { address: { $regex: search, $options: 'i' } },
             })
             const searchData = await Promise.all(providers.map(async(provider : any) => {
-                console.log("provider", provider._id)
                 const providerInfo : any = await ServiceProvider.findOne({ subcategory : provider._id, status : "approved" })
-                console.log("providerInfo", providerInfo)
                 if(providerInfo){
                     return {
                         _id : providerInfo?.id,
                         name : providerInfo?.name,
+                        providerPic : providerInfo?.imageUrl?.PH,
                         phone : providerInfo?.phoneNo?.phoneNumber,
                         review : providerInfo?.avgRating || 2,
                         price : providerInfo?.servicePrice || 100,
@@ -775,12 +807,16 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 }else{
                     return null
                 }
-
             }))
 
             const searchedData = searchData.filter((provider : any) => provider !== null)
+
             return res.status(200).json({ data: { message: 'Fetched the provider info', searchedData } });
         }catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
+            return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
         }
     }   
+
+// export const sentMessage = (req : any, res : any) => {
+//     try {
+//         const {message} = req.body;

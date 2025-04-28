@@ -1,19 +1,19 @@
 import { Base } from "./baseSchema";
 import mongoose from "mongoose";
-
+import {imagesKey} from "../shortObj"
 const serviceProviderSchema = new mongoose.Schema({
   isUserVerifed: {
     type: Boolean,
     default: false
   },
-  // imageUrl: {
-  //     "addharCard" : String,
-  //     "addharCardBack" : String, 
-  //     "panCard" : String, 
-  //     "photo" :  String
-  // },
   imageUrl:{
-    type : [String]
+    type : {
+      [imagesKey.aadharCard] : String,
+      [imagesKey.aadharCardBack] : String,
+      [imagesKey.photo] : String,
+      [imagesKey.panCard] : String
+    },
+    _id : false
   },
   status: {
     type: String,
@@ -97,6 +97,12 @@ const serviceProviderSchema = new mongoose.Schema({
  servicePrice : {
   type : Number, 
   default: 0
+ },
+ enquiry: {
+  type : [{
+    "enquiry" : String,
+    "enquiryList" : [String] 
+  }]
  }
 });
 
