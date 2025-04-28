@@ -1,6 +1,7 @@
 import { Base } from "./baseSchema";
 import mongoose from "mongoose";
 import {imagesKey} from "../shortObj"
+import { timeStamp } from "console";
 const serviceProviderSchema = new mongoose.Schema({
   isUserVerifed: {
     type: Boolean,
@@ -37,8 +38,8 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   reviewComments: {
     type : [{
-      "totalStar" :  Number,
-      "comment" : String
+      totalStar :  Number,
+      comment : String
     }],
     default: [], 
     _id : false
@@ -90,18 +91,21 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   services : {
     type : [{
-      "service" : String,
-      "serviceList" : [String] 
+      service : String,
+      serviceList : [String] 
     }]
  },
  servicePrice : {
   type : Number, 
   default: 0
  },
- enquiry: {
+ enquiry : {
   type : [{
-    "enquiry" : String,
-    "enquiryList" : [String] 
+    sender : {type : mongoose.Schema.Types.ObjectId, ref: 'User'},
+    messages : [{
+      message : {type : String},
+      timeStamp : {type : Date, default : Date.now} 
+    }],
   }]
  }
 });

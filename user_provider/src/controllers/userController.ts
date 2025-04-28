@@ -583,15 +583,23 @@ export const getProviderWithCategory = async (req : any, res : any) => {
     const limitNumber = parseInt(limit) || 10;
 
     const {rating, subcat, minPrice, maxPrice} = req.body;
+    
+    const query : any = {
+        subcategory : subcat,
+        status : 'approved',
+    };
+
+    if(rating){
+        query.avgRating = {$gte : rating};
+    }
+    if(minPrice && maxPrice){
+        query.servicePrice = {$gte : minPrice, $lte : maxPrice};
+    }
 
     const skip = (pageNumber - 1) * 10;
+
     try {
-        const response = await ServiceProvider.find({
-            subcategory : subcat,
-            status : "approved",
-            avgRating : {$gte : rating},
-            servicePrice : {$gte : minPrice, $lte : maxPrice}
-        }).populate('phoneNo').skip(skip).limit(limitNumber);
+        const response = await ServiceProvider.find(query).populate('phoneNo').skip(skip).limit(limitNumber);
         console.log("response", response)
         const providerWithCategory = response.map((provider : any) => {
             return {
@@ -817,6 +825,87 @@ export const getInfoUserProvider = async (req: any, res: any) => {
         }
     }   
 
-// export const sentMessage = (req : any, res : any) => {
-//     try {
-//         const {message} = req.body;
+
+    export const userSentMsg = async (req: any, res: any) => {
+        try {
+          const { message, providerId } = req.body;
+          const { id } = req.user;
+      
+          const provider: any = await ServiceProvider.findOne({ _id: providerId });
+      
+          if (!provider) {
+            return res.status(404).json({ message: "Provider id provided is wrong" });
+          }
+      
+          const userMessage = {
+            message: message,
+            timeStamp: new Date(),
+          };
+      
+          // For ServiceProvider (enquiry list)
+          const serviceData: any = await ServiceProvider.findOne({
+            _id: providerId,
+            'enquiry.sender': id,
+          });
+      
+          if (serviceData) {
+            // sender already exists → push new message
+            await ServiceProvider.findOneAndUpdate(
+              { _id: providerId, 'enquiry.sender': id },
+              {
+                $push: { 'enquiry.$.messages': userMessage },
+              },
+              { new: true }
+            );
+          } else {
+            // new sender → push a new enquiry object
+            await ServiceProvider.findByIdAndUpdate(
+              providerId,
+              {
+                $push: {
+                  enquiry: {
+                    sender: id,
+                    messages: [userMessage],
+                  },
+                },
+              },
+              { new: true }
+            );
+          }
+      
+          // For User side (userMsg list)
+          const userData: any = await User.findOne({
+            _id: id,
+            'userMsg.receiverId': providerId,
+          });
+      
+          if (userData) {
+            await User.findOneAndUpdate(
+              { _id: id, 'userMsg.receiverId': providerId },
+              {
+                $push: { 'userMsg.$.messages': userMessage },
+              },
+              { new: true }
+            );
+          } else {
+            await User.findByIdAndUpdate(
+              id,
+              {
+                $push: {
+                  userMsg: {
+                    receiverId: providerId,
+                    messages: [userMessage],
+                  },
+                },
+              },
+              { new: true }
+            );
+          }
+      
+          return res.status(200).json({ data: { message: 'Message sent successfully' } });
+        } catch (error) {
+          console.log("error", error);
+          return res.status(500).json({ success: false, message: 'Failed to send message' });
+        }
+      };
+      
