@@ -4,7 +4,7 @@ import { User } from "../models/user";
 import { ServiceProvider } from "../models/serviceProvider";
 import jwt from "jsonwebtoken";
 import bcrypt from 'bcrypt';
-import dotenv from 'dotenv';
+import dotenv, { populate } from 'dotenv';
 import mutler from 'multer';
 import path from 'path';
 import multer from "multer";
@@ -13,6 +13,7 @@ import {createClient} from 'redis';
 import {Category} from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
+import { start } from "repl";
 
 dotenv.config()
 connectDb()
@@ -583,7 +584,7 @@ export const getProviderWithCategory = async (req : any, res : any) => {
     const limitNumber = parseInt(limit) || 10;
 
     const {rating, subcat, minPrice, maxPrice} = req.body;
-    
+
     const query : any = {
         subcategory : subcat,
         status : 'approved',
@@ -592,6 +593,7 @@ export const getProviderWithCategory = async (req : any, res : any) => {
     if(rating){
         query.avgRating = {$gte : rating};
     }
+
     if(minPrice && maxPrice){
         query.servicePrice = {$gte : minPrice, $lte : maxPrice};
     }
@@ -599,19 +601,20 @@ export const getProviderWithCategory = async (req : any, res : any) => {
     const skip = (pageNumber - 1) * 10;
 
     try {
-        const response = await ServiceProvider.find(query).populate('phoneNo').skip(skip).limit(limitNumber);
-        console.log("response", response)
+        const response = await ServiceProvider.find(query).populate(['phoneNo', 'category']).skip(skip).limit(limitNumber);
+        if(response.length === 0) return res.status(404).json({data : {message : "No Provider found"}})
+        if(!response) return res.status(404).json({data : {message : "No Provider found"}})
         const providerWithCategory = response.map((provider : any) => {
             return {
                 _id : provider?.id,
                 name : provider.name || "John doe",
-                category : provider.category || "",
-                review : provider.avgRating || 0,
-                totalReviews : provider.totalReviews || 0,
-                experience : provider.experience || 0,
+                category : provider?.category?.category || "Dual Electrical",
+                review : provider?.avgRating || 3.0,
+                totalReviews : provider.totalReviews || 1200,
+                experience : provider?.experience || 4,
                 visitingTime : provider.visitingTime || "30 min", 
                 phone : provider?.phoneNo?.phoneNumber,
-                providerPic : provider?.imageUrl?.photo || "",
+                providerPic : provider?.imageUrl?.photo || "Not available in Db",
                 price : provider.servicePrice || 100
             };
         })
@@ -634,28 +637,25 @@ export const getProviderInfo = async (req : any, res : any) => {
         //     },
         //     { new: true }
         //   );
-        console.log("id", id)
         const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate(['phoneNo', 'email', 'category', 'subcategory']);
 
-        console.log("provider", provider)
         if(provider){
             if(provider?.services?.length === 0){
                 provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
             }
-
+            console.log("provider", provider?.id)
             const providerInfo = {
+                    _id : provider?.id,
                     name : provider?.name || "John doe",
-                    avgRating : provider?.avgRating || 0,
-                    totalReviews : provider?.totalReviews || 0,
-                    experience : provider.experience || 0,
+                    avgRating : provider?.avgRating || 4.5,
+                    totalReviews : provider?.totalReviews || 1200,
+                    experience : provider.experience || 3,
                     phone : provider?.phoneNo?.phoneNumber,
-                    providerPic : provider?.imageUrl?.photo || "", 
+                    providerPic : provider?.imageUrl?.photo || "Not available", 
                     completedTasks :  provider.completedTasks || 0,
-                    dailyAvailable : provider?.dailyHoursAvailable || "Monday-Sat : 10AM : 5PM",
-                    galleryImages : provider?.galleryImages || [],
-                    reviewByUser : provider?.reviewComments || [], 
-                    aboutUs : provider?.aboutUs || "user service backend is working",
-                    serviceList : provider?.services || [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]
+                    workingHours : provider?.workingHours || {start : "10AM", end : "5PM"},
+                    workingDays : provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                    aboutus : provider?.aboutUs || "The best service backend developer is Ansh Sharma.. Remember that... I am the best",
                 };
                 return res.status(200).json({ data : {message: 'Fetched the provider info', providerInfo }});
         }else{
@@ -740,50 +740,50 @@ export const updateProfile = async (req : any, res : any) => {
     }
 }
 
-export const getInfoUserProvider = async (req: any, res: any) => {
-    try {
-        const { id } = req.user;
-        // const id = "680b138cc20c48d016c7a057"
-        const {isEmployeeLogin} = req.body;
+// export const getInfoUserProvider = async (req: any, res: any) => {
+//     try {
+//         const { id } = req.user;
+//         // const id = "680b138cc20c48d016c7a057"
+//         const {isEmployeeLogin} = req.body;
 
-        if (isEmployeeLogin) {
-            const provider: any = await ServiceProvider.findOne({ _id: id, status: "approved" })
-            .populate(['phoneNo', 'email', 'category', 'subcategory']);
+//         if (isEmployeeLogin) {
+//             const provider: any = await ServiceProvider.findOne({ _id: id, status: "approved" })
+//             .populate(['phoneNo', 'email', 'category', 'subcategory']);
 
-            if(!provider){
-                return res.status(404).json({ message: "No provider found" });
-            }
+//             if(!provider){
+//                 return res.status(404).json({ message: "No provider found" });
+//             }
 
-            const providerData = {
-                name: provider?.name || "John Doe",
-                providerPic : provider?.imageUrl?.PH || "",
-                // address: provider?.address || "123 Main St",
-                email: provider?.phoneNo?.email || "ZVv7Q@example.com",
-                phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
-                aboutus : provider?.aboutUs || "",
-                experience : provider?.experience || 0,
-                workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
-                workingDays : provider?.workingDays || "Everyday",
-            }
+//             const providerData = {
+//                 name: provider?.name || "John Doe",
+//                 providerPic : provider?.imageUrl?.PH || "",
+//                 // address: provider?.address || "123 Main St",
+//                 email: provider?.phoneNo?.email || "ZVv7Q@example.com",
+//                 phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
+//                 aboutus : provider?.aboutUs || "",
+//                 experience : provider?.experience || 0,
+//                 workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
+//                 workingDays : provider?.workingDays || "Everyday",
+//             }
 
-            return res.status(200).json({ data: { message: 'Fetched the provider info', providerData } });
-        } else {
-            const user: any = await User.findOne({ _id: id }).populate(['phoneNo', 'email']);
-            if(!user){
-                return res.status(404).json({ message: "No user found" });
-            }
-            const userData = {
-                name: user?.name || "John Doe",
-                address: user?.address || "123 Main St",
-                email: user?.phoneNo?.email || "ZVv7Q@example.com",
-                phone: user?.phoneNo?.phoneNumber || "123-456-7890",
-            }
-            return res.status(200).json({ data: { message: 'Fetched the user info', userData } });
-        }
-    } catch (error) {
-      return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
-    }
-  };
+//             return res.status(200).json({ data: { message: 'Fetched the provider info', providerData } });
+//         } else {
+//             const user: any = await User.findOne({ _id: id }).populate(['phoneNo', 'email']);
+//             if(!user){
+//                 return res.status(404).json({ message: "No user found" });
+//             }
+//             const userData = {
+//                 name: user?.name || "John Doe",
+//                 address: user?.address || "123 Main St",
+//                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
+//                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
+//             }
+//             return res.status(200).json({ data: { message: 'Fetched the user info', userData } });
+//         }
+//     } catch (error) {
+//       return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
+//     }
+//   };
 
 
     export const searchProvider = async (req : any, res : any) => {
@@ -825,24 +825,22 @@ export const getInfoUserProvider = async (req: any, res: any) => {
         }
     }   
 
-
     export const userSentMsg = async (req: any, res: any) => {
         try {
           const { message, providerId } = req.body;
           const { id } = req.user;
-      
-          const provider: any = await ServiceProvider.findOne({ _id: providerId });
+            
+          const provider : any = await ServiceProvider.findOne({ _id: providerId });
       
           if (!provider) {
             return res.status(404).json({ message: "Provider id provided is wrong" });
           }
-      
+
           const userMessage = {
             message: message,
             timeStamp: new Date(),
           };
-      
-          // For ServiceProvider (enquiry list)
+
           const serviceData: any = await ServiceProvider.findOne({
             _id: providerId,
             'enquiry.sender': id,
@@ -875,21 +873,22 @@ export const getInfoUserProvider = async (req: any, res: any) => {
       
           // For User side (userMsg list)
           const userData: any = await User.findOne({
-            _id: id,
+            phoneNo: id,
             'userMsg.receiverId': providerId,
           });
       
           if (userData) {
             await User.findOneAndUpdate(
-              { _id: id, 'userMsg.receiverId': providerId },
+              { phoneNo: id, 'userMsg.receiverId': providerId },
               {
                 $push: { 'userMsg.$.messages': userMessage },
               },
               { new: true }
             );
           } else {
-            await User.findByIdAndUpdate(
-              id,
+            console.log("id", id)
+            const response = await User.findOneAndUpdate(
+              {phoneNo : id},
               {
                 $push: {
                   userMsg: {
@@ -900,6 +899,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
               },
               { new: true }
             );
+            console.log("response", response)
           }
       
           return res.status(200).json({ data: { message: 'Message sent successfully' } });
@@ -909,3 +909,20 @@ export const getInfoUserProvider = async (req: any, res: any) => {
         }
       };
       
+export const recentProviderEnquiry = async (req : any, res : any) => {
+    try {
+        // The below is the provider Id :
+        const { id } = req.user;
+        const provider : any = await ServiceProvider.findOne({ phoneNo : id }).populate('enquiry.sender');  
+        if(provider){
+            console.log("provider", provider)
+            return res.status(200).json({ data: { message: 'Fetched the provider info', provider} });
+        }else{
+            return res.status(404).json({ message: "No provider found" });
+        }
+    } catch (error) {
+        console.error('Error storing phone number:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
