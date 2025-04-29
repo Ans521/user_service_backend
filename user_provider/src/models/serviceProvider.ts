@@ -77,7 +77,8 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   workingDays: {
     type: [String],
-    default: ""
+    enum :["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    default: ["Mon", "Fri"]
   },
   dailyHoursAvailable: {
     type: String
@@ -102,11 +103,11 @@ const serviceProviderSchema = new mongoose.Schema({
  enquiry : {
   type : [{
     sender : {type : mongoose.Schema.Types.ObjectId, ref: 'User'},
-    messages : [{
+    messages : [new mongoose.Schema({
       message : {type : String},
-      timeStamp : {type : Date, default : Date.now} 
-    }],
-  }]
+      timeStamp : {type : Date, default : Date.now}
+    }, {_id : false})],
+  }],
  }
 });
 

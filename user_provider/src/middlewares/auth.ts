@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import phoneNumber from "../models/phoneEmail";
 const secretKey = '1n1b484n39886ni124114inai';
 
 const verifyToken = (req : any, res : any, next : any) => {
