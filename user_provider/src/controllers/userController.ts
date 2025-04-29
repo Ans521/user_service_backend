@@ -609,13 +609,13 @@ export const getProviderWithCategory = async (req : any, res : any) => {
                 _id : provider?.id,
                 name : provider.name || "John doe",
                 category : provider?.category?.category || "Dual Electrical",
-                review : provider?.avgRating || 3.0,
+                rating : provider?.avgRating || 3.0,
                 totalReviews : provider.totalReviews || 1200,
                 experience : provider?.experience || 4,
                 visitingTime : provider.visitingTime || "30 min", 
                 phone : provider?.phoneNo?.phoneNumber,
                 providerPic : provider?.imageUrl?.photo || "Not available in Db",
-                price : provider.servicePrice || 100
+                price : provider.servicePrice || 100, 
             };
         })
         return res.status(200).json({data : {message : "Provider fetched with limit", providerWithCategory}})
