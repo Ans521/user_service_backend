@@ -651,45 +651,34 @@ export const deleteCategory = async (req : any, res : any) => {
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
         const { limit, page, rating, subcat, minPrice, maxPrice, search } = req.body;
-        console.log("Received body:", req.body);
 
         const skip = (page - 1) * limit;
-        console.log("Skip value:", skip);
 
         let query: any = {
             status: 'approved',
         };
-        console.log("Initial query:", query);
 
         if (rating) query.avgRating = { $gte: rating };
-        if (rating) console.log("Added rating filter:", query.avgRating);
 
         if (minPrice && maxPrice) query.servicePrice = { $gte: minPrice, $lte: maxPrice };
-        if (minPrice && maxPrice) console.log("Added price filter:", query.servicePrice);
 
         if (search) {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
-            console.log("Subcategories from search:", subcatIds);
 
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
             query.subcategory = { $in: subcategoryIds };
-            console.log("Updated query with search subcategories:", query.subcategory);
         }
 
         if (subcat) {
             const subcatObjectIds = subcat.map((sub: any) => new Types.ObjectId(String(sub)));
-            console.log("Subcategories from filter:", subcatObjectIds);
 
             if (query.subcategory && query.subcategory.$in) {
                 query.subcategory.$in = [...query.subcategory.$in, ...subcatObjectIds];
-                console.log("Merged subcategory filters:", query.subcategory.$in);
             } else {
                 query.subcategory = { $in: subcatObjectIds };
-                console.log("Applied subcategory filter directly:", query.subcategory);
             }
         }
 
-        console.log("Final query before aggregation:", query);
 
         const providers = await ServiceProvider.aggregate([
             { $match: query },
@@ -720,13 +709,10 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         ]);
         console.log("Aggregation completed.");
 
-        console.log("Total providers found:", providers.length);
         if (providers.length === 0) {
-            console.log("No providers matched the query.");
             return res.status(404).json({ success: false, message: "No providers found" });
         }
 
-        console.log("Sending response with providers.");
         return res.status(200).json({ success: true, message: "Providers fetched successfully", data: providers });
 
     } catch (error) {
@@ -734,8 +720,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         return res.status(500).json({ success: false, message: 'Failed to fetch the provider with category' });
     }
 };
-
-
 
 export const getProviderInfo = async (req : any, res : any) => {
     const { id } = req.query;
