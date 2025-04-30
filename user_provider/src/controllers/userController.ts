@@ -651,74 +651,90 @@ export const deleteCategory = async (req : any, res : any) => {
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
         const { limit, page, rating, subcat, minPrice, maxPrice, search } = req.body;
+        console.log("Received body:", req.body);
+
         const skip = (page - 1) * limit;
+        console.log("Skip value:", skip);
 
         let query: any = {
             status: 'approved',
         };
+        console.log("Initial query:", query);
 
         if (rating) query.avgRating = { $gte: rating };
-        if (minPrice && maxPrice) query.servicePrice = { $gte: minPrice, $lte: maxPrice };
+        if (rating) console.log("Added rating filter:", query.avgRating);
 
-        // Search logic for subcategories
+        if (minPrice && maxPrice) query.servicePrice = { $gte: minPrice, $lte: maxPrice };
+        if (minPrice && maxPrice) console.log("Added price filter:", query.servicePrice);
+
         if (search) {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
+            console.log("Subcategories from search:", subcatIds);
+
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
             query.subcategory = { $in: subcategoryIds };
+            console.log("Updated query with search subcategories:", query.subcategory);
         }
 
         if (subcat) {
-            if(query.subcategory && query.subcategory.$in){
-                query.subcategory.$in = [
-                    ...query.subcategory.$in,
-                    ...subcat.map((sub: any) => new Types.ObjectId(String(sub)))
-                ]
-            }else{
-                query.subcategory = { $in: 
-                    subcat.map((sub: any) => new Types.ObjectId(String(sub))) 
-                };
+            const subcatObjectIds = subcat.map((sub: any) => new Types.ObjectId(String(sub)));
+            console.log("Subcategories from filter:", subcatObjectIds);
+
+            if (query.subcategory && query.subcategory.$in) {
+                query.subcategory.$in = [...query.subcategory.$in, ...subcatObjectIds];
+                console.log("Merged subcategory filters:", query.subcategory.$in);
+            } else {
+                query.subcategory = { $in: subcatObjectIds };
+                console.log("Applied subcategory filter directly:", query.subcategory);
             }
         }
-        console.log(query)
-        // Aggregation Pipeline
+
+        console.log("Final query before aggregation:", query);
+
         const providers = await ServiceProvider.aggregate([
             { $match: query },
-            { 
-                $lookup : {
-                    from : "categories", // this one is the target collection --> mtlb kii jisme id find krenge that match with the subcategory id...
-                    localField : "category", //  Field in the current collection to match
-                    foreignField : "_id", //  Field in the another collection to match
-                    as : "category" //  Output array name where matched results are stored
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "category"
                 }
             },
-            {$unwind : "$category"},// it destructure the array... It creates a separate document for each element of the array. 
-            {$project : {
-                _id : 1,
-                name : {$ifNull : ["$name", "John doe"]},   
-                category : "$category.category",
-                avgRating : {$ifNull : ["$avgRating", 3.0]},
-                totalReviews : {$ifNull : ["$totalReviews", 1200]},
-                completedTasks : {$ifNull : ["$completedTasks", 0]},
-                workingDays : {$ifNull : ["$workingDays", ["EveryDay"]]},
-                experience : {$ifNull : ["$experience", 4]},
-                phone : 1,
-                providerPic : {$ifNull : ["$imageUrl.photo", "Not available in Db"]},
-                servicePrice: {$ifNull : ["$servicePrice", 100]},
-            }
+            { $unwind: "$category" },
+            {
+                $project: {
+                    _id: 1,
+                    name: { $ifNull: ["$name", "John doe"] },
+                    category: "$category.category",
+                    avgRating: { $ifNull: ["$avgRating", 3.0] },
+                    totalReviews: { $ifNull: ["$totalReviews", 1200] },
+                    completedTasks: { $ifNull: ["$completedTasks", 0] },
+                    workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
+                    experience: { $ifNull: ["$experience", 4] },
+                    phone: 1,
+                    providerPic: { $ifNull: ["$imageUrl.photo", "Not available in Db"] },
+                    servicePrice: { $ifNull: ["$servicePrice", 100] },
+                }
             }
         ]);
-        
+        console.log("Aggregation completed.");
+
+        console.log("Total providers found:", providers.length);
         if (providers.length === 0) {
+            console.log("No providers matched the query.");
             return res.status(404).json({ success: false, message: "No providers found" });
         }
 
+        console.log("Sending response with providers.");
         return res.status(200).json({ success: true, message: "Providers fetched successfully", data: providers });
 
     } catch (error) {
-        console.error(error);  // Proper logging should be done
+        console.error("Error occurred:", error);
         return res.status(500).json({ success: false, message: 'Failed to fetch the provider with category' });
     }
 };
+
 
 
 export const getProviderInfo = async (req : any, res : any) => {
@@ -882,44 +898,44 @@ export const updateProfile = async (req : any, res : any) => {
 //   };
 
 
-    export const searchProvider = async (req : any, res : any) => {
-        try {
-            const { search } = req.body;
-            console.log("search", search)   
-            // agr mei chahta hu kii user chahe phn number fill kree ya fir email kuch bhi then i can use $or to search across multiple field.
-            //  $or is used to search across multiple fields
-            const providers : any = await SubCategory.find({
-                    name: { $regex: search, $options: 'i' },
-                    // { address: { $regex: search, $options: 'i' } },
-            })
-            const searchData = await Promise.all(providers.map(async(provider : any) => {
-                const providerInfo : any = await ServiceProvider.findOne({ subcategory : provider._id, status : "approved" })
-                if(providerInfo){
-                    return {
-                        _id : providerInfo?.id,
-                        name : providerInfo?.name,
-                        providerPic : providerInfo?.imageUrl?.PH,
-                        phone : providerInfo?.phoneNo?.phoneNumber,
-                        review : providerInfo?.avgRating || 2,
-                        price : providerInfo?.servicePrice || 100,
-                        totalReviews : providerInfo?.totalReviews || 0,
-                        experience : providerInfo?.experience || 0,
-                        workingHrs : providerInfo?.workingHours || {start : "10AM", end : "5PM"},
-                        workingDays : providerInfo?.workingDays || "Everyday",
-                        visitingTime : providerInfo?.visitingTime || "30 min",
-                    }
-                }else{
-                    return null
+export const searchProvider = async (req : any, res : any) => {
+    try {
+        const { search } = req.body;
+        console.log("search", search)   
+        // agr mei chahta hu kii user chahe phn number fill kree ya fir email kuch bhi then i can use $or to search across multiple field.
+        //  $or is used to search across multiple fields
+        const providers : any = await SubCategory.find({
+                name: { $regex: search, $options: 'i' },
+                // { address: { $regex: search, $options: 'i' } },
+        })
+        const searchData = await Promise.all(providers.map(async(provider : any) => {
+            const providerInfo : any = await ServiceProvider.findOne({ subcategory : provider._id, status : "approved" })
+            if(providerInfo){
+                return {
+                    _id : providerInfo?.id,
+                    name : providerInfo?.name,
+                    providerPic : providerInfo?.imageUrl?.PH,
+                    phone : providerInfo?.phoneNo?.phoneNumber,
+                    review : providerInfo?.avgRating || 2,
+                    price : providerInfo?.servicePrice || 100,
+                    totalReviews : providerInfo?.totalReviews || 0,
+                    experience : providerInfo?.experience || 0,
+                    workingHrs : providerInfo?.workingHours || {start : "10AM", end : "5PM"},
+                    workingDays : providerInfo?.workingDays || "Everyday",
+                    visitingTime : providerInfo?.visitingTime || "30 min",
                 }
-            }))
+            }else{
+                return null
+            }
+        }))
 
-            const searchedData = searchData.filter((provider : any) => provider !== null)
+        const searchedData = searchData.filter((provider : any) => provider !== null)
 
-            return res.status(200).json({ data: { message: 'Fetched the provider info', searchedData } });
-        }catch (error) {
-            return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
-        }
-    }   
+        return res.status(200).json({ data: { message: 'Fetched the provider info', searchedData } });
+    }catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
+    }
+}   
 
     export const userSentMsg = async (req: any, res: any) => {
         try {
