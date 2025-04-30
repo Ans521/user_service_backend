@@ -26,7 +26,7 @@ router.post('/provider-with-filter', verifyToken, getProviderWithCategory)
 router.get('/get-provider-info', verifyToken, getProviderInfo)
 router.put('/update-info', verifyToken, updateProfile)
 // router.get('/get-info', verifyToken, getInfoUserProvider)
-router.get('/search-provider', searchProvider)
+// router.get('/search-provider', searchProvider)
 router.post('/send-msg-to-provider', verifyToken, userSentMsg)
 router.get('/recent-enquiry', verifyToken, recentProviderEnquiry)
 
