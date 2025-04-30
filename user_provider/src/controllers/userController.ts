@@ -14,7 +14,7 @@ import {Category} from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
 import { start } from "repl";
-
+import { Types } from "mongoose";
 dotenv.config()
 connectDb()
 const secretKey = '1n1b484n39886ni124114inai';
@@ -577,53 +577,74 @@ export const deleteCategory = async (req : any, res : any) => {
     }
 }
 
-export const getProviderWithCategory = async (req : any, res : any) => {
-    const {limit, page} = req.query;
-    if(!page || !limit) return res.status(401).json({ success: false, message: 'page and limt is required' });  
-    const pageNumber = parseInt(page) || 1;     
-    const limitNumber = parseInt(limit) || 10;
+    export const getProviderWithCategory = async (req : any, res : any) => {
+        const {limit, page} = req.query;
+        if(!page || !limit) return res.status(401).json({ success: false, message: 'page and limt is required' });  
+        const pageNumber = parseInt(page) || 1;     
+        const limitNumber = parseInt(limit) || 10;
 
-    const {rating, subcat, minPrice, maxPrice} = req.body;
+        const {rating, subcat, minPrice, maxPrice, search} = req.body;
 
-    const query : any = {
-        subcategory : subcat,
-        status : 'approved',
-    };
+        const query : any = {
+            status : 'approved',
+        };
 
-    if(rating){
-        query.avgRating = {$gte : rating};
+        // $in humesa object mei rakh kr match hota hai ...... subcat : {$in : ["value", "value", "value"]} 
+        if(rating){
+            query.avgRating = {$gte : rating};
+        }
+
+        if(minPrice && maxPrice){
+            query.servicePrice = {$gte : minPrice, $lte : maxPrice};
+        }
+
+        const skip = (pageNumber - 1) * 10;
+
+        if(search){  
+            const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
+            console.log(subcatIds)
+            const subcategoriesIds = subcatIds.map((subcat : any) => subcat?._id);
+            query.subcategory = { $in : subcategoriesIds };
+        }
+        if(subcat){
+            if(!Array.isArray(subcat)) return res.status(400).json({data : {message : "Subcategory should be array."}});
+            const subcatObjectIds = subcat.map((sub : any) => new Types.ObjectId(String(sub)));
+            
+            if(query.subcategory && query.subcategory.$in){
+                query.subcategory.$in = [
+                    ...query.subcategory.$in,
+                    ...subcatObjectIds            
+                ]
+            }else{
+                query.subcategory = {
+                    $in : subcatObjectIds
+                }
+            }
+        }
+
+        try {
+            const response = await ServiceProvider.find(query).populate(['phoneNo', 'category']).skip(skip).limit(limitNumber);
+            if(!response || response.length === 0) return res.status(404).json({data : {message : "No Provider found"}})
+            const providerWithCategory = await Promise.all(response.map(async (provider : any) => {
+                return {
+                    _id : provider?.id,
+                    name : provider.name || "John doe",
+                    category : provider?.category?.category || "Dual Electrical",
+                    rating : provider?.avgRating || 3.0,
+                    totalReviews : provider.totalReviews || 1200,
+                    experience : provider?.experience || 4,
+                    visitingTime : provider.visitingTime || "30 min", 
+                    phone : provider?.phoneNo?.phoneNumber,
+                    providerPic : provider?.imageUrl?.photo || "Not available in Db",
+                    price : provider.servicePrice || 100, 
+                };
+            }))
+            return res.status(200).json({data : {message : "Provider fetched with limit", providerWithCategory}})
+        } catch (error) {
+            console.log(error)
+            return res.status(500).json({ success: false, message: 'Failed to fetch the provider with category' });
+        }
     }
-
-    if(minPrice && maxPrice){
-        query.servicePrice = {$gte : minPrice, $lte : maxPrice};
-    }
-
-    const skip = (pageNumber - 1) * 10;
-
-    try {
-        const response = await ServiceProvider.find(query).populate(['phoneNo', 'category']).skip(skip).limit(limitNumber);
-        if(response.length === 0) return res.status(404).json({data : {message : "No Provider found"}})
-        if(!response) return res.status(404).json({data : {message : "No Provider found"}})
-        const providerWithCategory = response.map((provider : any) => {
-            return {
-                _id : provider?.id,
-                name : provider.name || "John doe",
-                category : provider?.category?.category || "Dual Electrical",
-                rating : provider?.avgRating || 3.0,
-                totalReviews : provider.totalReviews || 1200,
-                experience : provider?.experience || 4,
-                visitingTime : provider.visitingTime || "30 min", 
-                phone : provider?.phoneNo?.phoneNumber,
-                providerPic : provider?.imageUrl?.photo || "Not available in Db",
-                price : provider.servicePrice || 100, 
-            };
-        })
-        return res.status(200).json({data : {message : "Provider fetched with limit", providerWithCategory}})
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({ success: false, message: 'Failed to fetch the provider with category' });
-    }
-}
 
 export const getProviderInfo = async (req : any, res : any) => {
     const { id } = req.query;
