@@ -17,19 +17,12 @@ const app = express();
 const server = http.createServer(app);
 
 
-const io = new Server(server, {
-    cors: {
-      origin: "*", 
-      methods: ["GET", "POST"],
-      credentials: true
-    },
-  });
+const io = new Server(server);
 
 io.on('connect', (socket: any) => {
     console.log('User connected');
     console.log(socket.id);
     socket.on('clientMessage', (message : string ) => {
-        console.log(message);
         socket.emit('serverMessage', "Hello from server!");
     })
 

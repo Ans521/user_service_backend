@@ -369,7 +369,7 @@ export const handleImageUrl = async (req: any, res: any) => {
             const token: string = jwt.sign({id : phoneData?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' });
             return res.status(200).json({
                 message: "URLs updated successfully.",
-                providerData: providerData,
+                data: providerData,
                 token: token
             });
         } catch (err) {
