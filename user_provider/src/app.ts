@@ -23,7 +23,8 @@ const io = new Server(server, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
-    }
+    },
+    transports: ['websocket'] // <- add this line
   });
   
 io.on('connect', (socket: any) => {
