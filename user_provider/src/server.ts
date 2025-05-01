@@ -1,3 +1,6 @@
-import app from "./app";
+import { server } from "./app";
 
-app.listen(4000, () => console.log("Server running on port 4000"))
+// Start the server
+server.listen(4000, () => {
+  console.log("Server running on port 4000");
+});
