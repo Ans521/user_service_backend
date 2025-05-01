@@ -59,21 +59,5 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 })
 
-setTimeout(() => {
-    const testClient = ioClient("http://13.202.163.238:4000");
-  
-    testClient.on("connect", () => {
-      console.log("✅ Test client connected to server");
-      testClient.emit("clientMessage", "Hello from test client");
-    });
-  
-    testClient.on("serverMessage", (msg: string) => {
-      console.log("📩 Message from server:", msg);
-    });
-  
-    testClient.on("disconnect", () => {
-      console.log("❌ Test client disconnected from server");
-    });
-  }, 1000);
   
 export {app, server};
