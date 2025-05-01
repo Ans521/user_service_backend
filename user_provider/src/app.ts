@@ -27,7 +27,7 @@ const io = new Server(server, {
     transports: ['websocket'] // <- add this line
   });
   
-io.on('connect', (socket: any) => {
+io.of("/").on('connect', (socket: any) => {
     console.log('User connected');
     console.log(socket.id);
     socket.on('clientMessage', (message : string ) => {
