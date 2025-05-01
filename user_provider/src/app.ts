@@ -8,6 +8,8 @@ import path from 'path';
 import http from 'http'; 
 import {Server}  from 'socket.io'
 import cors from 'cors';
+import ioClient from "socket.io-client";
+
 import { Socket } from "socket.io-client";
 dotenv.config();
 connectDb();
@@ -52,4 +54,21 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 })
 
+setTimeout(() => {
+    const testClient = ioClient("http://localhost:4000");
+  
+    testClient.on("connect", () => {
+      console.log("✅ Test client connected to server");
+      testClient.emit("clientMessage", "Hello from test client");
+    });
+  
+    testClient.on("serverMessage", (msg: string) => {
+      console.log("📩 Message from server:", msg);
+    });
+  
+    testClient.on("disconnect", () => {
+      console.log("❌ Test client disconnected from server");
+    });
+  }, 1000);
+  
 export {app, server};
