@@ -553,13 +553,13 @@ export const seeAllCategory = async (req : any, res : any) => {
     try {
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category');
-
+        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name} : {name : "", _id : ""});
         const response = await Promise.all(categories.map(async (cat : any) =>( {
             category : cat?._doc.category,
             subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
         })))
 
-        return res.status(200).json({ success: true, data: response });
+        return res.status(200).json({ success: true, data: response , subcategories : filteredSubcategories});
     } catch (error) {
         console.error('Error fetching categories:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -651,45 +651,34 @@ export const deleteCategory = async (req : any, res : any) => {
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
         const { limit, page, rating, subcat, minPrice, maxPrice, search } = req.body;
-        console.log("Received body:", req.body);
 
         const skip = (page - 1) * limit;
-        console.log("Skip value:", skip);
 
         let query: any = {
             status: 'approved',
         };
-        console.log("Initial query:", query);
 
         if (rating) query.avgRating = { $gte: rating };
-        if (rating) console.log("Added rating filter:", query.avgRating);
 
         if (minPrice && maxPrice) query.servicePrice = { $gte: minPrice, $lte: maxPrice };
-        if (minPrice && maxPrice) console.log("Added price filter:", query.servicePrice);
 
         if (search) {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
-            console.log("Subcategories from search:", subcatIds);
 
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
             query.subcategory = { $in: subcategoryIds };
-            console.log("Updated query with search subcategories:", query.subcategory);
         }
 
         if (subcat) {
             const subcatObjectIds = subcat.map((sub: any) => new Types.ObjectId(String(sub)));
-            console.log("Subcategories from filter:", subcatObjectIds);
 
             if (query.subcategory && query.subcategory.$in) {
                 query.subcategory.$in = [...query.subcategory.$in, ...subcatObjectIds];
-                console.log("Merged subcategory filters:", query.subcategory.$in);
             } else {
                 query.subcategory = { $in: subcatObjectIds };
-                console.log("Applied subcategory filter directly:", query.subcategory);
             }
         }
 
-        console.log("Final query before aggregation:", query);
 
         const providers = await ServiceProvider.aggregate([
             { $match: query },
@@ -720,13 +709,10 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         ]);
         console.log("Aggregation completed.");
 
-        console.log("Total providers found:", providers.length);
         if (providers.length === 0) {
-            console.log("No providers matched the query.");
             return res.status(404).json({ success: false, message: "No providers found" });
         }
 
-        console.log("Sending response with providers.");
         return res.status(200).json({ success: true, message: "Providers fetched successfully", data: providers });
 
     } catch (error) {
@@ -734,8 +720,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         return res.status(500).json({ success: false, message: 'Failed to fetch the provider with category' });
     }
 };
-
-
 
 export const getProviderInfo = async (req : any, res : any) => {
     const { id } = req.query;
@@ -852,50 +836,56 @@ export const updateProfile = async (req : any, res : any) => {
     }
 }
 
-// export const getInfoUserProvider = async (req: any, res: any) => {
-//     try {
-//         const { id } = req.user;
-//         // const id = "680b138cc20c48d016c7a057"
-//         const {isEmployeeLogin} = req.body;
+export const getInfoUserProvider = async (req: any, res: any) => {
+    try {
+        const { id } = req.user;
+        console.log("id", id)
 
-//         if (isEmployeeLogin) {
-//             const provider: any = await ServiceProvider.findOne({ _id: id, status: "approved" })
-//             .populate(['phoneNo', 'email', 'category', 'subcategory']);
+        const findId = new Types.ObjectId(String(id))
+        console.log("findId", findId)
+        
+        const {isEmployeeLogin} = req.user;
 
-//             if(!provider){
-//                 return res.status(404).json({ message: "No provider found" });
-//             }
+        console.log(isEmployeeLogin)
 
-//             const providerData = {
-//                 name: provider?.name || "John Doe",
-//                 providerPic : provider?.imageUrl?.PH || "",
-//                 // address: provider?.address || "123 Main St",
-//                 email: provider?.phoneNo?.email || "ZVv7Q@example.com",
-//                 phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
-//                 aboutus : provider?.aboutUs || "",
-//                 experience : provider?.experience || 0,
-//                 workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
-//                 workingDays : provider?.workingDays || "Everyday",
-//             }
+        if (isEmployeeLogin) {
+            const provider: any = await ServiceProvider.findOne({ phoneNo : findId, status: "approved" })
+            .populate(['phoneNo', 'email', 'category', 'subcategory']);
 
-//             return res.status(200).json({ data: { message: 'Fetched the provider info', providerData } });
-//         } else {
-//             const user: any = await User.findOne({ _id: id }).populate(['phoneNo', 'email']);
-//             if(!user){
-//                 return res.status(404).json({ message: "No user found" });
-//             }
-//             const userData = {
-//                 name: user?.name || "John Doe",
-//                 address: user?.address || "123 Main St",
-//                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
-//                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
-//             }
-//             return res.status(200).json({ data: { message: 'Fetched the user info', userData } });
-//         }
-//     } catch (error) {
-//       return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
-//     }
-//   };
+            if(!provider){
+                return res.status(404).json({ message: "No provider found" });
+            }
+
+            const providerData = {
+                name: provider?.name || "John Doe",
+                providerPic : provider?.imageUrl?.PH || "",
+                address: provider?.address || "123 Main St",
+                email: provider?.phoneNo?.email || "ZVv7Q@example.com",
+                phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
+                aboutus : provider?.aboutUs || "",
+                experience : provider?.experience || 0,
+                workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
+                workingDays : provider?.workingDays || "Everyday",
+            }
+
+            return res.status(200).json({ data: { message: 'Fetched the provider info', providerData } });
+        } else {
+            const user : any = await User.findOne({ phoneNo: findId }).populate(['phoneNo', 'email']);
+            if(!user){
+                return res.status(404).json({ message: "No user found" });
+            }
+            const userData = {
+                name: user?.name || "John Doe",
+                address: user?.address || "123 Main St",
+                email: user?.phoneNo?.email || "ZVv7Q@example.com",
+                phone: user?.phoneNo?.phoneNumber || "123-456-7890",
+            }
+            return res.status(200).json({ data: { message: 'Fetched the user info', userData } });
+        }
+    } catch (error) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
+    }
+  };
 
 
 export const searchProvider = async (req : any, res : any) => {
