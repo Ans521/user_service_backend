@@ -553,7 +553,7 @@ export const seeAllCategory = async (req : any, res : any) => {
     try {
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category');
-        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name} : {name : "", _id : ""});
+        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""});
         const response = await Promise.all(categories.map(async (cat : any) =>( {
             category : cat?._doc.category,
             subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
@@ -843,7 +843,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 
         const findId = new Types.ObjectId(String(id))
         console.log("findId", findId)
-        
+
         const {isEmployeeLogin} = req.user;
 
         console.log(isEmployeeLogin)
