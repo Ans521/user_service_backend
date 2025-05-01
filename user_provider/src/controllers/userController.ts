@@ -111,13 +111,22 @@ export const verifyOtp = async (req: any, res: any) => {
         }
 
         if (!isEmployeeLogin) {
-            const userData = await User.findOne({ phoneNo: phoneRef?._id }) as typeof User & { loggedInBefore?: boolean };
+            const userData : any = await User.findOne({ phoneNo: phoneRef?._id }).populate('phoneNo').populate('email'); 
+
             if (userData?.loggedInBefore) {
-                redisOperation(phoneNo1, userOtp, false); 
+                redisOperation(phoneNo1, userOtp, false);
+
+                const sentData = {
+                    name: userData?.name || "John Doe",
+                    address: userData?.address || "123 Main St",
+                    email: userData?.phoneNo?.email || "ZVv7Q@example.com",
+                    phone: userData?.phoneNo?.phoneNumber || "123-456-7890",
+                    loggedInBefore : userData?.loggedInBefore   
+                }
                 const token = jwt.sign({id : phoneRef?._id.toString(),isEmployeeLogin : false }, secretKey, { expiresIn: '12h' })
                 return res.status(200).json({
                     message: "User logged in before",
-                    userData: userData,
+                    data : sentData,
                     token: token
                   });
             } else {
@@ -138,7 +147,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
                     return res.status(200).json({
                         message: "Service provider verified",
-                        providerData: providerData,
+                        data: providerData,
                         token: token
                       });
                 } else {
@@ -146,7 +155,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h'})
                     return res.status(200).json({
                         message: "Service provider logged in before but not verified yet by admin",
-                        providerData: providerData,
+                        data: providerData,
                         token: token
                       });    
                 } 
@@ -218,10 +227,9 @@ export const registerUser = async (req : any, res : any) =>{
         const token = jwt.sign({id : phoneNoId.toString(), isEmployeeLogin : false}, secretKey, { expiresIn: '12h' })
         return res.status(200).json({
             message: "User registered successfully",
-            user: newUser,
+            data: newUser,
             token: token
           });
-          
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: "An error occurred, please try again later"});
