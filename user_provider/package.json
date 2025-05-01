@@ -33,6 +33,7 @@
     "@types/mongoose": "^5.11.97",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.13.10",
+    "@types/socket.io": "^3.0.1",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
