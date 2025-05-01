@@ -55,7 +55,7 @@ app.get('/', (req, res) => {
 })
 
 setTimeout(() => {
-    const testClient = ioClient("http://localhost:4000");
+    const testClient = ioClient("http://13.202.163.238:4000");
   
     testClient.on("connect", () => {
       console.log("✅ Test client connected to server");
