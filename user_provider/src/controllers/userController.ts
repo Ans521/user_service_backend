@@ -15,6 +15,9 @@ import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
 import { start } from "repl";
 import { Types } from "mongoose";
+import { sendNotification, userSocketMap } from "./socket";
+import {io} from '../app'
+import { Socket } from "socket.io-client";
 dotenv.config()
 connectDb()
 const secretKey = '1n1b484n39886ni124114inai';
@@ -94,7 +97,6 @@ export const verifyOtp = async (req: any, res: any) => {
         if (!phoneNo1) {
             return res.status(404).json({ message: "Invalid OTP or OTP Expired" });
         }
-        console.log(typeof userOtp)
         
         const storedOtp = await client.get(`otp:${phoneNo1}`);
         
@@ -112,7 +114,6 @@ export const verifyOtp = async (req: any, res: any) => {
 
         if (!isEmployeeLogin) {
             const userData : any = await User.findOne({ phoneNo: phoneRef?._id }).populate('phoneNo').populate('email'); 
-
             if (userData?.loggedInBefore) {
                 redisOperation(phoneNo1, userOtp, false);
 
@@ -128,7 +129,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     message: "User logged in before",
                     data : sentData,
                     token: token
-                  });
+                });
             } else {
                 try {
                     const newUser = await new User({ phoneNo: phoneRef?._id }).save();
@@ -396,37 +397,6 @@ export const getProviderList = async (req : any, res : any) => {
     }
 };
 
-export const updateStatusProvider = async (req: any, res: any) => {
-    const { status, providerId } = req.body;
-    
-    let providerStatus = '';  
-
-    if (status) {
-        providerStatus = 'approved';
-    } else {
-        providerStatus = 'rejected';
-    }
- 
-    try {
-        if(status){
-            await ServiceProvider.findOneAndUpdate(
-                { _id: providerId },   
-                { status: providerStatus, isUserVerified : true },
-                { new : true } 
-            )
-        }else{
-            await ServiceProvider.findOneAndUpdate(
-                { _id: providerId },   
-                { status: providerStatus}, // no need to change the isuserverifed by default it is false
-                { new : true }
-            );
-        }
-        res.status(200).json({ success: true, message: 'Status updated successfully' });
-    } catch (error) {
-        console.error('Error updating service provider:', error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
-}
 
 export const storePhone = async (req : any, res : any) => {
     try {
@@ -507,7 +477,10 @@ export const addProvider = async (req : any, res : any) => {
 export const updateProviderStatus = async (req : any, res : any) => {
     const { status } = req.body;
     const {id} = req.params;
-
+    const socketId = userSocketMap.get(id);
+    console.log("socketId", socketId)
+    const message = `Your account has been ${status} by admin.`;
+    console.log("message", message)
     try {
         if(status == 'approved' && id != undefined){
             await ServiceProvider.findOneAndUpdate(
@@ -515,14 +488,15 @@ export const updateProviderStatus = async (req : any, res : any) => {
                 { status: status, isUserVerified : true },
                 { new : true } 
             )
+            sendNotification(socketId, message);
             return res.status(200).json({ success: true, message: 'successfully' });
-
         }else if(status == 'rejected' && id != undefined){
             await ServiceProvider.findOneAndUpdate(
                 { _id: id },   
                 { status: status, isUserVerified : false},
                 { new : true }
             );
+            sendNotification(socketId, message);
             return res.status(200).json({ success: true, message: 'successfully' });
         }
         return res.status(500).json({ success: false, message: 'something went wrong' });

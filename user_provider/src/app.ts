@@ -9,6 +9,7 @@ import http from 'http';
 import {Server}  from 'socket.io'
 import cors from 'cors';
 import ioClient from "socket.io-client";
+import { userSocketMap } from "./controllers/socket";
 
 import { Socket } from "socket.io-client";
 dotenv.config();
@@ -19,24 +20,30 @@ const app = express();
 const server = http.createServer(app);
 
 
-const io = new Server(server, {
+export const io = new Server(server, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
     },
-    transports: ['websocket'] // <- add this line
   });
   
-io.of("/").on('connect', (socket: any) => {
+io.on('connect', async (socket: any) => {
     console.log('User connected');
     console.log(socket.id);
-    socket.on('clientMessage', (message : string ) => {
-        socket.emit('serverMessage', "Hello from server!");
+
+    socket.on('set-user-id', (userId : string ) => {
+        if(userId){
+            userSocketMap.set(userId, socket.id) 
+            socket.userId = userId
+            socket.emit('server-connect', "server connected");
+            console.log(`Mapped user ${userId} to socket ${socket.id}`);
+            console.log("get it", userSocketMap.get(userId))
+        }
     })
 
-    
     socket.on('disconnect', () => {
         console.log('User disconnected');
+        userSocketMap.delete(socket.userId);
     });
 });
 

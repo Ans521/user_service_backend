@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, registerUser, verifyOtp, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, searchProvider, userSentMsg, recentProviderEnquiry, getInfoUserProvider} from "../controllers/userController";
+import { getOtp, registerProvider, registerUser, verifyOtp, handleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, searchProvider, userSentMsg, recentProviderEnquiry, getInfoUserProvider} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 
 const router = express.Router();
@@ -16,7 +16,6 @@ router.post('/upload-image', (req : any, res : any, next : any) => {
 
 router.post('/upload-document',uploadMultiple, handleImageUrl);
 router.get('/get-provider-list', getProviderList)
-router.post('/update-status', updateStatusProvider)
 router.post('/phone-by-admin', storePhone)
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory)
