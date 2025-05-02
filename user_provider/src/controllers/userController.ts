@@ -134,7 +134,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 try {
                     const newUser = await new User({ phoneNo: phoneRef?._id }).save();
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "User logging in for the first time", newUser }});
+                    return res.status(200).json({data : { message: "User logging in for the first time", data : newUser }});
                 } catch (error) {
                     console.log(error);
                     return res.status(500).json({ message: "Error occurred while saving new user" });
@@ -164,7 +164,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 try {
                     const newProvider = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "New service provider logged in", newProvider }});
+                    return res.status(200).json({data : { message: "New service provider logged in", data : newProvider }});
                 } catch (error) {
                     console.log(error);
                     return res.status(500).json({ message: "Error occurred while saving new provider" });
