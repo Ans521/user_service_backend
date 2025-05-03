@@ -321,34 +321,29 @@ export const uploadMultiple = multer({ storage: uploadImage }).fields([
 
 export const upload = multer({storage : uploadImage})
 
-
-export const handleImageUrl = async (req: any, res: any) => {
+export const handleSingleImageUrl =  async (req : any, res : any) => {
     try {
-      const {phone, email } = req.body;
-
-        if(!req.files){
+        if(!req.file){
             return res.status(400).send("No file uploaded.");
         }
+
+        const fileUrl = `http://13.202.163.238:4000/uploads/${req.file.filename}`
+
+        return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
+
+    }catch(err){
+        console.log(err)
+        return res.status(500).json({ message: "An error occurred, please try again later"});
+    }
+}
+
+
+export const handleImageUrls = async (req: any, res: any) => {
+    try {
+        const {phone, email, imageUrl } = req.body;
         
-        const files : any = {};
-        if(req.files.AC){
-            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
-        }
-
-        if(req.files.ACB){
-            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
-        }
-
-        if(req.files.PC){
-            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
-        }
-
-        if(req.files.PH){
-            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
-        }
-
-        if(!phone || !email){
-            return res.status(406).json({ message: "Please provide required field" });
+        if (!phone || !email || !imageUrl) {
+            return res.status(400).json({ message: "Please provide required field" });
         }
         
         const phoneData = await PhoneNumber.findOne({ phoneNumber: phone, email });
@@ -356,13 +351,13 @@ export const handleImageUrl = async (req: any, res: any) => {
         if (!phoneData) {
             return res.status(404).json({ message: "Phone number not found." });
         }
-
+       
         const isUserVerifed = false;
         const isloggedInBefore = true;
         const providerData = await ServiceProvider.findOneAndUpdate(
             {phoneNo: phoneData?._id},
             {$set : {
-                imageUrl: files,
+                imageUrl,
                 isUserVerifed,
                 loggedInBefore : isloggedInBefore
                 }}, {new : true}

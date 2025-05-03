@@ -1,13 +1,16 @@
 import ioClient from "socket.io-client";
 
-const socket = ioClient("http://localhost:4000");
+const socket = ioClient("http://13.202.163.238:4000");
 
 socket.on('connect', () => {
-  socket.emit('clientMessage', 'Hello from client!');
+  socket.emit('set-user-id', '68133b7684870d278960430c');
 });
 
+socket.on('server-connect', (message : any) => {
+  console.log('Received from server:', message);
+});
 // Listen for incoming messages from the server
-socket.on('serverMessage', (message : any) => {
+socket.on('notification', (message : any) => {
   console.log('Received from server:', message);
 });
 
