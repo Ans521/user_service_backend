@@ -13,8 +13,8 @@ router.post('/resgister-admin-provider', uploadMultiple, addProvider);
 router.post('/upload-image', upload.single('image'), handleSingleImageUrl);
 
 router.post('/upload-document', handleImageUrls);
-router.get('/get-provider-list', verifyToken, getProviderList)
-router.post('/phone-by-admin', storePhone)
+router.get('/get-provider-list', getProviderList) // admin api
+router.post('/phone-by-admin', storePhone) // admin api
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory)
 router.get('/get-all-category', seeAllCategory)
