@@ -565,6 +565,7 @@ export const seeAllCategory = async (req : any, res : any) => {
             subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
         })))
         const sendData = categories.map((cat : any) => ({
+            _id : cat._id,
             category : cat?.category,
         }))
         return res.status(200).json({ success: true, data: response ,category : sendData, subcategories : filteredSubcategories});
