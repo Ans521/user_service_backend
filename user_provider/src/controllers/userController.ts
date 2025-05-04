@@ -397,7 +397,6 @@ export const handleImageUrls = async (req: any, res: any) => {
                 data: sentData,
                 token: token
             });
-
         } catch (err) {
             return res.status(500).json({ message: "Internal server error.", error: err });
     }
@@ -565,8 +564,10 @@ export const seeAllCategory = async (req : any, res : any) => {
             category : cat?._doc.category,
             subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
         })))
-
-        return res.status(200).json({ success: true, data: response , subcategories : filteredSubcategories});
+        const sendData = categories.map((cat : any) => ({
+            category : cat?.category,
+        }))
+        return res.status(200).json({ success: true, data: response ,category : sendData, subcategories : filteredSubcategories});
     } catch (error) {
         console.error('Error fetching categories:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
