@@ -302,9 +302,8 @@ export const registerProvider = async (req: any, res: any) => {
             {$set : serviceProviderData},
             {new : true}
         ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages -__v -servicePrice -reviewComments -services -enquiry');
-
         const sentData = {
-            ...newServiceProvider.toObject(),
+            ...newServiceProvider?.toObject(),
             phone,
             email
         }
@@ -509,7 +508,7 @@ export const updateProviderStatus = async (req : any, res : any) => {
         if(status == 'approved' && id != undefined){
             await ServiceProvider.findOneAndUpdate(
                 { _id: id },   
-                { status: status, isUserVerified : true },
+                { status: status, isUserVerifed : true },
                 { new : true } 
             )
             sendNotification(socketId, message);
@@ -517,7 +516,7 @@ export const updateProviderStatus = async (req : any, res : any) => {
         }else if(status == 'rejected' && id != undefined){
             await ServiceProvider.findOneAndUpdate(
                 { _id: id },   
-                { status: status, isUserVerified : false},
+                { status: status, isUserVerifed : false},
                 { new : true }
             );
             sendNotification(socketId, message);
@@ -872,6 +871,8 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 email: provider?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
                 aboutus : provider?.aboutUs || "",
+                isUserVerified : provider?.isUserVerifed || false,
+                isProfileCompleted : provider?.isProfileCompleted || false, 
                 experience : provider?.experience || 0,
                 workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
                 workingDays : provider?.workingDays || "Everyday",
@@ -897,44 +898,44 @@ export const getInfoUserProvider = async (req: any, res: any) => {
   };
 
 
-export const searchProvider = async (req : any, res : any) => {
-    try {
-        const { search } = req.body;
-        console.log("search", search)   
-        // agr mei chahta hu kii user chahe phn number fill kree ya fir email kuch bhi then i can use $or to search across multiple field.
-        //  $or is used to search across multiple fields
-        const providers : any = await SubCategory.find({
-                name: { $regex: search, $options: 'i' },
-                // { address: { $regex: search, $options: 'i' } },
-        })
-        const searchData = await Promise.all(providers.map(async(provider : any) => {
-            const providerInfo : any = await ServiceProvider.findOne({ subcategory : provider._id, status : "approved" })
-            if(providerInfo){
-                return {
-                    _id : providerInfo?.id,
-                    name : providerInfo?.name,
-                    providerPic : providerInfo?.imageUrl?.PH,
-                    phone : providerInfo?.phoneNo?.phoneNumber,
-                    review : providerInfo?.avgRating || 2,
-                    price : providerInfo?.servicePrice || 100,
-                    totalReviews : providerInfo?.totalReviews || 0,
-                    experience : providerInfo?.experience || 0,
-                    workingHrs : providerInfo?.workingHours || {start : "10AM", end : "5PM"},
-                    workingDays : providerInfo?.workingDays || "Everyday",
-                    visitingTime : providerInfo?.visitingTime || "30 min",
-                }
-            }else{
-                return null
-            }
-        }))
+// export const searchProvider = async (req : any, res : any) => {
+//     try {
+//         const { search } = req.body;
+//         console.log("search", search)   
+//         // agr mei chahta hu kii user chahe phn number fill kree ya fir email kuch bhi then i can use $or to search across multiple field.
+//         //  $or is used to search across multiple fields
+//         const providers : any = await SubCategory.find({
+//                 name: { $regex: search, $options: 'i' },
+//                 // { address: { $regex: search, $options: 'i' } },
+//         })
+//         const searchData = await Promise.all(providers.map(async(provider : any) => {
+//             const providerInfo : any = await ServiceProvider.findOne({ subcategory : provider._id, status : "approved" })
+//             if(providerInfo){
+//                 return {
+//                     _id : providerInfo?.id,
+//                     name : providerInfo?.name,
+//                     providerPic : providerInfo?.imageUrl?.PH,
+//                     phone : providerInfo?.phoneNo?.phoneNumber,
+//                     review : providerInfo?.avgRating || 2,
+//                     price : providerInfo?.servicePrice || 100,
+//                     totalReviews : providerInfo?.totalReviews || 0,
+//                     experience : providerInfo?.experience || 0,
+//                     workingHrs : providerInfo?.workingHours || {start : "10AM", end : "5PM"},
+//                     workingDays : providerInfo?.workingDays || "Everyday",
+//                     visitingTime : providerInfo?.visitingTime || "30 min",
+//                 }
+//             }else{
+//                 return null
+//             }
+//         }))
 
-        const searchedData = searchData.filter((provider : any) => provider !== null)
+//         const searchedData = searchData.filter((provider : any) => provider !== null)
 
-        return res.status(200).json({ data: { message: 'Fetched the provider info', searchedData } });
-    }catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
-    }
-}   
+//         return res.status(200).json({ data: { message: 'Fetched the provider info', searchedData } });
+//     }catch (error) {
+//         return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
+//     }
+// }   
 
     export const userSentMsg = async (req: any, res: any) => {
         try {
