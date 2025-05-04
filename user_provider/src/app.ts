@@ -54,6 +54,7 @@ app.use(bodyParser.json());
 app.use("/api", authRouter);
 
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
 app.use((req, res) => {

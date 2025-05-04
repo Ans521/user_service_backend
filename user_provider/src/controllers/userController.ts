@@ -301,12 +301,13 @@ if(!fs.existsSync(directoryPath)) {
     fs.mkdirSync(directoryPath);
 }
 
-const uploadImage = mutler.diskStorage({
+const uploadImage = multer.diskStorage({
     destination : function(req : any, file, cb){
         cb(null, directoryPath)
     },
 
     filename : function(req : any, file, cb){
+        console.log("filename", file)
         const fileName = Date.now() + path.extname(file.originalname)
         cb(null, fileName)
     }
@@ -323,10 +324,10 @@ export const upload = multer({storage : uploadImage})
 
 export const handleSingleImageUrl =  async (req : any, res : any) => {
     try {
+        console.log(req.file)
         if(!req.file){
             return res.status(400).send("No file uploaded.");
         }
-
         const fileUrl = `http://13.202.163.238:4000/uploads/${req.file.filename}`
 
         return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
