@@ -139,7 +139,7 @@ export const verifyOtp = async (req: any, res: any) => {
                         role : newUser?.role,
                         phone : phoneRef?.phoneNumber,
                         email : phoneRef?.email,
-                        loggedInBefore : newUser?.loggedInBefore
+                        loggedInBefore : newUser?.loggedInBefore,
                     }
                     redisOperation(phoneNo1, userOtp, false);
                     return res.status(200).json({data : { message: "User logging in for the first time", data : sentData }});
@@ -158,10 +158,11 @@ export const verifyOtp = async (req: any, res: any) => {
                 email: providerData?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: providerData?.phoneNo?.phoneNumber || "123-456-7890",
                 loggedInBefore : providerData?.loggedInBefore,
-                isUserVerified : providerData?.isUserVerifed || false
+                isUserVerified : providerData?.isUserVerifed || false,
+                isProfileCompleted : providerData?.isProfileCompleted || false
             }
             if (providerData?.loggedInBefore) {
-                if (providerData?.isUserVerified) {
+                if (providerData?.isUserVerifed) {
                     redisOperation(phoneNo1, userOtp, false);
                     console.log(providerData)
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
@@ -177,15 +178,16 @@ export const verifyOtp = async (req: any, res: any) => {
                         message: "Service provider logged in before but not verified yet by admin",
                         data: sentData,
                         token: token
-                      });    
-                } 
+                      });
+                }
              } else {
                 try {
                     const newProvider : any = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
                     const sentData = {
                         _id : newProvider?._id,
                         loggedInBefore : newProvider?.loggedInBefore,
-                        isUserVerified : newProvider?.isUserVerifed
+                        isUserVerified : newProvider?.isUserVerifed,
+                        isProfileCompleted : newProvider?.isProfileCompleted
                     }
                     redisOperation(phoneNo1, userOtp, false);
                     return res.status(200).json({data : { message: "New service provider logged in", data : sentData }});
