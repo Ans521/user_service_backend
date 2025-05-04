@@ -12,8 +12,8 @@ router.post("/register-provider", registerProvider);
 router.post('/resgister-admin-provider', uploadMultiple, addProvider);
 router.post('/upload-image', upload.single('image'), handleSingleImageUrl);
 
-router.post('/upload-document',verifyToken, handleImageUrls);
-router.get('/get-provider-list', getProviderList)
+router.post('/upload-document', verifyToken, handleImageUrls);
+router.get('/get-provider-list', verifyToken, getProviderList)
 router.post('/phone-by-admin', storePhone)
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory)
