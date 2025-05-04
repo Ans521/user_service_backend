@@ -118,6 +118,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 redisOperation(phoneNo1, userOtp, false);
 
                 const sentData = {
+                    _id : userData?._id,
                     name: userData?.name || "John Doe",
                     address: userData?.address || "123 Main St",
                     email: userData?.phoneNo?.email || "ZVv7Q@example.com",
