@@ -8,6 +8,9 @@ import path from 'path';
 import http from 'http'; 
 import {Server}  from 'socket.io'
 import cors from 'cors';
+import ioClient from "socket.io-client";
+import { userSocketMap } from "./controllers/socket";
+
 import { Socket } from "socket.io-client";
 dotenv.config();
 connectDb();
@@ -17,31 +20,41 @@ const app = express();
 const server = http.createServer(app);
 
 
-const io = new Server(server);
-
-io.on('connect', (socket: any) => {
+export const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    },
+  });
+  
+io.on('connect', async (socket: any) => {
     console.log('User connected');
     console.log(socket.id);
-    socket.on('clientMessage', (message : string ) => {
-        socket.emit('serverMessage', "Hello from server!");
+
+    socket.on('set-user-id', (userId : string ) => {
+        if(userId){
+            userSocketMap.set(userId, socket.id) 
+            socket.userId = userId
+            socket.emit('server-connect', "server connected");
+            console.log(`Mapped user ${userId} to socket ${socket.id}`);
+            console.log("get it", userSocketMap.get(userId))
+        }
     })
 
-    
     socket.on('disconnect', () => {
         console.log('User disconnected');
+        userSocketMap.delete(socket.userId);
     });
 });
 
 app.use(cors());
 app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use("/api", authRouter);
 
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
 app.use((req, res) => {
@@ -52,4 +65,5 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 })
 
+  
 export {app, server};

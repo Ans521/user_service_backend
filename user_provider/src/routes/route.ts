@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, registerUser, verifyOtp, handleImageUrl, getProviderList, updateStatusProvider, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, searchProvider, userSentMsg, recentProviderEnquiry, getInfoUserProvider} from "../controllers/userController";
+import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, recentProviderEnquiry, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 
 const router = express.Router();
@@ -9,21 +9,17 @@ router.post("/verify-otp", verifyOtp);
 router.post("/register-user", registerUser);
 router.post("/register-provider", registerProvider);
 
-router.post('/upload-image', (req : any, res : any, next : any) => {
-    console.log("Content-Type:", req.headers['content-type']);
-    next();
-}, uploadMultiple, addProvider);
+router.post('/resgister-admin-provider', uploadMultiple, addProvider);
+router.post('/upload-image', upload.single('image'), handleSingleImageUrl);
 
-router.post('/upload-document',uploadMultiple, handleImageUrl);
-router.get('/get-provider-list', getProviderList)
-router.post('/update-status', updateStatusProvider)
+router.post('/upload-document', verifyToken, handleImageUrls);
+router.get('/get-provider-list', verifyToken, getProviderList)
 router.post('/phone-by-admin', storePhone)
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory)
 router.get('/get-all-category',verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory)
 router.post('/provider-with-filter', getProviderWithCategory)
-router.get('/get-provider-info', verifyToken, getProviderInfo)
 router.put('/update-info', verifyToken, updateProfile)
 router.get('/get-info',verifyToken, getInfoUserProvider)
 // router.get('/search-provider', searchProvider)

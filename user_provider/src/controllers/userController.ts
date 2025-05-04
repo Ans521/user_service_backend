@@ -15,6 +15,9 @@ import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
 import { start } from "repl";
 import { Types } from "mongoose";
+import { sendNotification, userSocketMap } from "./socket";
+import {io} from '../app'
+import { Socket } from "socket.io-client";
 dotenv.config()
 connectDb()
 const secretKey = '1n1b484n39886ni124114inai';
@@ -94,7 +97,6 @@ export const verifyOtp = async (req: any, res: any) => {
         if (!phoneNo1) {
             return res.status(404).json({ message: "Invalid OTP or OTP Expired" });
         }
-        console.log(typeof userOtp)
         
         const storedOtp = await client.get(`otp:${phoneNo1}`);
         
@@ -112,7 +114,6 @@ export const verifyOtp = async (req: any, res: any) => {
 
         if (!isEmployeeLogin) {
             const userData : any = await User.findOne({ phoneNo: phoneRef?._id }).populate('phoneNo').populate('email'); 
-
             if (userData?.loggedInBefore) {
                 redisOperation(phoneNo1, userOtp, false);
 
@@ -128,26 +129,45 @@ export const verifyOtp = async (req: any, res: any) => {
                     message: "User logged in before",
                     data : sentData,
                     token: token
-                  });
+                });
             } else {
                 try {
-                    const newUser = await new User({ phoneNo: phoneRef?._id }).save();
+                    const newUser : any = await new User({ phoneNo: phoneRef?._id }).save();
+                    console.log("newUser", newUser)
+                    const sentData = {
+                        _id : newUser?._id,
+                        role : newUser?.role,
+                        phone : phoneRef?.phoneNumber,
+                        email : phoneRef?.email,
+                        loggedInBefore : newUser?.loggedInBefore
+                    }
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "User logging in for the first time", newUser }});
+                    return res.status(200).json({data : { message: "User logging in for the first time", data : sentData }});
                 } catch (error) {
                     console.log(error);
                     return res.status(500).json({ message: "Error occurred while saving new user" });
                 }
             }
         } else {
-            const providerData = await ServiceProvider.findOne({ phoneNo: phoneRef }) as typeof ServiceProvider & { loggedInBefore?: boolean, isUserVerified?: boolean };
+            const providerData : any = await ServiceProvider.findOne({ phoneNo: phoneRef }).populate('phoneNo').populate('email')
+            console.log("providerData", providerData)
+            const sentData = {
+                _id : providerData?._id,
+                name: providerData?.name || "John Doe",
+                address: providerData?.address || "123 Main St",
+                email: providerData?.phoneNo?.email || "ZVv7Q@example.com",
+                phone: providerData?.phoneNo?.phoneNumber || "123-456-7890",
+                loggedInBefore : providerData?.loggedInBefore,
+                isUserVerified : providerData?.isUserVerifed || false
+            }
             if (providerData?.loggedInBefore) {
                 if (providerData?.isUserVerified) {
                     redisOperation(phoneNo1, userOtp, false);
+                    console.log(providerData)
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
                     return res.status(200).json({
                         message: "Service provider verified",
-                        data: providerData,
+                        data: sentData,
                         token: token
                       });
                 } else {
@@ -155,15 +175,20 @@ export const verifyOtp = async (req: any, res: any) => {
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h'})
                     return res.status(200).json({
                         message: "Service provider logged in before but not verified yet by admin",
-                        data: providerData,
+                        data: sentData,
                         token: token
                       });    
                 } 
              } else {
                 try {
-                    const newProvider = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
+                    const newProvider : any = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
+                    const sentData = {
+                        _id : newProvider?._id,
+                        loggedInBefore : newProvider?.loggedInBefore,
+                        isUserVerified : newProvider?.isUserVerifed
+                    }
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "New service provider logged in", newProvider }});
+                    return res.status(200).json({data : { message: "New service provider logged in", data : sentData }});
                 } catch (error) {
                     console.log(error);
                     return res.status(500).json({ message: "Error occurred while saving new provider" });
@@ -190,40 +215,33 @@ export const registerUser = async (req : any, res : any) =>{
         if(!userData){
             return res.status(404).json({message : "Phone Number and email has not been stored"})
         }
-
-        // const existingUser : any = await User.findOne({ email })
+        
         // const responseEmail = await PhoneNumber.findOne({email})
         // const responsePhone = await PhoneNumber.findOne({phoneNumber : phone})
-
+        
         // if(responseEmail || responsePhone){
-        //     return res.status(400).json({message : "Phone number or email already exist"})
-        // }
-        // if (existingUser) {
-        //     return res.status(400).json({ message: "Email is already registered." });
-        // }
-
+            //     return res.status(400).json({message : "Phone number or email already exist"})
+            // }
+            // if (existingUser) {
+                //     return res.status(400).json({ message: "Email is already registered." });
+                // }
+                
         const phoneNoId = userData?._id;
         
         const loggedInBefore = true;
-        // const registerData : any = { name, email, address, loggedInBefore}
         const registerData : any = { name, email : phoneNoId, address, loggedInBefore}
-
+    
         if (mpin && typeof mpin === "string") {
             const hashedMpin = await bcrypt.hash(mpin, 10);
-            console.log("hashedMpin", hashedMpin);
             registerData.mpin = hashedMpin;
         }
-
-        console.log("registerData", phoneNoId)
-
+        
         const newUser = await User.findOneAndUpdate(
             {phoneNo : phoneNoId},
             {$set : registerData},
             {new : true}
-        )
-
-        console.log("newUser", newUser)
-
+        ).select('-__v -userMsg');
+        
         const token = jwt.sign({id : phoneNoId.toString(), isEmployeeLogin : false}, secretKey, { expiresIn: '12h' })
         return res.status(200).json({
             message: "User registered successfully",
@@ -279,15 +297,20 @@ export const registerProvider = async (req: any, res: any) => {
     try {
         const serviceProviderData: any = { name, email : phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category : categoryId?._id, subcategory : subcategoryId?._id };
 
-        const newServiceProvider = await ServiceProvider.findOneAndUpdate(
+        const newServiceProvider : any = await ServiceProvider.findOneAndUpdate(
             {phoneNo : phoneNoId},
             {$set : serviceProviderData},
             {new : true}
-        );
+        ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages -__v -servicePrice -reviewComments -services -enquiry');
 
+        const sentData = {
+            ...newServiceProvider.toObject(),
+            phone,
+            email
+        }
         return res.status(200).json({data : {
-            message: "User registered successfully",
-            user: newServiceProvider,
+            message: "Provider registered successfully",
+            data: sentData,
         }});
     } catch (error) {
         console.log(error)
@@ -300,12 +323,13 @@ if(!fs.existsSync(directoryPath)) {
     fs.mkdirSync(directoryPath);
 }
 
-const uploadImage = mutler.diskStorage({
+const uploadImage = multer.diskStorage({
     destination : function(req : any, file, cb){
         cb(null, directoryPath)
     },
 
     filename : function(req : any, file, cb){
+        console.log("filename", file)
         const fileName = Date.now() + path.extname(file.originalname)
         cb(null, fileName)
     }
@@ -320,34 +344,29 @@ export const uploadMultiple = multer({ storage: uploadImage }).fields([
 
 export const upload = multer({storage : uploadImage})
 
-
-export const handleImageUrl = async (req: any, res: any) => {
+export const handleSingleImageUrl =  async (req : any, res : any) => {
     try {
-      const {phone, email } = req.body;
-
-        if(!req.files){
+        console.log(req.file)
+        if(!req.file){
             return res.status(400).send("No file uploaded.");
         }
+        const fileUrl = `http://13.202.163.238:4000/uploads/${req.file.filename}`
+
+        return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
+
+    }catch(err){
+        console.log(err)
+        return res.status(500).json({ message: "An error occurred, please try again later"});
+    }
+}
+
+
+export const handleImageUrls = async (req: any, res: any) => {
+    try {
+        const {phone, email, imageUrl } = req.body;
         
-        const files : any = {};
-        if(req.files.AC){
-            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
-        }
-
-        if(req.files.ACB){
-            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
-        }
-
-        if(req.files.PC){
-            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
-        }
-
-        if(req.files.PH){
-            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
-        }
-
-        if(!phone || !email){
-            return res.status(406).json({ message: "Please provide required field" });
+        if (!phone || !email || !imageUrl) {
+            return res.status(400).json({ message: "Please provide required field" });
         }
         
         const phoneData = await PhoneNumber.findOne({ phoneNumber: phone, email });
@@ -355,23 +374,30 @@ export const handleImageUrl = async (req: any, res: any) => {
         if (!phoneData) {
             return res.status(404).json({ message: "Phone number not found." });
         }
-
+       
         const isUserVerifed = false;
         const isloggedInBefore = true;
-        const providerData = await ServiceProvider.findOneAndUpdate(
+        const providerData : any = await ServiceProvider.findOneAndUpdate(
             {phoneNo: phoneData?._id},
             {$set : {
-                imageUrl: files,
+                imageUrl,
                 isUserVerifed,
                 loggedInBefore : isloggedInBefore
                 }}, {new : true}
-            );
+            ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages');
+
             const token: string = jwt.sign({id : phoneData?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' });
+            const sentData = {
+                ...providerData.toObject(),
+                phone,
+                email
+            }
             return res.status(200).json({
                 message: "URLs updated successfully.",
-                data: providerData,
+                data: sentData,
                 token: token
             });
+
         } catch (err) {
             return res.status(500).json({ message: "Internal server error.", error: err });
     }
@@ -396,37 +422,6 @@ export const getProviderList = async (req : any, res : any) => {
     }
 };
 
-export const updateStatusProvider = async (req: any, res: any) => {
-    const { status, providerId } = req.body;
-    
-    let providerStatus = '';  
-
-    if (status) {
-        providerStatus = 'approved';
-    } else {
-        providerStatus = 'rejected';
-    }
- 
-    try {
-        if(status){
-            await ServiceProvider.findOneAndUpdate(
-                { _id: providerId },   
-                { status: providerStatus, isUserVerified : true },
-                { new : true } 
-            )
-        }else{
-            await ServiceProvider.findOneAndUpdate(
-                { _id: providerId },   
-                { status: providerStatus}, // no need to change the isuserverifed by default it is false
-                { new : true }
-            );
-        }
-        res.status(200).json({ success: true, message: 'Status updated successfully' });
-    } catch (error) {
-        console.error('Error updating service provider:', error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
-}
 
 export const storePhone = async (req : any, res : any) => {
     try {
@@ -507,7 +502,10 @@ export const addProvider = async (req : any, res : any) => {
 export const updateProviderStatus = async (req : any, res : any) => {
     const { status } = req.body;
     const {id} = req.params;
-
+    const socketId = userSocketMap.get(id);
+    console.log("socketId", socketId)
+    const message = `Your account has been ${status} by admin.`;
+    console.log("message", message)
     try {
         if(status == 'approved' && id != undefined){
             await ServiceProvider.findOneAndUpdate(
@@ -515,14 +513,15 @@ export const updateProviderStatus = async (req : any, res : any) => {
                 { status: status, isUserVerified : true },
                 { new : true } 
             )
+            sendNotification(socketId, message);
             return res.status(200).json({ success: true, message: 'successfully' });
-
         }else if(status == 'rejected' && id != undefined){
             await ServiceProvider.findOneAndUpdate(
                 { _id: id },   
                 { status: status, isUserVerified : false},
                 { new : true }
             );
+            sendNotification(socketId, message);
             return res.status(200).json({ success: true, message: 'successfully' });
         }
         return res.status(500).json({ success: false, message: 'something went wrong' });
