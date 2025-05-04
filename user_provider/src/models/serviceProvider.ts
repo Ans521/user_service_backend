@@ -7,6 +7,10 @@ const serviceProviderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isProfileCompleted: {
+    type: Boolean,
+    default: false
+  },
   imageUrl:{
     type : {
       [imagesKey.aadharCard] : String,
