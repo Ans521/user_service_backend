@@ -98,7 +98,8 @@ const serviceProviderSchema = new mongoose.Schema({
     type : [{
       service : String,
       serviceList : [String] 
-    }]
+    }],
+    _id : false
  },
  servicePrice : {
   type : Number, 
