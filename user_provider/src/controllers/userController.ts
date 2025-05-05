@@ -143,7 +143,7 @@ export const verifyOtp = async (req: any, res: any) => {
                         loggedInBefore : newUser?.loggedInBefore,
                     }
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "User logging in for the first time", data : sentData }});
+                    return res.status(200).json({message: "User logging in for the first time", data : sentData });
                 } catch (error) {
                     console.log(error);
                     return res.status(500).json({ message: "Error occurred while saving new user" });
@@ -191,7 +191,7 @@ export const verifyOtp = async (req: any, res: any) => {
                         isProfileCompleted : newProvider?.isProfileCompleted
                     }
                     redisOperation(phoneNo1, userOtp, false);
-                    return res.status(200).json({data : { message: "New service provider logged in", data : sentData }});
+                    return res.status(200).json({message: "New service provider logged in", data : sentData });
                 } catch (error) {
                     console.log(error);
                     return res.status(500).json({ message: "Error occurred while saving new provider" });
@@ -310,10 +310,10 @@ export const registerProvider = async (req: any, res: any) => {
             phone,
             email
         }
-        return res.status(200).json({data : {
+        return res.status(200).json({
             message: "Provider registered successfully",
             data: sentData,
-        }});
+        });
     } catch (error) {
         console.log(error)
         return res.status(500).json({ message: "An error occurred, please try again later" });
@@ -493,7 +493,7 @@ export const addProvider = async (req : any, res : any) => {
         const newServiceProvider = new ServiceProvider(providerData);  
         await newServiceProvider.save();
 
-        res.status(200).json({data :{ message: "Service provider registered successfully." }});
+        res.status(200).json({ message: "Service provider registered successfully." });
     } catch (error) {
         console.error('Error adding service provider:', error);
         res.status(500).json({ message: 'Internal Server Error' });
