@@ -5,7 +5,6 @@ import { ServiceProvider } from "../models/serviceProvider";
 import jwt from "jsonwebtoken";
 import bcrypt from 'bcrypt';
 import dotenv, { populate } from 'dotenv';
-import mutler from 'multer';
 import path from 'path';
 import multer from "multer";
 import fs from 'fs';

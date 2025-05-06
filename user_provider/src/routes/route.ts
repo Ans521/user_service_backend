@@ -12,7 +12,7 @@ router.post("/register-provider", registerProvider);
 
 router.post('/resgister-admin-provider', uploadMultiple, addProvider);
 router.post('/upload-image', upload.single('image'), handleSingleImageUrl);
-router.post('/upload-gallery',verifyToken, uploadImages) // gallery wali image upload
+router.post('/upload-gallery', verifyToken, upload.array('images', 6), uploadImages) // gallery wali image upload
 
 router.post('/upload-document', handleImageUrls);
 router.get('/get-provider-info',verifyToken, getProviderInfo)
