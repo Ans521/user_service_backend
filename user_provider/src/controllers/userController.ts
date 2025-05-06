@@ -103,7 +103,6 @@ export const verifyOtp = async (req: any, res: any) => {
         if (storedOtp !== userOtp) {
             return res.status(400).json({data : { message: "Enter valid OTP", userOtp }});
         }
-        console.log("phoneNo1", phoneNo1)
         
         // const phoneRef = await PhoneNumber.findOne({ phoneNumber: String(phoneNo1) });
         const phoneRef = await PhoneNumber.findOne({ email : phoneNo1});
@@ -134,7 +133,6 @@ export const verifyOtp = async (req: any, res: any) => {
             } else {
                 try {
                     const newUser : any = await new User({ phoneNo: phoneRef?._id }).save();
-                    console.log("newUser", newUser)
                     const sentData = {
                         _id : newUser?._id,
                         role : newUser?.role,
@@ -151,7 +149,6 @@ export const verifyOtp = async (req: any, res: any) => {
             }
         } else {
             const providerData : any = await ServiceProvider.findOne({ phoneNo: phoneRef }).populate('phoneNo').populate('email')
-            console.log("providerData", providerData)
             const sentData = {
                 _id : providerData?._id,
                 name: providerData?.name || "John Doe",
@@ -162,6 +159,8 @@ export const verifyOtp = async (req: any, res: any) => {
                 isUserVerified : providerData?.isUserVerifed || false,
                 isProfileCompleted : providerData?.isProfileCompleted || false
             }
+
+            console.log("providerData", providerData)
             if (providerData?.loggedInBefore) {
                 if (providerData?.isUserVerifed) {
                     redisOperation(phoneNo1, userOtp, false);
@@ -183,6 +182,11 @@ export const verifyOtp = async (req: any, res: any) => {
                 }
              } else {
                 try {
+                    const existingProvider : any = await ServiceProvider.findOne({phoneNo : phoneRef?._id, email : phoneRef?._id})
+                    if(existingProvider){
+                        redisOperation(phoneNo1, userOtp, false);
+                        return res.status(400).json({ message: "Provider stored in Db", data : existingProvider });
+                    }
                     const newProvider : any = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
                     const sentData = {
                         _id : newProvider?._id,
@@ -661,9 +665,14 @@ export const deleteCategory = async (req : any, res : any) => {
 
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
-        const { limit, page, rating, subcat, minPrice, maxPrice, search } = req.body;
-
+        const {rating, subcat, minPrice, maxPrice, search } = req.body;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+
+        if (page < 1 || limit < 1) {
+            return res.status(400).json({ success: false, message: 'Page and limit must be greater than 0' });
+        }
 
         let query: any = {
             status: 'approved',
@@ -673,13 +682,11 @@ export const getProviderWithCategory = async (req: any, res: any) => {
 
         if (minPrice && maxPrice) query.servicePrice = { $gte: minPrice, $lte: maxPrice };
 
-        if (search) {
+        if (search && search.trim() !== "") {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
-
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
             query.subcategory = { $in: subcategoryIds };
         }
-
         if (subcat) {
             const subcatObjectIds = subcat.map((sub: any) => new Types.ObjectId(String(sub)));
 
@@ -702,6 +709,8 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 }
             },
             { $unwind: "$category" },
+            { $skip: skip },
+            { $limit: limit },
             {
                 $project: {
                     _id: 1,
@@ -762,7 +771,9 @@ export const getProviderInfo = async (req : any, res : any) => {
                     completedTasks :  provider.completedTasks || 0,
                     workingHours : provider?.workingHours || {start : "10AM", end : "5PM"},
                     workingDays : provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                    aboutus : provider?.aboutUs || "The best service backend developer is Ansh Sharma.. Remember that... I am the best",
+                    aboutus : provider?.aboutUs || "The best service backend developer is Ansh.. recall it",
+                    imageGallery : provider?.galleryImages || ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+                    services : provider?.services,
                 };
                 return res.status(200).json({ data : {message: 'Fetched the provider info', providerInfo }});
         }else{
@@ -944,7 +955,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
         try {
           const { message, providerId } = req.body;
           const { id } = req.user;
-            
+        
           const provider : any = await ServiceProvider.findOne({ _id: providerId });
       
           if (!provider) {
