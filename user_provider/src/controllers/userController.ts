@@ -893,7 +893,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingDays : provider?.workingDays || "Everyday",
             }
 
-            return res.status(200).json({ data: { message: 'Fetched the provider info', providerData } });
+            return res.status(200).json({message: 'Fetched the provider info', data : providerData });
         } else {
             const user : any = await User.findOne({ phoneNo: findId }).populate(['phoneNo', 'email']);
             if(!user){
