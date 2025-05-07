@@ -870,7 +870,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
         console.log(isEmployeeLogin)
 
         if (isEmployeeLogin) {
-            const provider: any = await ServiceProvider.findOne({ phoneNo : findId, status: "approved" })
+            const provider: any = await ServiceProvider.findOne({ phoneNo : findId})
             .populate(['phoneNo', 'email', 'category', 'subcategory']);
 
             if(!provider){
@@ -888,6 +888,8 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 isProfileCompleted : provider?.isProfileCompleted || false, 
                 experience : provider?.experience || 4,
                 workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
+                role : provider?.role || "ServiceProvider",
+                isEmployeeLogin : provider?.isEmployeeLogin || true,
                 workingDays : provider?.workingDays || "Everyday",
             }
 
