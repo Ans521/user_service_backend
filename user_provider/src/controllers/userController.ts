@@ -437,7 +437,7 @@ export const storePhone = async (req : any, res : any) => {
         }
         const newPhoneNumber = new PhoneNumber({ phoneNumber });
         await newPhoneNumber.save();
-        return res.status(200).json({data :{ message: "Phone number stored successfully."}});
+        return res.status(200).json({ message: "Phone number stored successfully."});
     } catch (error) {
         console.error('Error storing phone number:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -552,7 +552,7 @@ export const addCategory = async (req : any, res : any) => {
             category : newCategory._id
         }))
         await SubCategory.insertMany(subcategoryData);
-        return res.status(200).json({data :{ message: "Category added successfully."}});
+        return res.status(200).json({message: "Category added successfully."});
     } catch (error) {
         console.error('Error adding category:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -774,7 +774,7 @@ export const getProviderInfo = async (req : any, res : any) => {
                     imageGallery : provider?.galleryImages || ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
                     services : provider?.services,
                 };
-                return res.status(200).json({ data : {message: 'Fetched the provider info', providerInfo }});
+                return res.status(200).json({message: 'Fetched the provider info', data : providerInfo });
         }else{
             return res.status(401).json({ data : {message: 'Provided Id have no info'}});
         }
@@ -836,10 +836,8 @@ export const updateProfile = async (req : any, res : any) => {
             {upsert: true, new: true }
         )
         return res.status(200).json({
-            data : {
-                message : "User info updated successfully",
-                updatedUser
-            }
+            message : "User info updated successfully",
+            data : updatedUser
         })
     }else{
         if(address) updateData.address = address;
@@ -849,10 +847,8 @@ export const updateProfile = async (req : any, res : any) => {
             {upsert: true, new: true }
         )
         return res.status(200).json({
-            data : {
                 message : "User info updated successfully",
-                updatedUser
-            }
+                data : updatedUser
         })
     }
 }
@@ -876,7 +872,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             if(!provider){
                 return res.status(404).json({ message: "No provider found" });
             }
-
+            console.log("provider", provider?.servicePrice)
             const providerData = {
                 name: provider?.name || "John Doe",
                 providerPic : provider?.imageUrl?.PH || "",
@@ -891,6 +887,8 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 role : provider?.role || "ServiceProvider",
                 isEmployeeLogin : provider?.isEmployeeLogin || true,
                 workingDays : provider?.workingDays || "Everyday",
+                visitingTime : provider?.visitingTime || "30 min",
+                servicePrice : provider?.servicePrice || 100,
             }
 
             return res.status(200).json({message: 'Fetched the provider info', data : providerData });
@@ -905,7 +903,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
             }
-            return res.status(200).json({ data: { message: 'Fetched the user info', userData } });
+            return res.status(200).json({ message: 'Fetched the user info', data :  userData });
         }
     } catch (error) {
       return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
