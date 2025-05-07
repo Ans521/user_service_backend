@@ -14,7 +14,7 @@ export const uploadImages = async (req : any,  res : any) => {
         if (!imageUrlObj) {
             return res.status(400).json({ success: false, message: 'uploadImageUrl is required' });
         }
-        const imageUrls = imageUrlObj.map((file : any) =>  `http://localhost:4000/uploads/${file.filename}`);
+        const imageUrls = imageUrlObj.map((file : any) =>  `http://13.202.163.238:4000/uploads/${file.filename}`);
 
         if (imageUrls.length === 0) {
             return res.status(400).json({ success: false, message: 'No images uploaded' });
@@ -23,9 +23,9 @@ export const uploadImages = async (req : any,  res : any) => {
         const  phoneNoId = new Types.ObjectId(String(id));
         const galleryImagesCheck : any = await ServiceProvider.findOne({phoneNo : phoneNoId}).select('galleryImages');
 
-        if(galleryImagesCheck?.galleryImages?.length >= 6) {
-            return res.status(400).json({ success: false, message: 'You can only upload 6 images' });
-        }
+        // if(galleryImagesCheck?.galleryImages?.length >= 6) {
+        //     return res.status(400).json({ success: false, message: 'You can only upload 6 images' });
+        // }
 
         const providerImages : any = await ServiceProvider.findOneAndUpdate(
             {phoneNo : phoneNoId},
