@@ -5,7 +5,6 @@ import { ServiceProvider } from "../models/serviceProvider";
 import jwt from "jsonwebtoken";
 import bcrypt from 'bcrypt';
 import dotenv, { populate } from 'dotenv';
-import mutler from 'multer';
 import path from 'path';
 import multer from "multer";
 import fs from 'fs';
@@ -884,10 +883,10 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 address: provider?.address || "123 Main St",
                 email: provider?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
-                aboutus : provider?.aboutUs || "",
+                aboutus : provider?.aboutUs || "Hiii I am a service provider",
                 isUserVerified : provider?.isUserVerifed || false,
                 isProfileCompleted : provider?.isProfileCompleted || false, 
-                experience : provider?.experience || 0,
+                experience : provider?.experience || 4,
                 workingHrs : provider?.workingHours || {start : "10AM", end : "5PM"},
                 workingDays : provider?.workingDays || "Everyday",
             }
