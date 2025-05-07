@@ -33,7 +33,7 @@ export const uploadImages = async (req : any,  res : any) => {
             { new: true}
         )
 
-        return res.status(200).json({ success: true, message : 'Images uploaded successfully', data: providerImages?.galleryImages });
+        return res.status(200).json({ success: true, message : 'Images uploaded successfully', data: providerImages });
     } catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
