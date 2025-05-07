@@ -19,10 +19,10 @@ router.get('/get-provider-info',verifyToken, getProviderInfo)
 router.get('/get-provider-list', getProviderList) // admin api
 router.post('/phone-by-admin', storePhone) // admin api
 router.put('/update-provider-status/:id', updateProviderStatus)
-router.post('/categories', addCategory)
+router.post('/categories', addCategory) // admin api
 router.get('/get-all-category', seeAllCategory)
-router.delete('/delete-category/:id', deleteCategory)
-router.post('/provider-with-filter', getProviderWithCategory)
+router.delete('/delete-category/:id', deleteCategory) // admin api
+router.post('/provider-with-filter', verifyToken, getProviderWithCategory)
 router.put('/update-info', verifyToken, updateProfile)
 router.get('/get-info',verifyToken, getInfoUserProvider)
 router.post('/send-msg-to-provider', verifyToken, userSentMsg)
