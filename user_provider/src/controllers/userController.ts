@@ -457,7 +457,7 @@ export const addProvider = async (req : any, res : any) => {
         if(req.files.AC){
             files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
         }
-
+        
         if(req.files.ACB){
             files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
         }
@@ -470,7 +470,6 @@ export const addProvider = async (req : any, res : any) => {
             files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
         }
 
-        
         const isUserVerifed = true;
         const status = "approved";
         const loggedInBefore = true;
@@ -538,19 +537,25 @@ export const updateProviderStatus = async (req : any, res : any) => {
 export const addCategory = async (req : any, res : any) => {
     try {
         const { category, subcategories } = req.body;
-
         const categoryExist = await Category.findOne({category : category});
 
         if(categoryExist){
             return res.status(400).json({data :{ message: "Category already exist."}});
         }
+
         const categoryData = { category };
+        console.log("categoryData", categoryData)
         const newCategory = new Category(categoryData);
         await newCategory.save();
+        console.log("subcategories", subcategories)
         const subcategoryData = subcategories.map((subcat : any) => ({
-            name : subcat, 
-            category : newCategory._id
+            name : subcat?.name,
+            category : newCategory._id,
+            image : subcat?.image || "not provided",
         }))
+
+        console.log("subcategoryData", subcategoryData);
+
         await SubCategory.insertMany(subcategoryData);
         return res.status(200).json({message: "Category added successfully."});
     } catch (error) {
@@ -771,7 +776,7 @@ export const getProviderInfo = async (req : any, res : any) => {
                     workingHours : provider?.workingHours || {start : "10AM", end : "5PM"},
                     workingDays : provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
                     aboutus : provider?.aboutUs || "The best service backend developer is Ansh.. recall it",
-                    imageGallery : provider?.galleryImages || ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+                    imageGallery : provider?.galleryImages || ["http://13.202.163.238:4000/uploads/1746613692666.png", "http://13.202.163.238:4000/uploads/1746613692666.png"],
                     services : provider?.services,
                 };
                 return res.status(200).json({message: 'Fetched the provider info', data : providerInfo });
@@ -902,6 +907,8 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 address: user?.address || "123 Main St",
                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
+                role : user?.role || "User",
+                isEmployeeLogin : user?.isEmployeeLogin || false,
             }
             return res.status(200).json({ message: 'Fetched the user info', data :  userData });
         }
