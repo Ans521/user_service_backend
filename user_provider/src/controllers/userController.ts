@@ -542,7 +542,7 @@ export const addCategory = async (req : any, res : any) => {
         if(categoryExist){
             return res.status(400).json({data :{ message: "Category already exist."}});
         }
-
+        
         const categoryData = { category };
         console.log("categoryData", categoryData)
         const newCategory = new Category(categoryData);
@@ -568,17 +568,18 @@ export const addCategory = async (req : any, res : any) => {
 export const seeAllCategory = async (req : any, res : any) => {
     try {
         const categories = await Category.find();
-        const subcategories = await SubCategory.find().select('_id name category');
-        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""});
+        const subcategories = await SubCategory.find().select('_id name category image');
+        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id, image : _doc?.image} : {name : "", _id : ""});
         const response = await Promise.all(categories.map(async (cat : any) =>( {
             category : cat?._doc.category,
+            _id : cat?._doc._id,
             subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
         })))
         const sendData = categories.map((cat : any) => ({
             _id : cat._id,
             category : cat?.category,
         }))
-        return res.status(200).json({ success: true, data: response ,category : sendData, subcategories : filteredSubcategories});
+        return res.status(200).json({ success: true, data: response, category : sendData, subcategories : filteredSubcategories});
     } catch (error) {
         console.error('Error fetching categories:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -894,6 +895,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingDays : provider?.workingDays || "Everyday",
                 visitingTime : provider?.visitingTime || "30 min",
                 servicePrice : provider?.servicePrice || 100,
+                imageGallery : provider?.galleryImages || ["http://13.202.163.238:4000/uploads/1746613692666.png", "http://13.202.163.238:4000/uploads/1746613692666.png"],
             }
 
             return res.status(200).json({message: 'Fetched the provider info', data : providerData });
