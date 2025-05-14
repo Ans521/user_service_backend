@@ -1,7 +1,7 @@
 import express from "express";
 import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, recentProviderEnquiry, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
-import { addSpecialCategory, getAddedSpecialCateogory, uploadImages } from "../controllers/providerController";
+import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages } from "../controllers/providerController";
 
 const router = express.Router();
 
@@ -28,6 +28,8 @@ router.get('/get-info',verifyToken, getInfoUserProvider)
 router.post('/send-msg-to-provider', verifyToken, userSentMsg)
 router.get('/recent-enquiry', verifyToken, recentProviderEnquiry)
 
+
+router.post('/update-category', updateCategory) // admin api
 router.post('/add-special-subcat', addSpecialCategory) // admin api
 router.get('/get-special-subcat', getAddedSpecialCateogory) // admin api
 export default router;

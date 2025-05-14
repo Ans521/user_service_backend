@@ -351,11 +351,11 @@ export const upload = multer({storage : uploadImage})
 
 export const handleSingleImageUrl =  async (req : any, res : any) => {
     try {
-        console.log(req.file)
         if(!req.file){
             return res.status(400).send("No file uploaded.");
         }
-        const fileUrl = `http://13.202.163.238:4000/uploads/${req.file.filename}`
+        
+        const fileUrl = `http://localhost:4000/uploads/${req.file.filename}`
 
         return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
 
@@ -573,7 +573,7 @@ export const seeAllCategory = async (req : any, res : any) => {
         const response = await Promise.all(categories.map(async (cat : any) =>( {
             category : cat?._doc.category,
             _id : cat?._doc._id,
-            subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id} : {name : "", _id : ""})
+            subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id, image : _doc?.image} : {name : "", _id : ""})
         })))
         const sendData = categories.map((cat : any) => ({
             _id : cat._id,
