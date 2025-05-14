@@ -11,9 +11,11 @@ const subcategorySchema = new mongoose.Schema({
   },
   image : {
     type : String,
+    default : "not provided"
   },
   iconImage : {
-    type : String
+    type : String,
+    default : "not provided"
   },
   specialCategory : {
     type : Boolean,
@@ -22,5 +24,3 @@ const subcategorySchema = new mongoose.Schema({
 });
  
 export const SubCategory = mongoose.model('SubCategory', subcategorySchema);
- 
- 
