@@ -1,6 +1,7 @@
 import { ServiceProvider } from "../models/serviceProvider";
 import { Types } from "mongoose";
 import { SubCategory } from "../models/subCategory";
+import { Category } from "../models/categorySchema";
  
 export const uploadImages = async (req : any,  res : any) => {
     try {
@@ -86,29 +87,33 @@ export const getAddedSpecialCateogory = async (req : any, res : any) => {
  
 export const updateCategory = async (req : any, res : any) => {
         try {
-            console.log("req.body", req.body)
 
-            const {category, categoryId, subcategoryId ,subcategories} = req.body;
+            const {category, categoryId, subcategories} = req.body;
             const categoryIds = new Types.ObjectId(categoryId as string);
-            
-            await category.findOneAndUpdate(
-                {category : categoryIds},
+            console.log("categoryIds", categoryIds);
+          
+            const response = await Category.findOneAndUpdate(
+                {_id : categoryId},
                 {category},
-                { new: true, upsert: true }, 
+                { new: true}, 
             )
-            
+            console.log("response", response);
+            if(!response) {
+                return res.status(400).json({ success: false, message: 'Category not found' });
+            }
             // Promise.all() is used here to wait for all the async operations (findOneAndUpdate or create) inside .map() to finish before moving on.
             // Without Promise.all(), the function won’t wait for all awaits in the .map() loop — it might finish early and cause unexpected results or incomplete DB writes.
             await Promise.all(subcategories.map(async (item : any) => {
                 if(item.subcategoryId){
                     const subcategoryIds = new Types.ObjectId(item.subcategoryId as string);
+                    console.log("subcategoryIds", subcategoryIds);
                     await SubCategory.findOneAndUpdate(
-                        {subcategory : subcategoryIds},
-                        {name : item.name, iconImage : item.iconImage, category : categoryIds},
+                        {_id : subcategoryIds},
+                        {name : item.name, image : item.image, category : categoryIds},
                         { new: true, upsert: true }, 
                     )
                 }else{
-                    await SubCategory.create({name : item.name, iconImage : item.iconImage, category : categoryIds})
+                    await SubCategory.create({name : item.name, image : item.image, category : categoryIds})
                 }
             }))
             return res.status(200).json({ success: true, message : 'Category updated successfully' });

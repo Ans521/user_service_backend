@@ -355,7 +355,7 @@ export const handleSingleImageUrl =  async (req : any, res : any) => {
             return res.status(400).send("No file uploaded.");
         }
         
-        const fileUrl = `http://localhost:4000/uploads/${req.file.filename}`
+        const fileUrl = `http://13.202.163.238:4000/uploads/${req.file.filename}`
 
         return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
 
@@ -568,12 +568,12 @@ export const addCategory = async (req : any, res : any) => {
 export const seeAllCategory = async (req : any, res : any) => {
     try {
         const categories = await Category.find();
-        const subcategories = await SubCategory.find().select('_id name category image');
-        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id, image : _doc?.image} : {name : "", _id : ""});
+        const subcategories = await SubCategory.find().select('_id name category image iconImage');
+        const filteredSubcategories = subcategories.map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id, image : _doc?.image, iconImage : _doc?.iconImage} : {name : "", _id : ""});
         const response = await Promise.all(categories.map(async (cat : any) =>( {
             category : cat?._doc.category,
             _id : cat?._doc._id,
-            subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id, image : _doc?.image} : {name : "", _id : ""})
+            subcategories : subcategories?.filter((subcat : any) => subcat?.category?.toString() == cat?._id.toString()).map(({_doc, ...remaining} : any)=> _doc ? {name : _doc.name, _id : _doc._id, image : _doc?.image, iconImage : _doc?.iconImage} : {name : "", _id : ""})
         })))
         const sendData = categories.map((cat : any) => ({
             _id : cat._id,
@@ -878,6 +878,9 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             if(!provider){
                 return res.status(404).json({ message: "No provider found" });
             }
+            if(provider?.services?.length === 0){
+                provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
+            }
             console.log("provider", provider?.servicePrice)
             const providerData = {
                 name: provider?.name || "John Doe",
@@ -895,6 +898,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingDays : provider?.workingDays || "Everyday",
                 visitingTime : provider?.visitingTime || "30 min",
                 servicePrice : provider?.servicePrice || 100,
+                services : provider?.services,
                 imageGallery : provider?.galleryImages || ["http://13.202.163.238:4000/uploads/1746613692666.png", "http://13.202.163.238:4000/uploads/1746613692666.png"],
             }
 
