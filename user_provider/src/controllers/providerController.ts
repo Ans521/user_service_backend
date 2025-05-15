@@ -2,6 +2,7 @@ import { ServiceProvider } from "../models/serviceProvider";
 import { Types } from "mongoose";
 import { SubCategory } from "../models/subCategory";
 import { Category } from "../models/categorySchema";
+import { Banner } from "../models/banner";
  
 export const uploadImages = async (req : any,  res : any) => {
     try {
@@ -87,7 +88,6 @@ export const getAddedSpecialCateogory = async (req : any, res : any) => {
  
 export const updateCategory = async (req : any, res : any) => {
         try {
-
             const {category, categoryId, subcategories} = req.body;
             const categoryIds = new Types.ObjectId(categoryId as string);
             console.log("categoryIds", categoryIds);
@@ -121,3 +121,39 @@ export const updateCategory = async (req : any, res : any) => {
             return res.status(500).json({ success: false, message: 'Internal Server Error' });
         }
 }
+
+export const removeSpecialCategory = async (req : any, res : any) => {
+    try {
+        console.log("req.body", req.body)
+        const { subcategoryId, specialCategory } = req.body;
+
+        const response = await SubCategory.findOneAndUpdate(
+            {_id : subcategoryId},
+            {specialCategory : specialCategory},
+            { new: true}, 
+        )
+        if(!response) {
+            return res.status(400).json({ success: false, message: 'Subcategory not found' });
+        }
+        return res.status(200).json({ success: true, message : 'Subcategory updated successfully' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+
+export const getAllBanner = async (req: any, res: any) => {
+    try {
+        // const banners = await Banner.find(); // fetch all documents
+        const banner = [
+            'http://13.202.163.238:4000/uploads/1747325647642.png',
+            'http://13.202.163.238:4000/uploads/1747322414998.png',
+            'http://13.202.163.238:4000/uploads/1747322470194.png'
+        ]
+        return res.status(200).json({ success: true, data: banner });
+    } catch (error) {
+        console.error("Error fetching banners:", error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+ 
