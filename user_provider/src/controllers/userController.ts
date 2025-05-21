@@ -358,7 +358,7 @@ export const handleSingleImageUrl =  async (req : any, res : any) => {
         const fileUrl = `http://82.180.144.143:4000/uploads/${req.file.filename}`
 
         console.log("fileUrl", fileUrl)
-        
+
         return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
 
     }catch(err){
@@ -902,8 +902,9 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingDays : provider?.workingDays || "Everyday",
                 visitingTime : provider?.visitingTime || "30 min",
                 servicePrice : provider?.servicePrice || 100,
+                scanQrUrl : provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
                 services : provider?.services,
-                imageGallery : provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
+                imageGallery : provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1747842657687.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
             }
 
             return res.status(200).json({message: 'Fetched the provider info', data : providerData });

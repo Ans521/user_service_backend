@@ -157,3 +157,70 @@ export const getAllBanner = async (req: any, res: any) => {
     }
 };
  
+export const setServiceList = async (req : any, res : any) => {
+    try {
+        const { service, serviceList } = req.body;
+        if(!serviceList || !service || serviceList.length === 0) {
+            return res.status(400).json({ success: false, message: 'serviceList is required' });
+        }
+        const { id } = req.user;
+        if(!id) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+        const services = {
+            service,
+            serviceList
+        }
+        const phoneNoId = new Types.ObjectId(String(id));
+        const response = await ServiceProvider.findOneAndUpdate(
+            {phoneNo : phoneNoId},
+            {$push : {services}},
+            { new: true, upsert: false}, 
+        )
+        if(!response) {
+            return res.status(400).json({ success: false, message: 'Service provider not found' });
+        }
+        return res.status(200).json({ success: true, message : 'Service list updated successfully' });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const getServiceList = async (req : any, res : any) => {
+    try {
+        let providerId = "";
+        if(req.query.id) {
+            const { id } = req.query;
+            providerId = id;
+            console.log("in the query", providerId);
+            const response = await ServiceProvider.findOne(
+                {_id: providerId},
+                {services : 1},
+            )
+            console.log("response", response);
+            if(!response) {
+                return res.status(400).json({ success: false, message: 'Service List is not found' });
+            }
+            return res.status(200).json({ success: true, data : response });
+        }else if(req.user && req.user.id) {
+            const id = req.user.id;
+            providerId = id; 
+            console.log("in the user", providerId);
+            const phoneNoId = new Types.ObjectId(String(providerId));
+            const response = await ServiceProvider.findOne(
+                {phoneNo : phoneNoId},
+                {services : 1},
+            )
+            if(!response) {
+                return res.status(400).json({ success: false, message: 'Service List is not found' });
+            }
+            return res.status(200).json({ success: true, data : response });
+        }else{
+            return res.status(400).json({ success: false, message: 'id is required' });
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
