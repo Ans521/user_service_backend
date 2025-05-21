@@ -113,7 +113,10 @@ const serviceProviderSchema = new mongoose.Schema({
       timeStamp : {type : Date, default : Date.now}
     }, {_id : false})],
   }],
- }
+ },
+ scanQrUrl : {
+  type : String
+  },
 });
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);
