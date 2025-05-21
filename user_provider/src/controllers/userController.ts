@@ -184,7 +184,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     const existingProvider : any = await ServiceProvider.findOne({phoneNo : phoneRef?._id, email : phoneRef?._id})
                     if(existingProvider){
                         redisOperation(phoneNo1, userOtp, false);
-                        return res.status(400).json({ message: "Provider stored in Db", data : existingProvider });
+                        return res.status(200).json({ message: "Provider stored in Db", data : existingProvider });
                     }
                     const newProvider : any = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
                     const sentData = {
@@ -355,7 +355,7 @@ export const handleSingleImageUrl =  async (req : any, res : any) => {
             return res.status(400).send("No file uploaded.");
         }
         
-        const fileUrl = `http://13.202.163.238:4000/uploads/${req.file.filename}`
+        const fileUrl = `http://82.180.144.143:4000/uploads/${req.file.filename}`
 
         return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
 
@@ -777,7 +777,7 @@ export const getProviderInfo = async (req : any, res : any) => {
                     workingHours : provider?.workingHours || {start : "10AM", end : "5PM"},
                     workingDays : provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
                     aboutus : provider?.aboutUs || "The best service backend developer is Ansh.. recall it",
-                    imageGallery : provider?.galleryImages || ["http://13.202.163.238:4000/uploads/1746613692666.png", "http://13.202.163.238:4000/uploads/1746613692666.png"],
+                    imageGallery : provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
                     services : provider?.services,
                 };
                 return res.status(200).json({message: 'Fetched the provider info', data : providerInfo });
@@ -791,7 +791,7 @@ export const getProviderInfo = async (req : any, res : any) => {
 }
 
 export const updateProfile = async (req : any, res : any) => {
-    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays, visitingTime} = req.body;
+    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays, visitingTime, scanQrUrl} = req.body;
 
     const updateData : any = {};
 
@@ -836,6 +836,8 @@ export const updateProfile = async (req : any, res : any) => {
         if(workingDays) updateData.workingDays = workingDays;
         if(visitingTime) updateData.visitingTime = visitingTime;
         updateData.isProfileCompleted = true;
+        if(scanQrUrl) updateData.scanQrUrl = scanQrUrl;
+        
         const updatedUser = await ServiceProvider.findOneAndUpdate(
             {phoneNo : id},
             { $set: updateData },
@@ -899,7 +901,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 visitingTime : provider?.visitingTime || "30 min",
                 servicePrice : provider?.servicePrice || 100,
                 services : provider?.services,
-                imageGallery : provider?.galleryImages || ["http://13.202.163.238:4000/uploads/1746613692666.png", "http://13.202.163.238:4000/uploads/1746613692666.png"],
+                imageGallery : provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
             }
 
             return res.status(200).json({message: 'Fetched the provider info', data : providerData });
