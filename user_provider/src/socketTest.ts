@@ -1,6 +1,6 @@
 import ioClient from "socket.io-client";
 
-const socket = ioClient("http://13.202.163.238:4000");
+const socket = ioClient("http://82.180.144.143:4000");
 
 socket.on('connect', () => {
   socket.emit('set-user-id', '68133b7684870d278960430c');
