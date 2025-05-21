@@ -357,6 +357,8 @@ export const handleSingleImageUrl =  async (req : any, res : any) => {
         
         const fileUrl = `http://82.180.144.143:4000/uploads/${req.file.filename}`
 
+        console.log("fileUrl", fileUrl)
+        
         return res.status(200).json({message : "File uploaded successfully", data : fileUrl});
 
     }catch(err){
