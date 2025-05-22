@@ -793,7 +793,7 @@ export const getProviderInfo = async (req : any, res : any) => {
 }
 
 export const updateProfile = async (req : any, res : any) => {
-    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays, visitingTime, scanQrUrl} = req.body;
+    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays, visitingTime, scanQrUrl, servicePrice} = req.body;
 
     const updateData : any = {};
 
@@ -839,7 +839,8 @@ export const updateProfile = async (req : any, res : any) => {
         if(visitingTime) updateData.visitingTime = visitingTime;
         updateData.isProfileCompleted = true;
         if(scanQrUrl) updateData.scanQrUrl = scanQrUrl;
-        
+        if(servicePrice) updateData.servicePrice = servicePrice;
+
         const updatedUser = await ServiceProvider.findOneAndUpdate(
             {phoneNo : id},
             { $set: updateData },
