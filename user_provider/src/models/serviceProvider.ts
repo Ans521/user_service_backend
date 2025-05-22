@@ -99,7 +99,6 @@ const serviceProviderSchema = new mongoose.Schema({
       service : String,
       serviceList : String 
     }],
-    _id : false
  },
  servicePrice : {
   type : Number, 

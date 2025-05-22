@@ -1,7 +1,7 @@
 import express from "express";
 import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, recentProviderEnquiry, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
-import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList} from "../controllers/providerController";
+import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService} from "../controllers/providerController";
 
 const router = express.Router();
 
@@ -36,4 +36,5 @@ router.get('/get-all-banner', getAllBanner)
 
 router.post('/service-list', verifyToken, setServiceList)
 router.get('/get-service-list', verifyToken, getServiceList)
+router.delete('/delete-service', verifyToken, deleteService)
 export default router;

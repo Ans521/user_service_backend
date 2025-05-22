@@ -224,3 +224,28 @@ export const getServiceList = async (req : any, res : any) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
+
+export const deleteService = async (req : any, res : any) => {
+    try {
+        const { serviceId } = req.query;
+        console.log("serviceId", serviceId);
+        
+        const {id} = req.user
+        if(!id) {
+            return res.status(400).json({ success: false, message: 'unauthorized' });
+        }
+        const phoneId = new Types.ObjectId(String(id));
+        const response = await ServiceProvider.findOneAndUpdate(
+            {phoneNo : phoneId},
+            {$pull : {services : {_id : serviceId} }},
+            { new: true}, 
+        )
+        if(!response) {
+            return res.status(400).json({ success: false, message: 'Service not found' });
+        }
+        return res.status(200).json({ success: true, message : 'Service deleted successfully' });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
