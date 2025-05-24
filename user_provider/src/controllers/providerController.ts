@@ -146,9 +146,9 @@ export const getAllBanner = async (req: any, res: any) => {
     try {
         // const banners = await Banner.find(); // fetch all documents
         const banner = [
-            'http://82.180.144.143:4000/uploads/1747325647642.png',
-            'http://82.180.144.143:4000/uploads/1747322414998.png',
-            'http://82.180.144.143:4000/uploads/1747322470194.png'
+            'http://82.180.144.143:4000/uploads/1748090091686.png',
+            'http://82.180.144.143:4000/uploads/1748089916867.png',
+            'http://82.180.144.143:4000/uploads/1748090091686.png'
         ]
         return res.status(200).json({ success: true, data: banner });
     } catch (error) {
