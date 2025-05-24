@@ -793,7 +793,7 @@ export const getProviderInfo = async (req : any, res : any) => {
 }
 
 export const updateProfile = async (req : any, res : any) => {
-    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays, visitingTime, scanQrUrl, servicePrice} = req.body;
+    const { name, email, phone, address, aboutUs, experience, workingHours, workingDays, visitingTime, scanQrUrl, servicePrice, profilePic} = req.body;
 
     const updateData : any = {};
 
@@ -820,14 +820,13 @@ export const updateProfile = async (req : any, res : any) => {
                 return res.status(400).json({ message: "Email already exists in another account" });
             }
         }
-          
+ 
         if(Object.keys(updateProviderData).length > 0){
             await PhoneNumber.findOneAndUpdate(
                 {_id : phoneId},
                 {$set : updateProviderData},
                 {new : true}
             )
-
         }
     }
     if(name) updateData.name = name;
@@ -840,7 +839,7 @@ export const updateProfile = async (req : any, res : any) => {
         updateData.isProfileCompleted = true;
         if(scanQrUrl) updateData.scanQrUrl = scanQrUrl;
         if(servicePrice) updateData.servicePrice = servicePrice;
-
+        if(profilePic) updateData.profilePic = profilePic;
         const updatedUser = await ServiceProvider.findOneAndUpdate(
             {phoneNo : id},
             { $set: updateData },
