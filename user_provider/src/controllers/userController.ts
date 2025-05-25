@@ -159,11 +159,9 @@ export const verifyOtp = async (req: any, res: any) => {
                 isProfileCompleted : providerData?.isProfileCompleted || false
             }
 
-            console.log("providerData", providerData)
             if (providerData?.loggedInBefore) {
                 if (providerData?.isUserVerifed) {
                     redisOperation(phoneNo1, userOtp, false);
-                    console.log(providerData)
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
                     return res.status(200).json({
                         message: "Service provider verified",
@@ -766,7 +764,6 @@ export const getProviderInfo = async (req : any, res : any) => {
             if(provider?.services?.length === 0){
                 provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
             }
-            console.log("provider", provider?.id)
             const providerInfo = {
                     _id : provider?.id,
                     name : provider?.name || "John doe",
@@ -774,13 +771,13 @@ export const getProviderInfo = async (req : any, res : any) => {
                     totalReviews : provider?.totalReviews || 1200,
                     experience : provider.experience || 3,
                     phone : provider?.phoneNo?.phoneNumber,
-                    providerPic : provider?.imageUrl?.photo || "Not available", 
+                    providerPic : provider?.imageUrl?.PH || "Not available", 
                     completedTasks :  provider.completedTasks || 0,
                     workingHours : provider?.workingHours || {start : "10AM", end : "5PM"},
                     workingDays : provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                    aboutus : provider?.aboutUs || "The best service backend developer is Ansh.. recall it",
+                    aboutus : provider?.aboutUs || "The best service backend developer is Ansh",
+                    scanQrUrl : provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
                     imageGallery : provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
-                    services : provider?.services,
                 };
                 return res.status(200).json({message: 'Fetched the provider info', data : providerInfo });
         }else{
@@ -839,7 +836,10 @@ export const updateProfile = async (req : any, res : any) => {
         updateData.isProfileCompleted = true;
         if(scanQrUrl) updateData.scanQrUrl = scanQrUrl;
         if(servicePrice) updateData.servicePrice = servicePrice;
-        if(profilePic) updateData.profilePic = profilePic;
+        if(profilePic) {
+            updateData.imageUrl = {}
+            updateData.imageUrl[imagesKey.photo] = profilePic
+        };
         const updatedUser = await ServiceProvider.findOneAndUpdate(
             {phoneNo : id},
             { $set: updateData },
@@ -851,6 +851,8 @@ export const updateProfile = async (req : any, res : any) => {
         })
     }else{
         if(address) updateData.address = address;
+        if(profilePic) updateData.profilePic = profilePic;
+
         const updatedUser = await User.findOneAndUpdate(
             {phoneNo : id},
             { $set: updateData },
@@ -885,7 +887,6 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             if(provider?.services?.length === 0){
                 provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
             }
-            console.log("provider", provider?.servicePrice)
             const providerData = {
                 name: provider?.name || "John Doe",
                 providerPic : provider?.imageUrl?.PH || "",
@@ -1058,7 +1059,6 @@ export const recentProviderEnquiry = async (req : any, res : any) => {
         const { id } = req.user;
         const provider : any = await ServiceProvider.findOne({ phoneNo : id }).populate('enquiry.sender');  
         if(provider){
-            console.log("provider", provider)
             return res.status(200).json({ data: { message: 'Fetched the provider info', provider} });
         }else{
             return res.status(404).json({ message: "No provider found" });

@@ -25,10 +25,6 @@
         type: Boolean,
         default: false,
       },
-      profilePic : {
-        type : String,
-        default : "not provided"
-      }
     },
     { discriminatorKey: "role"}
   );
