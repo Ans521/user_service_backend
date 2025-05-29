@@ -166,11 +166,15 @@ export const getAllBanner = async (req: any, res: any) => {
             return res.status(400).json({ success: false, message: 'No banner found' });
         }
 
-        console.log("banners", banners)
-        const banner = banners.map(({imageUrl, link}) => ({imageUrl, link}));
+        // const banner = banners.map(({imageUrl, link}) => ({imageUrl, link}));
+        
+        const banner = (banners as any[]).filter(
+        (banner : any) =>
+            banner.imageUrl && banner.link && banner.imageUrl?.trim() !== "" && banner.link?.trim() !== ""
+        );
+        const result = banner.map(({imageUrl, link}) => ({imageUrl, link}));
 
-        console.log("banner", banner);
-        return res.status(200).json({ success: true, data: banner });
+        return res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error fetching banners:", error);
         return res.status(500).json({ success: false, message: 'Server error' });
