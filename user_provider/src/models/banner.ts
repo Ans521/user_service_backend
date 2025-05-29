@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 
 const bannerSchema = new mongoose.Schema({
     imageUrl : {
-        type : [String]
+        type : String
+    },
+    link : {
+        type : String
     }
-
 });
 export const Banner = mongoose.model("Banner", bannerSchema);

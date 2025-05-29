@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 import { SubCategory } from "../models/subCategory";
 import { Category } from "../models/categorySchema";
 import { Banner } from "../models/banner";
- 
+import mongoose from "mongoose";
 export const uploadImages = async (req : any,  res : any) => {
     try {
         const { id, isEmployeeLogin }  = req.user;
@@ -141,22 +141,42 @@ export const removeSpecialCategory = async (req : any, res : any) => {
     }
 }
 
+export const addBanner = async (req : any, res : any) => {
+    try {
+        const { data } = req.body;
+        
+        console.log("data", data);
+
+        if(!data || data.length === 0) {
+            return res.status(400).json({ success: false, message: 'data is required' });
+        }
+
+        const result = await Banner.insertMany(data);
+
+        return res.status(200).json({ success: true, message : 'Banner added successfully', data : result });
+    }catch{
+        return res.status(200).json({ success: false, message : 'Banner not Added' });
+    }
+}
 
 export const getAllBanner = async (req: any, res: any) => {
     try {
-        // const banners = await Banner.find(); // fetch all documents
-        const banner = [
-            'http://82.180.144.143:4000/uploads/1748090091686.png',
-            'http://82.180.144.143:4000/uploads/1748089916867.png',
-            'http://82.180.144.143:4000/uploads/1748090091686.png'
-        ]
+        const banners = await Banner.find().lean();
+        if(banners && banners.length === 0) {
+            return res.status(400).json({ success: false, message: 'No banner found' });
+        }
+
+        console.log("banners", banners)
+        const banner = banners.map(({imageUrl, link}) => ({imageUrl, link}));
+
+        console.log("banner", banner);
         return res.status(200).json({ success: true, data: banner });
     } catch (error) {
         console.error("Error fetching banners:", error);
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 };
- 
+
 export const setServiceList = async (req : any, res : any) => {
     try {
         const { service, serviceList } = req.body;
