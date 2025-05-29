@@ -761,8 +761,17 @@ export const getProviderInfo = async (req : any, res : any) => {
         const provider : any = await ServiceProvider.findOne({_id : id, status : "approved"}).populate(['phoneNo', 'email', 'category', 'subcategory']);
 
         if(provider){
-            if(provider?.services?.length === 0){
-                provider.services = [{service : "Hair Services", serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]}, {service : "Skin Services", serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}]   
+            if(provider?.services?.length == 0){
+                const services = 
+                [
+                    {service : "Hair Services",
+                    serviceList : ["Hair Cut, Styling, HairColoring, Hair Spa"]
+                    },
+
+                    {service : "Skin Services",
+                    serviceList : ["Facial, Styling, Anti-Aging, Face Spa"]}
+                ]  
+                provider.services = services
             }
             const providerInfo = {
                     _id : provider?.id,
