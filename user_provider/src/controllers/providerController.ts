@@ -3,7 +3,6 @@ import { Types } from "mongoose";
 import { SubCategory } from "../models/subCategory";
 import { Category } from "../models/categorySchema";
 import { Banner } from "../models/banner";
-import mongoose from "mongoose";
 export const uploadImages = async (req : any,  res : any) => {
     try {
         const { id, isEmployeeLogin }  = req.user;
@@ -172,7 +171,7 @@ export const getAllBanner = async (req: any, res: any) => {
         (banner : any) =>
             banner.imageUrl && banner.link && banner.imageUrl?.trim() !== "" && banner.link?.trim() !== ""
         );
-        const result = banner.map(({imageUrl, link}) => ({imageUrl, link}));
+        const result = banner.map(({_id, imageUrl, link}) => ({_id, imageUrl, link}));
 
         return res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -181,6 +180,50 @@ export const getAllBanner = async (req: any, res: any) => {
     }
 };
 
+export const deleteBanner = async (req : any, res : any) => {
+    const { id } = req.query;
+
+    if(!id) {
+        return res.status(400).json({ success: false, message: 'id is required' });
+    }
+
+    try {
+        const banner = await Banner.findByIdAndDelete(id);
+
+        if(!banner) {
+            return res.status(400).json({ success: false, message : 'Banner not found' });
+        }
+
+        return res.status(200).json({ success: true, message : 'Banner deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+export const updateBanner = async (req : any, res : any) => {
+    try {
+        const {data} =req.body;
+        if(!data || data.length === 0) {
+            return res.status(400).json({ success: false, message: 'data is required' });
+        }
+
+        const _id = data[0]._id;
+
+        if(!_id) {
+            return res.status(400).json({ success: false, message: 'id is required' });
+        }
+        const result = await Banner.findByIdAndUpdate(
+            {_id},
+            {imageUrl : data[0].imageUrl, link : data[0].link},
+            {new : true}
+        )
+
+        console.log("result", result);
+        return res.status(200).json({ success: true, message : 'Banner updated successfully', data : result });
+    }catch(error){
+        console.log("error", error);
+    }
+}
 export const setServiceList = async (req : any, res : any) => {
     try {
         const { service, serviceList } = req.body;
