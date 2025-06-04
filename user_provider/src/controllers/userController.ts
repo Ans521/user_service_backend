@@ -17,6 +17,7 @@ import { Types } from "mongoose";
 import { sendNotification, userSocketMap } from "./socket";
 import {io} from '../app'
 import { Socket } from "socket.io-client";
+import { time, timeStamp } from "console";
 dotenv.config()
 connectDb()
 const secretKey = '1n1b484n39886ni124114inai';
@@ -981,10 +982,15 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 
     export const userSentMsg = async (req: any, res: any) => {
         try {
-          const { message, providerId } = req.body;
-          const { id } = req.user;
+          const { message, isUserSent } = req.body;
+          const { receiverId } = req.query; // recevier Id;
+          const { id } = req.user; // sender Id;
         
-          const provider : any = await ServiceProvider.findOne({ _id: providerId });
+          if(!Types.ObjectId.isValid(receiverId)) {
+            return res.status(400).json({ success: false, message: 'Invalid provider id' });
+          }
+
+          const provider : any = await ServiceProvider.findOne({ _id: receiverId });
       
           if (!provider) {
             return res.status(404).json({ message: "Provider id provided is wrong" });
@@ -995,16 +1001,19 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             timeStamp: new Date(),
           };
 
+          const senderId = new Types.ObjectId(String(id));
+
           const serviceData: any = await ServiceProvider.findOne({
-            _id: providerId,
-            'enquiry.sender': id,
+            _id: receiverId,
+            'enquiry.sender': senderId,
           });
       
           if (serviceData) {
             // sender already exists → push new message
             await ServiceProvider.findOneAndUpdate(
-              { _id: providerId, 'enquiry.sender': id },
+              { _id: receiverId, 'enquiry.sender': senderId },
               {
+                // is enquiry.$.messages ka mtlb hai kii enquiry array mei jo messages hai usme ye new message push krdo
                 $push: { 'enquiry.$.messages': userMessage },
               },
               { new: true }
@@ -1012,12 +1021,12 @@ export const getInfoUserProvider = async (req: any, res: any) => {
           } else {
             // new sender → push a new enquiry object
             await ServiceProvider.findByIdAndUpdate(
-              providerId,
+              receiverId,
               {
                 $push: {
                   enquiry: {
                     sender: id,
-                    messages: [userMessage],
+                    messages: userMessage,
                   },
                 },
               },
@@ -1025,37 +1034,34 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             );
           }
       
-          // For User side (userMsg list)
+          // For User side (userMsg list) // this is for kii user ne kiis ko msg kiye hai
           const userData: any = await User.findOne({
-            phoneNo: id,
-            'userMsg.receiverId': providerId,
+            phoneNo: senderId,
+            'userMsg.receiverId': receiverId,
           });
       
           if (userData) {
             await User.findOneAndUpdate(
-              { phoneNo: id, 'userMsg.receiverId': providerId },
+              { phoneNo: senderId, 'userMsg.receiverId': receiverId },
               {
                 $push: { 'userMsg.$.messages': userMessage },
               },
               { new: true }
             );
           } else {
-            console.log("id", id)
-            const response = await User.findOneAndUpdate(
-              {phoneNo : id},
+            await User.findOneAndUpdate(
+              {phoneNo : senderId},
               {
                 $push: {
                   userMsg: {
-                    receiverId: providerId,
-                    messages: [userMessage],
+                    receiverId: receiverId,
+                    messages: userMessage,
                   },
                 },
               },
               { new: true }
             );
-            console.log("response", response)
           }
-      
           return res.status(200).json({ data: { message: 'Message sent successfully' } });
         } catch (error) {
           console.log("error", error);
@@ -1078,4 +1084,5 @@ export const recentProviderEnquiry = async (req : any, res : any) => {
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 }
+
 

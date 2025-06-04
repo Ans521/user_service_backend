@@ -42,7 +42,7 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   reviewComments: {
     type : [{
-      totalStar :  Number,
+      rating :  Number,
       comment : String
     }],
     default: [], 
