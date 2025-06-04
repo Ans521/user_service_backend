@@ -6,6 +6,11 @@ const bannerSchema = new mongoose.Schema({
     },
     link : {
         type : String
+    },
+    position : {
+        type : String,
+        enum : ['top', 'bottom'],
+        required : true
     }
 });
 export const Banner = mongoose.model("Banner", bannerSchema);

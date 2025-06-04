@@ -142,10 +142,8 @@ export const removeSpecialCategory = async (req : any, res : any) => {
 
 export const addBanner = async (req : any, res : any) => {
     try {
-        const { data } = req.body;
+        const { data} = req.body;
         
-        console.log("data", data);
-
         if(!data || data.length === 0) {
             return res.status(400).json({ success: false, message: 'data is required' });
         }
@@ -160,13 +158,21 @@ export const addBanner = async (req : any, res : any) => {
 
 export const getAllBanner = async (req: any, res: any) => {
     try {
-        const banners = await Banner.find().lean();
+        const { position } = req.query;
+        if (!position) {
+            return res.status(400).json({ success: false, message: 'position is required' });
+        }
+        let banners;
+
+        if(position == 'all'){
+            banners = await Banner.find().lean();
+        }else{
+            banners = await Banner.find({ position }).lean();
+        }
         if(banners && banners.length === 0) {
             return res.status(400).json({ success: false, message: 'No banner found' });
         }
-
-        // const banner = banners.map(({imageUrl, link}) => ({imageUrl, link}));
-        
+                
         const banner = (banners as any[]).filter(
         (banner : any) =>
             banner.imageUrl && banner.link && banner.imageUrl?.trim() !== "" && banner.link?.trim() !== ""
@@ -202,7 +208,8 @@ export const deleteBanner = async (req : any, res : any) => {
 
 export const updateBanner = async (req : any, res : any) => {
     try {
-        const {data} =req.body;
+        const {data, position} =req.body;
+
         if(!data || data.length === 0) {
             return res.status(400).json({ success: false, message: 'data is required' });
         }
@@ -214,11 +221,10 @@ export const updateBanner = async (req : any, res : any) => {
         }
         const result = await Banner.findByIdAndUpdate(
             {_id},
-            {imageUrl : data[0].imageUrl, link : data[0].link},
+            {imageUrl : data[0].imageUrl, link : data[0].link, position},
             {new : true}
         )
 
-        console.log("result", result);
         return res.status(200).json({ success: true, message : 'Banner updated successfully', data : result });
     }catch(error){
         console.log("error", error);
@@ -295,13 +301,18 @@ export const getServiceList = async (req : any, res : any) => {
 export const deleteService = async (req : any, res : any) => {
     try {
         const { serviceId } = req.query;
-        console.log("serviceId", serviceId);
         
         const {id} = req.user
         if(!id) {
             return res.status(400).json({ success: false, message: 'unauthorized' });
         }
+        // if(!Types.ObjectId.isValid(serviceId)) {
+        //     return res.status(400).json({ success: false, message: 'Invalid service id' });
+        //     // this is just to check that is this service provider ID is valid to convert in ObjectID it not then new types object id will return false 
+        // }
+
         const phoneId = new Types.ObjectId(String(id));
+
         const response = await ServiceProvider.findOneAndUpdate(
             {phoneNo : phoneId},
             {$pull : {services : {_id : serviceId} }},
@@ -316,3 +327,54 @@ export const deleteService = async (req : any, res : any) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
+
+
+// fetch sent msg from the user to the provider
+
+export const fetchUserSentMsg = async (req : any, res : any) => {
+    try {
+        const {senderId} = req.query;
+        const {id} = req.user;
+        
+        if(!senderId){
+            return res.status(400).json({ success: false, message: 'userId is required' });
+        }
+
+        const providerPhoneId = new Types.ObjectId(String(id));
+
+        // $elemMatch is used to match the value in the array 
+        // findOne accepts only one argument
+        const provider : any = await ServiceProvider.aggregate([
+            {$match : {phoneNo : providerPhoneId}},
+            {$unwind : '$enquiry'},
+            {$match : {'enquiry.sender'  : new Types.ObjectId(String(senderId))}},
+            {
+                $project : {
+                    enquiry : {
+                        sender : 1,
+                        messages : {$sortArray : {input : '$enquiry.messages', sortBy : {timeStamp: -1}}}
+                    }
+                }
+            }
+        ])
+
+        // mongoose mei objectId mei convert krne kii jrurt nhii hoti like findOne, findOneAndUpdate, findOneAndDelete but in the aggregation mongoose don't do it mongodb process it so we have to manually convert it to ObjectID
+        // MongoDB itself processes aggregation, not Mongoose, MongoDB expects the type to match exactly
+        // Mongoose automatically converts the string to ObjectId behind the scenes.
+        //  $unwind will split it into multiple documents, one for each item in that array.
+
+        // $elemMatch in the filter narrows which documents you get, by checking if the array contains an element matching your condition.
+        // 'enquiry.$' in the projection tells MongoDB to include only the first matched element from that array in the result. 
+
+
+
+        return res.status(200).json({ success: true, data :  provider });
+
+        //No $ = when specifying what to match.
+
+        // With $ = when extracting values to work with in aggregation.
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
