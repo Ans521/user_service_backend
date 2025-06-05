@@ -163,7 +163,6 @@ export const getAllBanner = async (req: any, res: any) => {
             return res.status(400).json({ success: false, message: 'position is required' });
         }
         let banners;
-
         if(position == 'all'){
             banners = await Banner.find().lean();
         }else{
@@ -172,12 +171,21 @@ export const getAllBanner = async (req: any, res: any) => {
         if(banners && banners.length === 0) {
             return res.status(400).json({ success: false, message: 'No banner found' });
         }
-                
-        const banner = (banners as any[]).filter(
+        const validBanners = (banners as any[]).filter(
         (banner : any) =>
             banner.imageUrl && banner.link && banner.imageUrl?.trim() !== "" && banner.link?.trim() !== ""
         );
-        const result = banner.map(({_id, imageUrl, link}) => ({_id, imageUrl, link}));
+
+        if(position === 'all'){
+
+            const topBanner = validBanners.filter((ban) => ban.position === 'top').map(({_id, imageUrl, link}) => ({_id, imageUrl, link}));
+        
+            const bottomBanner = validBanners.filter((ban) => ban.position === 'bottom').map(({_id, imageUrl, link}) => ({_id, imageUrl, link}));
+
+            return res.status(200).json({ success: true, top : topBanner, bottom : bottomBanner });
+        }
+
+        const result = validBanners.map(({_id, imageUrl, link}) => ({_id, imageUrl, link}));
 
         return res.status(200).json({ success: true, data: result });
     } catch (error) {
