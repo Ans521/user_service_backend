@@ -279,10 +279,11 @@ export const getServiceList = async (req : any, res : any) => {
                 {_id: providerId},
                 {services : 1},
             )
-            console.log("response", response);
+            
             if(!response) {
                 return res.status(400).json({ success: false, message: 'Service List is not found' });
             }
+
             return res.status(200).json({ success: true, data : response });
         }else if(req.user && req.user.id) {
             const id = req.user.id;
@@ -338,7 +339,7 @@ export const deleteService = async (req : any, res : any) => {
 
 
 // fetch sent msg from the user to the provider
-
+// this is for when he will click on the user msg then i will fetch the user sent msg to the provider
 export const fetchUserSentMsg = async (req : any, res : any) => {
     try {
         const {senderId} = req.query;
@@ -375,7 +376,6 @@ export const fetchUserSentMsg = async (req : any, res : any) => {
         // 'enquiry.$' in the projection tells MongoDB to include only the first matched element from that array in the result. 
 
 
-
         return res.status(200).json({ success: true, data :  provider });
 
         //No $ = when specifying what to match.
@@ -386,3 +386,45 @@ export const fetchUserSentMsg = async (req : any, res : any) => {
     }
 }
 
+export const fetchAllUserSentMsg = async (req : any, res : any) => {
+    try {
+        const {id} = req.user;
+
+        if(!id) {
+            return res.status(400).json({ success: false, message: 'unauthorized' });
+        }
+
+        const phoneId = new Types.ObjectId(String(id));
+        const response = await ServiceProvider.aggregate([
+                { $match: { phoneNo: phoneId } },
+                { $unwind: '$enquiry' },
+                {
+                    $project: {
+                    _id: 0,
+                    sender: '$enquiry.sender',
+                    latestMessage: {
+                        $arrayElemAt: [
+                        {
+                            $slice: [
+                            {
+                                $sortArray: {
+                                input: '$enquiry.messages',
+                                sortBy: { timeStamp: -1 },
+                                },
+                            },
+                            1,
+                        ],
+                    },
+                        0,
+                        ],
+                    },
+                    },
+                },
+                ]);
+
+        return res.status(200).json({ success: true, data : response });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}

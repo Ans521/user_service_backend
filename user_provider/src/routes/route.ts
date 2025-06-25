@@ -1,7 +1,7 @@
 import express from "express";
 import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, recentProviderEnquiry, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
-import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg} from "../controllers/providerController";
+import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg} from "../controllers/providerController";
 
 const router = express.Router();
 
@@ -36,9 +36,11 @@ router.get('/get-all-banner', getAllBanner) // admin and dashboard panel
 
 router.post('/service-list', verifyToken, setServiceList);
 router.get('/get-service-list', verifyToken, getServiceList);
-router.delete('/delete-service', verifyToken, deleteService); 
+router.delete('/delete-service', verifyToken, deleteService);
 router.get('/fetch-sent-msg', verifyToken, fetchUserSentMsg);
 router.post('/add-banner', addBanner); // admin api
 router.delete('/delete-banner', deleteBanner); // admin api
 router.put('/update-banner', updateBanner); // admin api
+router.get('/fetch-all-sent-msg', verifyToken, fetchAllUserSentMsg);
+router.post('/recent-enquiry-sent', verifyToken, recentProviderEnquiry);
 export default router;

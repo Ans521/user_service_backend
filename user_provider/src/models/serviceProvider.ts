@@ -116,6 +116,21 @@ const serviceProviderSchema = new mongoose.Schema({
  scanQrUrl : {
   type : String
   },
-});
+  deviceToken : {
+    type: String,
+    default: ""
+  },
+    recentConnectedUser :[{
+      type : {type : String, required : true},
+      user : {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+      timeStamp :{  type : Date, default : Date.now()},
+      _id : false
+    },
+  ]
+  });
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);
