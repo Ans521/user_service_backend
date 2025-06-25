@@ -1101,37 +1101,3 @@ interface AuthenticatedRequest extends Request<{}, any, EnquiryType> {
         id: string;
     }
 }
-
-    export const recentProviderEnquiry = async (req : AuthenticatedRequest, res : any) => {
-        try {
-            const {type} = req.body;
-            const {providerId} : String = req.query;
-            const { id } = req.user; // jisne enquiry ki hai
-
-        if(!type) return res.status(400).json({ message: "Please provide enquiry type" });
-
-        // $expr allows you to use aggregation expressions inside a regular query (not just in pipelines).
-
-        // $eq is a comparison operator that checks if two values are equal.
-
-        // "$recentConnectedUser" references the field in the document.
-
-        // "new Types.ObjectId(id)" is the value you're comparing to. 
-
-
-        const provider : any = await ServiceProvider.aggregate([
-            {
-                $match : { _id : new Types.ObjectId(providerId)}
-            }
-        ]);
-        console.log("provider", provider)
-       
-
-          
-    } catch (error) {
-        console.error('Error storing phone number:', error);
-        return res.status(500).json({ message: 'Internal Server Error' });
-    }
-}
-
-

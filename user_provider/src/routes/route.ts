@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, recentProviderEnquiry, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
+import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg} from "../controllers/providerController";
 
@@ -26,7 +26,6 @@ router.post('/provider-with-filter', verifyToken, getProviderWithCategory)
 router.put('/update-info', verifyToken, updateProfile)
 router.get('/get-info',verifyToken, getInfoUserProvider)
 router.post('/send-msg-to-provider', verifyToken, userSentMsg)
-router.get('/recent-enquiry', verifyToken, recentProviderEnquiry)
 
 router.put('/update-icon-special-subcat', removeSpecialCategory) // admin api
 router.post('/update-category', updateCategory) // admin api
@@ -42,5 +41,5 @@ router.post('/add-banner', addBanner); // admin api
 router.delete('/delete-banner', deleteBanner); // admin api
 router.put('/update-banner', updateBanner); // admin api
 router.get('/fetch-all-sent-msg', verifyToken, fetchAllUserSentMsg);
-router.post('/recent-enquiry-sent', verifyToken, recentProviderEnquiry);
+// router.post('/recent-enquiry-sent', verifyToken, );
 export default router;
