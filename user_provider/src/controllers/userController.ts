@@ -15,9 +15,12 @@ import { imagesKey } from "../shortObj";
 import { start } from "repl";
 import { Types } from "mongoose";
 import { sendNotification, userSocketMap } from "./socket";
-import {io} from '../app'
 import { Socket } from "socket.io-client";
 import { time, timeStamp } from "console";
+import {Base} from "../models/baseSchema";
+import {sendPush} from "../utils/redisUtils"
+import { Request } from "express";
+
 dotenv.config()
 connectDb()
 const secretKey = '1n1b484n39886ni124114inai';
@@ -87,10 +90,10 @@ export const getOtp = async (req : any, res : any) => {
 
 export const verifyOtp = async (req: any, res: any) => {
     try {
-        const { userOtp, isEmployeeLogin } = req.body;
-      
+        const { userOtp, isEmployeeLogin, deviceToken } = req.body;
+        
         if (!userOtp || typeof isEmployeeLogin === 'undefined') {
-            return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin" });
+            return res.status(400).json({ message: "Invalid Otp and Type of isEmplyoeeLogin and deviceToken" });
         }
 
         const phoneNo1 = await client.get(`phone:${userOtp}`);
@@ -124,7 +127,9 @@ export const verifyOtp = async (req: any, res: any) => {
                     phone: userData?.phoneNo?.phoneNumber || "123-456-7890",
                     loggedInBefore : userData?.loggedInBefore   
                 }
+
                 const token = jwt.sign({id : phoneRef?._id.toString(),isEmployeeLogin : false }, secretKey, { expiresIn: '12h' })
+
                 return res.status(200).json({
                     message: "User logged in before",
                     data : sentData,
@@ -132,7 +137,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 });
             } else {
                 try {
-                    const newUser : any = await new User({ phoneNo: phoneRef?._id }).save();
+                    const newUser : any = await new User({ phoneNo: phoneRef?._id, deviceToken }).save();
                     const sentData = {
                         _id : newUser?._id,
                         role : newUser?.role,
@@ -185,7 +190,7 @@ export const verifyOtp = async (req: any, res: any) => {
                         redisOperation(phoneNo1, userOtp, false);
                         return res.status(200).json({ message: "Provider stored in Db", data : existingProvider });
                     }
-                    const newProvider : any = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id }).save();
+                    const newProvider : any = await new ServiceProvider({ phoneNo: phoneRef?._id, email : phoneRef?._id, deviceToken }).save();
                     const sentData = {
                         _id : newProvider?._id,
                         loggedInBefore : newProvider?.loggedInBefore,
@@ -293,7 +298,11 @@ export const registerProvider = async (req: any, res: any) => {
 
     const phoneNoId = userData?._id;
     const categoryId = await Category.findOne({category});
+    console.log("subcategory", subcategory)
     const subcategoryId = await SubCategory.findOne({name : subcategory});
+
+    console.log("categoryId", categoryId);
+    console.log("subcategoryId", subcategoryId);
 
     if(!categoryId || !subcategoryId){
         return res.status(404).json({message : "Category or subcategory not found"})
@@ -331,12 +340,12 @@ const uploadImage = multer.diskStorage({
     destination : function(req : any, file, cb){
         cb(null, directoryPath)
     },
-
+    
     filename : function(req : any, file, cb){
         console.log("filename", file)
         const fileName = Date.now() + path.extname(file.originalname)
         cb(null, fileName)
-    }
+    } 
 })
 
 export const uploadMultiple = multer({ storage: uploadImage }).fields([
@@ -430,14 +439,22 @@ export const getProviderList = async (req : any, res : any) => {
 
 export const storePhone = async (req : any, res : any) => {
     try {
-        const { phoneNumber } = req.body;
-        console.log(phoneNumber)
-        const phoneNo = await PhoneNumber.findOne({phoneNumber}); 
-        if(phoneNo){
-            return res.status(400).json({data :{ message: "Phone number already stored."}});
+        const { phoneNumber , email} = req.body;
+        console.log(phoneNumber, email)
+        const existingProvider = await PhoneNumber.findOne({phoneNumber, email});
+
+        const existingPhone = await PhoneNumber.findOne({phoneNumber});
+        const existingEmail = await PhoneNumber.findOne({email});
+        
+        if(existingProvider){
+            return res.status(400).json({data :{ message: "These phoneNumber and email already stored."}});
         }
-        const newPhoneNumber = new PhoneNumber({ phoneNumber });
-        await newPhoneNumber.save();
+
+        if(existingPhone || existingEmail){
+            return res.status(400).json({data :{ message: "Phone number or email already exist."}});
+        }
+
+        await PhoneNumber.create({ phoneNumber, email });
         return res.status(200).json({ message: "Phone number stored successfully."});
     } catch (error) {
         console.error('Error storing phone number:', error);
@@ -982,16 +999,16 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 
     export const userSentMsg = async (req: any, res: any) => {
         try {
-          const { message, isUserSent } = req.body;
-          const { receiverId } = req.query; // recevier Id;
-          const { id } = req.user; // sender Id;
-        
+          const { message } = req.body;
+          const { receiverId } = req.query; // recevier Id; // kiske pe jaa raha hai
+          const { id } = req.user; // sender Id; // kon bhej raha hai
+            
           if(!Types.ObjectId.isValid(receiverId)) {
             return res.status(400).json({ success: false, message: 'Invalid provider id' });
           }
 
           const provider : any = await ServiceProvider.findOne({ _id: receiverId });
-      
+
           if (!provider) {
             return res.status(404).json({ message: "Provider id provided is wrong" });
           }
@@ -1000,14 +1017,19 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             message: message,
             timeStamp: new Date(),
           };
-
+          
           const senderId = new Types.ObjectId(String(id));
+          const senderData : any = await Base.findOneAndUpdate({phoneNo : senderId}).select("name").lean();
 
-          const serviceData: any = await ServiceProvider.findOne({
+          const serviceData : any = await ServiceProvider.findOne({
             _id: receiverId,
             'enquiry.sender': senderId,
           });
-      
+
+            const deviceToken = senderData?.deviceToken || "";
+            sendPush(message, senderData.name, deviceToken);
+
+
           if (serviceData) {
             // sender already exists → push new message
             await ServiceProvider.findOneAndUpdate(
@@ -1039,7 +1061,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             phoneNo: senderId,
             'userMsg.receiverId': receiverId,
           });
-      
+       
           if (userData) {
             await User.findOneAndUpdate(
               { phoneNo: senderId, 'userMsg.receiverId': receiverId },
@@ -1068,21 +1090,14 @@ export const getInfoUserProvider = async (req: any, res: any) => {
           return res.status(500).json({ success: false, message: 'Failed to send message' });
         }
       };
-      
-export const recentProviderEnquiry = async (req : any, res : any) => {
-    try {
-        // The below is the provider Id :
-        const { id } = req.user;
-        const provider : any = await ServiceProvider.findOne({ phoneNo : id }).populate('enquiry.sender');  
-        if(provider){
-            return res.status(200).json({ data: { message: 'Fetched the provider info', provider} });
-        }else{
-            return res.status(404).json({ message: "No provider found" });
-        }
-    } catch (error) {
-        console.error('Error storing phone number:', error);
-        return res.status(500).json({ message: 'Internal Server Error' });
-    }
+     
+type EnquiryType = {
+    type : 'phone' | 'email' | 'chat',
+    providerId : string,
 }
 
-
+interface AuthenticatedRequest extends Request<{}, any, EnquiryType> {
+    user: {
+        id: string;
+    }
+}
