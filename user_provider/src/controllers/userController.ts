@@ -18,7 +18,7 @@ import { sendNotification, userSocketMap } from "./socket";
 import { Socket } from "socket.io-client";
 import { time, timeStamp } from "console";
 import {Base} from "../models/baseSchema";
-import {sendPush} from "../utils/redisUtils"
+// import {sendPush} from "../utils/redisUtils"
 import { Request } from "express";
 
 dotenv.config()
@@ -1027,7 +1027,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
           });
 
             const deviceToken = senderData?.deviceToken || "";
-            sendPush(message, senderData.name, deviceToken);
+            // sendPush(message, senderData.name, deviceToken);
 
 
           if (serviceData) {
