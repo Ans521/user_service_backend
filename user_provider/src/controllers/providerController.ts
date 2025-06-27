@@ -512,6 +512,7 @@ export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
 
         const phoneId = new Types.ObjectId(String(id));
 
+        const existingOne = await ServiceProvider.findOne({_id : providerId, })
         const response = await ServiceProvider.findOneAndUpdate(
             { _id : providerId },
             { $push: { 
@@ -521,11 +522,12 @@ export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
             }}},
             { new: true },
         )
+
         if (!response) {
             return res.status(400).json({ success: false, message: 'Service not found' });
         }
 
-        return res.status(200).json({ success: true, message: 'Successfully added into recent connection', data : response });
+        return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
         
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
