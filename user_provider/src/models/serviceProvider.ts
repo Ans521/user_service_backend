@@ -122,7 +122,7 @@ const serviceProviderSchema = new mongoose.Schema({
   },
     recentConnectedUser :[{
       type : {type : String, required : true},
-      user : {
+      userPhoneRef : {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
