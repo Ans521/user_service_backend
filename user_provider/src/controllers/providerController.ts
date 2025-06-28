@@ -504,30 +504,67 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
 
         // $ne is a comparison operator that checks if two values are not equal.
 
+// interface EnquiryType {
+//     type : 'phone' | 'email' | 'chat'
+// }
+
+// interface EnquiryRequestQuery {
+//   providerId: string;
+// }
+
+// interface EnquiryRequestUser {
+//   id: string;
+// }
+
+// interface Enquiry extends EnquiryType {
+//     providerId : string,
+//     id : string
+// }
+
+const allowedTypes = ['whatsapp', 'phone', 'chat'];
+
 export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
     try {
         const{ type } = req.body;
         const { id } = req.user;
         const { providerId } = req.query;
 
-        const phoneId = new Types.ObjectId(String(id));
-
-        const existingOne = await ServiceProvider.findOne({_id : providerId, })
-        const response = await ServiceProvider.findOneAndUpdate(
-            { _id : providerId },
-            { $push: { 
-                recentConnectedUser: { 
-                    type, 
-                    userPhoneRef : phoneId
-            }}},
-            { new: true },
-        )
-
-        if (!response) {
-            return res.status(400).json({ success: false, message: 'Service not found' });
+        if(!type || !providerId) {
+            return res.status(400).json({ success: false, message: 'please provide type and providerId' });
         }
 
-        return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
+        // .includes return boolean value -->  true or false
+        if(type && !allowedTypes.includes(type)) {
+            return res.status(400).json({ success: false, message: 'Invalid type' });
+        }
+        const phoneId = new Types.ObjectId(String(id));
+
+        const existingOne : any = await ServiceProvider.findOne({ 
+            _id : providerId
+        },
+        {
+            recentConnectedUser : {
+                $elemMatch : {
+                    userPhoneRef : phoneId,
+                    timeStamp : { $gt : new Date(Date.now() - 400000) } // new Date(...) → converts that timestamp back into a Date object.
+                }
+            }
+        });
+        console.log("exisitngOne", existingOne)    
+        if (existingOne?.recentConnectedUser.length === 0) {
+            await ServiceProvider.findOneAndUpdate(
+                { _id : providerId },
+                { $push: { 
+                    recentConnectedUser: { 
+                        type, 
+                        userPhoneRef : phoneId
+                }}},
+                { new : true },
+            )
+            return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
+        }
+
+        return res.status(200).json({ success: true, message: 'Already added into recent connection few second ago'});
         
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
