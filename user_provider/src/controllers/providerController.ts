@@ -525,9 +525,8 @@ const allowedTypes = ['whatsapp', 'phone', 'chat'];
 
 export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
     try {
-        const{ type } = req.body;
+        const{ type, providerId } = req.body;
         const { id } = req.user;
-        const { providerId } = req.query;
 
         if(!type || !providerId) {
             return res.status(400).json({ success: false, message: 'please provide type and providerId' });
