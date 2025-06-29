@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { SubCategory } from "../models/subCategory";
 import { Category } from "../models/categorySchema";
 import { Banner } from "../models/banner";
+import { Request } from "express";
 export const uploadImages = async (req: any, res: any) => {
     try {
         const { id, isEmployeeLogin } = req.user;
@@ -504,26 +505,32 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
 
         // $ne is a comparison operator that checks if two values are not equal.
 
-// interface EnquiryType {
-//     type : 'phone' | 'email' | 'chat'
-// }
+    type EnquiryType = 'phone' | 'email' | 'chat'
 
-// interface EnquiryRequestQuery {
-//   providerId: string;
-// }
+    interface EnquiryRequestBody {
+        providerId: string;
+        type : EnquiryType
+    }
 
-// interface EnquiryRequestUser {
-//   id: string;
-// }
+    // interface CustomRequest extends Request means:
+    // You are creating your own version of Express’s Request object with additional typing — only for the places where you explicitly use CustomRequest.
 
-// interface Enquiry extends EnquiryType {
-//     providerId : string,
-//     id : string
-// }
+
+    interface CustomRequest extends Request<any, any, EnquiryRequestBody> {
+        user : {id : string}
+    }
+
+
+// Position	Purpose
+// 1st	Params: from URL like /user/:id
+// 2nd	ResBody: what you send back (not often used)
+// 3rd	ReqBody: what comes in req.body ✅
+// 4th	Query: from req.query like ?page=2
+// that is for the understanding how this postion works in the request
 
 const allowedTypes = ['whatsapp', 'phone', 'chat'];
 
-export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
+export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) => {
     try {
         const{ type, providerId } = req.body;
         const { id } = req.user;
@@ -538,19 +545,17 @@ export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
         }
         const phoneId = new Types.ObjectId(String(id));
 
-        const existingOne : any = await ServiceProvider.findOne({ 
-            _id : providerId
-        },
-        {
+        const existingOne : any = await ServiceProvider.findOne({
+            _id : providerId,
             recentConnectedUser : {
                 $elemMatch : {
                     userPhoneRef : phoneId,
-                    timeStamp : { $gt : new Date(Date.now() - 400000) } // new Date(...) → converts that timestamp back into a Date object.
+                    timeStamp : { $gt : new Date(Date.now() - 40000) } // new Date(...) → converts that timestamp back into a Date object.
                 }
             }
         });
-        console.log("exisitngOne", existingOne)    
-        if (existingOne?.recentConnectedUser.length === 0) {
+
+        if (!existingOne) {
             await ServiceProvider.findOneAndUpdate(
                 { _id : providerId },
                 { $push: { 
@@ -567,5 +572,63 @@ export const sendRecentConnectionEnquiry = async (req: any, res: any) => {
         
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const getRecentConnectedUser = async (req : any,  res : any) => {
+    try {
+        const { id } = req.user;
+
+        const phoneId = new Types.ObjectId(String(id));
+
+        const response = await ServiceProvider.aggregate([
+            {$match : {phoneNo : phoneId}},
+            {$project : {
+                recentConnectedUser : 1
+            }},
+            {$unwind : '$recentConnectedUser'},
+            {$lookup : {
+                from : 'bases', // that means konse collection mei se lookup krenge
+                localField : 'recentConnectedUser.userPhoneRef', // that means recentConnectedUser ke konse field mei se lookup krenge
+                foreignField : 'phoneNo', // that means bases ke konse field mei se lookup krenge
+                as : 'senderInfo' // this is name of the result
+            }},
+            {$unwind : '$senderInfo'},
+            {$project : {
+                senderInfo : 1,
+                recentConnectedUser : 1
+            }},
+            {$lookup : {
+                from : 'phonenumbers', // that means konse collection mei se lookup krenge
+                localField : 'senderInfo.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
+                foreignField : '_id', // that means users ke konse field mei se lookup krenge
+                as : 'senderInfo.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
+            }},
+            {$unwind : '$senderInfo.phoneNo'},
+            {$project : {
+                userInfo : {
+                    id : '$senderInfo._id',
+                    name : {$ifNull : ['$senderInfo.name', 'not provided']},
+                    phoneNo : {$ifNull : ['$senderInfo.phoneNo.phoneNumber', 'not provided']},
+                    profilePic : {$ifNull : ['$senderInfo.profilePic', 'not provided']},
+                    email : {$ifNull : ['$senderInfo.phoneNo.email', 'not provided']},
+                    address :{$ifNull : ['$senderInfo.address', 'not provided' ] }
+                },
+                recentConnectedUser : {
+                    type : 1,
+                    timeStamp : 1
+                }
+            }}  
+        ]) 
+
+        console.log("response", response.length)
+
+        if (!response) {
+            return res.status(400).json({ success: false, message: 'Recent Connected User not found' });
+        }
+        return res.status(200).json({ success: true, data: response });
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
