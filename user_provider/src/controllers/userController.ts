@@ -363,7 +363,7 @@ export const handleSingleImageUrl =  async (req : any, res : any) => {
             return res.status(400).send("No file uploaded.");
         }
         
-        const fileUrl = `http://82.180.144.143:4000/uploads/${req.file.filename}`
+        const fileUrl = `http://localhost:4000/uploads/${req.file.filename}`
 
         console.log("fileUrl", fileUrl)
 
