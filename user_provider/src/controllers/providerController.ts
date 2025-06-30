@@ -4,6 +4,7 @@ import { SubCategory } from "../models/subCategory";
 import { Category } from "../models/categorySchema";
 import { Banner } from "../models/banner";
 import { Request } from "express";
+import { Offer } from "../models/offer";
 export const uploadImages = async (req: any, res: any) => {
     try {
         const { id, isEmployeeLogin } = req.user;
@@ -627,6 +628,41 @@ export const getRecentConnectedUser = async (req : any,  res : any) => {
             return res.status(400).json({ success: false, message: 'Recent Connected User not found' });
         }
         return res.status(200).json({ success: true, data: response });
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const insertOffer = async (req : any,  res : any) => {
+    try {
+        const { data } = req.body;
+        console.log("reqObj", data);
+
+        const validData = data.filter((item : any) => item.imageUrl && item.price && item.validity)
+
+        if(validData.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please provide valid data' });
+        }
+        const response = await Offer.insertMany(validData);
+        
+        if(!response){
+            return res.status(400).json({ success: false, message: 'Offer not added' });
+        }
+        return res.status(200).json({ success: true, message: 'Offer added successfully' });
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const getAllOffer = async (req : any,  res : any) => {
+    try {
+        const data = await Offer.find();
+        if(!data){
+            return res.status(400).json({ success: false, message: 'Offer not found' });
+        }
+        return res.status(200).json({ success: true, data });
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
