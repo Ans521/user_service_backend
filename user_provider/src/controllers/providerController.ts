@@ -668,3 +668,29 @@ export const getAllOffer = async (req : any,  res : any) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
+
+export const updateOffer = async (req : any,  res : any) => {
+    try {
+        const { id } = req.params;
+        const { data } = req.body;
+        
+        console.log("id", id);
+        console.log("data", data);
+
+        const response = await Offer.updateOne(
+            { _id : id },
+            { $set : data }
+        );
+
+        console.log("response", response)
+
+        if(!response){
+            return res.status(400).json({ success: false, message: 'Offer not updated' });
+        }
+        
+        return res.status(200).json({ success: true, message: 'Offer updated successfully' });
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
