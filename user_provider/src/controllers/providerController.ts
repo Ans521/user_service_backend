@@ -695,3 +695,47 @@ export const updateOffer = async (req : any,  res : any) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
+
+export const handleReview = async (req : any,  res : any) => {
+    try {
+        const { rating, comment, providerId } = req.body;
+        const { id } = req.user;
+        if(rating > 5 || rating < 1){
+            return res.status(400).json({ success: false, message: 'Invalid rating' });
+        }
+        if(!rating || !providerId){
+            return res.status(400).json({ success: false, message: 'Review is required' });
+        }
+
+        const phoneId = new Types.ObjectId(String(id));
+
+        const data : any = {
+            sendedBy : phoneId,
+            rating,
+            comment
+        }
+        console.log("phoneId", phoneId)
+        const existingComment = await ServiceProvider.findOne(
+            {_id : providerId},
+            {reviewComments : {$elemMatch : {sendedBy : phoneId}}}
+        ).lean();
+
+        console.log("existingComment", existingComment)
+
+        if(existingComment){
+            return res.status(400).json({ success: false, message: 'You have already reviewed' });
+        }
+
+        const response = await ServiceProvider.updateOne(
+            { _id : providerId },
+            { $push : { reviewComments : data } }
+        );
+        if(!response){
+            return res.status(400).json({ success: false, message: 'Review not added' });
+        }
+        return res.status(200).json({ success: true, message: 'Review added successfully' });
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
