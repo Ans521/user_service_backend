@@ -671,12 +671,12 @@ export const getAllOffer = async (req : any,  res : any) => {
 
 export const updateOffer = async (req : any,  res : any) => {
     try {
-        const { id } = req.params;
+        const { id } = req.query;
         const { data } = req.body;
         
         console.log("id", id);
         console.log("data", data);
-
+        
         const response = await Offer.updateOne(
             { _id : id },
             { $set : data }
@@ -689,6 +689,7 @@ export const updateOffer = async (req : any,  res : any) => {
         }
         
         return res.status(200).json({ success: true, message: 'Offer updated successfully' });
+        
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
