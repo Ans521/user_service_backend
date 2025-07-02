@@ -1,7 +1,8 @@
 import express from "express";
 import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
-import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer} from "../controllers/providerController";
+import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer} from "../controllers/providerController";
+
 
 const router = express.Router();
 
@@ -45,7 +46,7 @@ router.post('/send-enquiry', verifyToken, sendRecentConnectionEnquiry);
 router.get('/get-recent-connection', verifyToken, getRecentConnectedUser);
 router.post('/add-offer', insertOffer)
 router.get('/get-all-offer', getAllOffer)
-// router.patch('/update-offer', updateOffer)
+router.patch('/update-offer', updateOffer)
 
 // if we want to update few values, then use patch
 // if we want to replace entire resource with the current resource, then use put

@@ -18,7 +18,7 @@ import { sendNotification, userSocketMap } from "./socket";
 import { Socket } from "socket.io-client";
 import { time, timeStamp } from "console";
 import {Base} from "../models/baseSchema";
-// import {sendPush} from "../utils/redisUtils"
+import {sendPush} from "../utils/redisUtils"
 import { Request } from "express";
 
 dotenv.config()
@@ -92,8 +92,8 @@ export const verifyOtp = async (req: any, res: any) => {
     try {
         const { userOtp, isEmployeeLogin, deviceToken } = req.body;
         
-        if (!userOtp || typeof isEmployeeLogin === 'undefined') {
-            return res.status(400).json({ message: "Invalid Otp and Type of isEmplyoeeLogin and deviceToken" });
+        if (!userOtp || typeof isEmployeeLogin === 'undefined' || !deviceToken) {
+            return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin or deviceToken" });
         }
 
         const phoneNo1 = await client.get(`phone:${userOtp}`);
@@ -114,6 +114,19 @@ export const verifyOtp = async (req: any, res: any) => {
             return res.status(404).json({ message: "No phone reference found" });
         }
 
+        const existingRole = await Base.findOne({ phoneNo: phoneRef?._id }).select("role").lean();
+
+        
+        const currentRole = existingRole?.role;
+
+        if(currentRole){
+            const isExpectedRole = isEmployeeLogin ? "serviceProvider" : "User";
+            if(currentRole !== isExpectedRole){
+                if(currentRole !== "serviceProvider"){
+                    return res.status(400).json({ message: `You are not a ${isExpectedRole}` });
+                }
+            }
+        }
         if (!isEmployeeLogin) {
             const userData : any = await User.findOne({ phoneNo: phoneRef?._id }).populate('phoneNo').populate('email'); 
             if (userData?.loggedInBefore) {
@@ -127,6 +140,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     phone: userData?.phoneNo?.phoneNumber || "123-456-7890",
                     loggedInBefore : userData?.loggedInBefore   
                 }
+                await User.updateOne({ _id: userData._id }, { deviceToken });
 
                 const token = jwt.sign({id : phoneRef?._id.toString(),isEmployeeLogin : false }, secretKey, { expiresIn: '12h' })
 
@@ -166,6 +180,7 @@ export const verifyOtp = async (req: any, res: any) => {
             }
 
             if (providerData?.loggedInBefore) {
+                await ServiceProvider.updateOne({ _id: providerData._id }, { deviceToken });
                 if (providerData?.isUserVerifed) {
                     redisOperation(phoneNo1, userOtp, false);
                     const token = jwt.sign({id : phoneRef?._id.toString(), isEmployeeLogin : true}, secretKey, { expiresIn: '12h' })
@@ -1027,7 +1042,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
           });
 
             const deviceToken = senderData?.deviceToken || "";
-            // sendPush(message, senderData.name, deviceToken);
+            sendPush(message, senderData.name, deviceToken);
 
 
           if (serviceData) {
