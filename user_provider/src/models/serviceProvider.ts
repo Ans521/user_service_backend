@@ -2,6 +2,7 @@ import { Base } from "./baseSchema";
 import mongoose from "mongoose";
 import {imagesKey} from "../shortObj"
 import { timeStamp } from "console";
+import { send } from "process";
 const serviceProviderSchema = new mongoose.Schema({
   isUserVerifed: {
     type: Boolean,
@@ -42,8 +43,10 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   reviewComments: {
     type : [{
+      sendedBy : {type : mongoose.Schema.Types.ObjectId, ref: 'User'},
       rating :  Number,
-      comment : String
+      comment : String,
+      
     }],
     default: [], 
     _id : false
