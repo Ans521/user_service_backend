@@ -91,7 +91,7 @@ export const getOtp = async (req : any, res : any) => {
 export const verifyOtp = async (req: any, res: any) => {
     try {
         const { userOtp, isEmployeeLogin, deviceToken } = req.body;
-        
+        console.log("typeof isEmployeeLogin", typeof isEmployeeLogin)
         if (!userOtp || typeof isEmployeeLogin === 'undefined' || !deviceToken) {
             return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin or deviceToken" });
         }
@@ -121,7 +121,7 @@ export const verifyOtp = async (req: any, res: any) => {
 
         if(currentRole){
             const isExpectedRole = isEmployeeLogin ? "serviceProvider" : "User";
-            if(currentRole !== isExpectedRole){
+            if(currentRole.toLowerCase() !== isExpectedRole.toLowerCase()){
                 if(currentRole !== "serviceProvider"){
                     return res.status(400).json({ message: `You are not a ${isExpectedRole}` });
                 }

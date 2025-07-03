@@ -740,17 +740,78 @@ export const handleReview = async (req : any,  res : any) => {
 
 export const getAllReview = async (req : any,  res : any) => {
     try {
-        const { providerId } = req.query;
+        const { id } = req.user;
+        const phoneId = new Types.ObjectId(String(id));
         const response = await ServiceProvider.aggregate([
-            { $match : { _id : providerId } },
-            { $unwind : '$reviewComments' },
+            { $match : { phoneNo : phoneId } },
+            {$project : {
+                reviewComments : 1
+            }},
+            {$unwind : '$reviewComments'},
+            {$lookup : {
+                from : 'bases', // that means konse collection mei se lookup krenge
+                localField : 'reviewComments.sendedBy', // that means recentConnectedUser ke konse field mei se lookup krenge
+                foreignField : 'phoneNo', // that means users ke konse field mei se lookup krenge
+                as : 'reviewComments.sendedBy' // This embeds the result inside senderInfo.phoneNo field directly.
+            }},
+            {$unwind : '$reviewComments.sendedBy'},
+            {$project : {
+                rating : '$reviewComments.rating',
+                name : '$reviewComments.sendedBy.name',
+                message : {$ifNull : ['$reviewComments.message', '']},
+                comment : {$ifNull : ['$reviewComments.comment', '']},
+                senderId : '$reviewComments.sendedBy.phoneNo'
+            }},
+            {
+                $group : {
+                    avgRating : {$avg : '$rating'},
+                }
+            }
         ])
-        console.log("response", response)
         if(!response){
             return res.status(400).json({ success: false, message: 'Review not found' });
         }
         return res.status(200).json({ success: true, data : response });
     } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const sendReviewMsgToUser = async (req : any,  res : any) => {
+    try{
+        const { id } = req.user;
+        const {reviewId, message} = req.body;
+        
+        if(!reviewId || !message){
+            return res.status(400).json({ success: false, message: 'Message is missing or reviewId is missing' });
+        }
+
+        const phoneId = new Types.ObjectId(String(id));
+        
+        const response = await ServiceProvider.updateOne(
+            { phoneNo : phoneId, reviewComments : {
+                $elemMatch : {
+                    sendedBy : reviewId, 
+                    $or : [
+                        {message : {$in : [null, ''] } },
+                        {message : {$exists : false} }
+                    ]
+                }
+            }},
+            {
+                $set : {
+                    'reviewComments.$.message' : message
+                }
+            }
+        );
+        
+        if(!response.modifiedCount){
+            return res.status(400).json({ success: false, message: 'Message not sent' });
+        }
+        return res.status(200).json({ success: true, message: 'Message sent successfully' });
+        
+    }catch(error){
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }

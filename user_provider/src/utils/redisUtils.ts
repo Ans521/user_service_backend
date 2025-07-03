@@ -3,12 +3,13 @@ import admin from "firebase-admin";
 import dotenv from 'dotenv';
 dotenv.config();
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
-serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+// const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
+const serviceAccount : any = {}
+// serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-});
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+// });
 
 export const sendPush = async (message : string, name : any, deviceToken : any) => {
     
