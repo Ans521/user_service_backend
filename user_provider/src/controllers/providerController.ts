@@ -716,11 +716,9 @@ export const handleReview = async (req : any,  res : any) => {
         }
         console.log("phoneId", phoneId)
         const existingComment = await ServiceProvider.findOne(
-            {_id : providerId},
+            {_id : providerId, 'reviewComments.sendedBy' : phoneId},
             {reviewComments : {$elemMatch : {sendedBy : phoneId}}}
         ).lean();
-
-        console.log("existingComment", existingComment)
 
         if(existingComment){
             return res.status(400).json({ success: false, message: 'You have already reviewed' });
@@ -734,6 +732,24 @@ export const handleReview = async (req : any,  res : any) => {
             return res.status(400).json({ success: false, message: 'Review not added' });
         }
         return res.status(200).json({ success: true, message: 'Review added successfully' });
+    } catch (error) {
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const getAllReview = async (req : any,  res : any) => {
+    try {
+        const { providerId } = req.query;
+        const response = await ServiceProvider.aggregate([
+            { $match : { _id : providerId } },
+            { $unwind : '$reviewComments' },
+        ])
+        console.log("response", response)
+        if(!response){
+            return res.status(400).json({ success: false, message: 'Review not found' });
+        }
+        return res.status(200).json({ success: true, data : response });
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
