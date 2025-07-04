@@ -46,7 +46,7 @@ const serviceProviderSchema = new mongoose.Schema({
       sendedBy : {type : mongoose.Schema.Types.ObjectId, ref: 'User'},
       rating :  Number,
       comment : String,
-      
+      message : String
     }],
     default: [], 
     _id : false
