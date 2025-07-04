@@ -669,22 +669,37 @@ export const getAllOffer = async (req : any,  res : any) => {
     }
 }
 
+export const deleteOffer = async (req : any,  res : any) => {
+    try{
+        const {id} = req.query;
+
+        if(!id){
+            return res.status(400).json({ success: false, message: 'Please provide valid id' });
+        }
+        
+        const response = await Offer.findByIdAndDelete(id).lean();
+
+        if(!response){
+            return res.status(400).json({ success: false, message: 'Offer is not deleted mor may be id provided id doesnt exist' });
+        }
+
+        return res.status(200).json({ success: true, message: 'Offer deleted successfully' });
+    }catch(error){
+        console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
 export const updateOffer = async (req : any,  res : any) => {
     try {
         const { id } = req.query;
         const { data } = req.body;
-        
-        console.log("id", id);
-        console.log("data", data);
         
         const response = await Offer.updateOne(
             { _id : id },
             { $set : data }
         );
 
-        console.log("response", response)
-
-        if(!response){
+        if(!response.modifiedCount){
             return res.status(400).json({ success: false, message: 'Offer not updated' });
         }
         
@@ -760,11 +775,13 @@ export const getAllReview = async (req : any,  res : any) => {
                 name : '$reviewComments.sendedBy.name',
                 message : {$ifNull : ['$reviewComments.message', '']},
                 comment : {$ifNull : ['$reviewComments.comment', '']},
-                senderId : '$reviewComments.sendedBy.phoneNo'
+                senderId : '$reviewComments.sendedBy.phoneNo',
             }},
             {
                 $group : {
+                    _id : null,
                     avgRating : {$avg : '$rating'},
+                    reviews : {$push : '$$ROOT'}
                 }
             }
         ])
