@@ -592,28 +592,28 @@ export const getRecentConnectedUser = async (req : any,  res : any) => {
                 from : 'bases', // that means konse collection mei se lookup krenge
                 localField : 'recentConnectedUser.userPhoneRef', // that means recentConnectedUser ke konse field mei se lookup krenge
                 foreignField : 'phoneNo', // that means bases ke konse field mei se lookup krenge
-                as : 'senderInfo' // this is name of the result
+                as : 'sender' // this is name of the result
             }},
-            {$unwind : '$senderInfo'},
+            {$unwind : '$sender'},
             {$project : {
-                senderInfo : 1,
+                sender : 1,
                 recentConnectedUser : 1
             }},
             {$lookup : {
                 from : 'phonenumbers', // that means konse collection mei se lookup krenge
                 localField : 'senderInfo.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
                 foreignField : '_id', // that means users ke konse field mei se lookup krenge
-                as : 'senderInfo.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
+                as : 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
             }},
-            {$unwind : '$senderInfo.phoneNo'},
+            {$unwind : '$sender.phoneNo'},
             {$project : {
-                userInfo : {
-                    id : '$senderInfo._id',
-                    name : {$ifNull : ['$senderInfo.name', 'not provided']},
-                    phoneNo : {$ifNull : ['$senderInfo.phoneNo.phoneNumber', 'not provided']},
-                    profilePic : {$ifNull : ['$senderInfo.profilePic', 'not provided']},
-                    email : {$ifNull : ['$senderInfo.phoneNo.email', 'not provided']},
-                    address :{$ifNull : ['$senderInfo.address', 'not provided' ] }
+                senderInfo : {
+                    id : '$sender._id',
+                    name : {$ifNull : ['$sender.name', 'not provided']},
+                    phoneNo : {$ifNull : ['$sender.phoneNo.phoneNumber', 'not provided']},
+                    profilePic : {$ifNull : ['$sender.profilePic', 'not provided']},
+                    email : {$ifNull : ['$sender.phoneNo.email', 'not provided']},
+                    address :{$ifNull : ['$sender.address', 'not provided' ] }
                 },
                 recentConnectedUser : {
                     type : 1,
@@ -621,8 +621,6 @@ export const getRecentConnectedUser = async (req : any,  res : any) => {
                 }
             }}  
         ]) 
-
-        console.log("response", response.length)
 
         if (!response) {
             return res.status(400).json({ success: false, message: 'Recent Connected User not found' });
@@ -730,8 +728,10 @@ export const handleReview = async (req : any,  res : any) => {
             comment
         }
         console.log("phoneId", phoneId)
+
+        const providerIdObj = new Types.ObjectId(String(providerId));
         const existingComment = await ServiceProvider.findOne(
-            {_id : providerId, 'reviewComments.sendedBy' : phoneId},
+            {_id : providerIdObj, 'reviewComments.sendedBy' : phoneId},
             {reviewComments : {$elemMatch : {sendedBy : phoneId}}}
         ).lean();
 
@@ -740,13 +740,34 @@ export const handleReview = async (req : any,  res : any) => {
         }
 
         const response = await ServiceProvider.updateOne(
-            { _id : providerId },
+            { _id : providerIdObj },
             { $push : { reviewComments : data } }
         );
+
+        const reviewData = await ServiceProvider.aggregate([
+            { $match : { _id : providerIdObj } },
+            {$unwind : '$reviewComments'},
+            {$group : {
+                _id : "$_id",
+                avgRating : { $avg : '$reviewComments.rating' }
+            }},
+            {$project : {
+                _id : 1,
+                avgRating : 1 
+            }},
+            {
+                $merge : {
+                    into : 'bases',
+                    whenMatched : 'merge',
+                    whenNotMatched : 'discard'
+                }
+            }
+        ])
+        
         if(!response){
             return res.status(400).json({ success: false, message: 'Review not added' });
         }
-        return res.status(200).json({ success: true, message: 'Review added successfully' });
+        return res.status(200).json({ success: true, message: 'Review added successfully', data : reviewData });
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
