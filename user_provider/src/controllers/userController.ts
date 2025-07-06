@@ -4,7 +4,7 @@ import { User } from "../models/user";
 import { ServiceProvider } from "../models/serviceProvider";
 import jwt from "jsonwebtoken";
 import bcrypt from 'bcrypt';
-import dotenv, { populate } from 'dotenv';
+import dotenv from 'dotenv';
 import path from 'path';
 import multer from "multer";
 import fs from 'fs';
@@ -12,7 +12,6 @@ import { createClient } from 'redis';
 import { Category } from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
-import { start } from "repl";
 import { Types } from "mongoose";
 import { sendNotification, userSocketMap } from "./socket";
 import { Socket } from "socket.io-client";
@@ -91,7 +90,7 @@ export const getOtp = async (req: any, res: any) => {
 export const verifyOtp = async (req: any, res: any) => {
     try {
         const { userOtp, isEmployeeLogin, deviceToken } = req.body;
-        console.log("typeof isEmployeeLogin", typeof isEmployeeLogin)
+
         if (!userOtp || typeof isEmployeeLogin === 'undefined' || !deviceToken) {
             return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin or deviceToken" });
         }
@@ -116,7 +115,6 @@ export const verifyOtp = async (req: any, res: any) => {
 
         const existingRole = await Base.findOne({ phoneNo: phoneRef?._id }).select("role").lean();
 
-
         const currentRole = existingRole?.role;
 
         if (currentRole) {
@@ -140,6 +138,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     phone: userData?.phoneNo?.phoneNumber || "123-456-7890",
                     loggedInBefore: userData?.loggedInBefore
                 }
+                
                 await User.updateOne({ _id: userData._id }, { deviceToken });
 
                 const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: false }, secretKey, { expiresIn: '12h' })
@@ -149,9 +148,11 @@ export const verifyOtp = async (req: any, res: any) => {
                     data: sentData,
                     token: token
                 });
+
             } else {
                 try {
-                    const newUser: any = await new User({ phoneNo: phoneRef?._id, deviceToken }).save();
+                    const newUser : any = await new User({ phoneNo: phoneRef?._id, deviceToken }).save();
+
                     const sentData = {
                         _id: newUser?._id,
                         role: newUser?.role,
@@ -543,23 +544,36 @@ export const updateProviderStatus = async (req: any, res: any) => {
     const socketId = userSocketMap.get(id);
     console.log("socketId", socketId)
     const message = `Your account has been ${status} by admin.`;
-    console.log("message", message)
+    console.log("status", status)
+    if (!status || !id) {
+        return res.status(400).json({ success: false, message: 'Status and ID are required' });
+    }
+
+    const type = status;
+
+    const isUserVerifed = status === 'approved' ? true : false;
     try {
+        const response : any = await ServiceProvider.findOneAndUpdate(
+            { _id: id },
+            { status: status, isUserVerifed},
+            { new: true }
+        )
+        const tittle = `Account ${status}`;
         if (status == 'approved' && id != undefined) {
-            await ServiceProvider.findOneAndUpdate(
-                { _id: id },
-                { status: status, isUserVerifed: true },
-                { new: true }
-            )
+            console.log("response", response)
+            if (!response) {
+                return res.status(404).json({ success: false, message: 'Service provider not found' });
+            }
+            console.log("response.deviceToken", response?.deviceToken)
+            console.log("message", message)
+            sendPush(tittle, message, response?.deviceToken || "", status, type);
             sendNotification(socketId, message);
-            return res.status(200).json({ success: true, message: 'successfully' });
+            return res.status(200).json({ success : true, message: 'successfully' });
         } else if (status == 'rejected' && id != undefined) {
-            await ServiceProvider.findOneAndUpdate(
-                { _id: id },
-                { status: status, isUserVerifed: false },
-                { new: true }
-            );
+
             sendNotification(socketId, message);
+            sendPush(tittle, message, response?.deviceToken || "", status, type);
+            
             return res.status(200).json({ success: true, message: 'successfully' });
         }
         return res.status(500).json({ success: false, message: 'something went wrong' });
@@ -726,10 +740,10 @@ export const getProviderWithCategory = async (req: any, res: any) => {
 
         if (search && search.trim() !== "") {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
+            console.log("subcatIds", subcatIds)
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
             query.subcategory = { $in: subcategoryIds };
         }
-
         if (subcat) {
             if (!Array.isArray(subcat)) {
                 return res.status(400).json({ data: { message: "Subcate should be array of the subcat Ids or Id." } });
@@ -1051,17 +1065,12 @@ export const userSentMsg = async (req: any, res: any) => {
         };
 
         const senderId = new Types.ObjectId(String(id));
-        const senderData: any = await Base.findOneAndUpdate({ phoneNo: senderId }).select("name").lean();
+        const senderData : any = await Base.findOne({ phoneNo: senderId }).select("name").lean();
 
         const serviceData: any = await ServiceProvider.findOne({
             _id: receiverId,
-            'enquiry.sender': senderId,
+            'enquiry.sender' : senderId,
         });
-
-        const deviceToken = senderData?.deviceToken || "";
-        sendPush(message, senderData.name, deviceToken);
-
-
         if (serviceData) {
             // sender already exists → push new message
             await ServiceProvider.findOneAndUpdate(
@@ -1116,7 +1125,22 @@ export const userSentMsg = async (req: any, res: any) => {
                 { new: true }
             );
         }
+       
+        const tittle = `New message from ${senderData.name}`;
+        const type  = "message";
+
+
+        const dataToSend  = {
+            providerId : provider?._id,
+            providerName : provider?.name,
+            senderId : senderData?._id,
+            senderName : senderData?.name,
+        }
+        const data = JSON.stringify(dataToSend);
+        sendPush(tittle, message, provider?.deviceToken || "", type, data);
+
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
+        
     } catch (error) {
         console.log("error", error);
         return res.status(500).json({ success: false, message: 'Failed to send message' });

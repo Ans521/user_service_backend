@@ -5,6 +5,9 @@ import { Category } from "../models/categorySchema";
 import { Banner } from "../models/banner";
 import { Request } from "express";
 import { Offer } from "../models/offer";
+import { Base } from "../models/baseSchema";
+import { sendPush } from "../utils/redisUtils";
+
 export const uploadImages = async (req: any, res: any) => {
     try {
         const { id, isEmployeeLogin } = req.user;
@@ -540,11 +543,15 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
             return res.status(400).json({ success: false, message: 'please provide type and providerId' });
         }
 
-        // .includes return boolean value -->  true or false
         if(type && !allowedTypes.includes(type)) {
             return res.status(400).json({ success: false, message: 'Invalid type' });
         }
+
         const phoneId = new Types.ObjectId(String(id));
+
+        const userData : any = await Base.findOne({
+            phoneNo: phoneId,
+        })
 
         const existingOne : any = await ServiceProvider.findOne({
             _id : providerId,
@@ -555,7 +562,17 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 }
             }
         });
+        const tittle = 'New Enquiry';
+        const message = `You have a new enquiry from ${id}`;
+        const providerData : any = await ServiceProvider.findOne({ _id : providerId }).lean();
 
+        const sendToData = {
+            userId: userData._id,
+            userName: userData.name,
+            providerId : providerData?._id,
+            providerName: providerData?.name,
+        }
+        const data = JSON.stringify(sendToData);
         if (!existingOne) {
             await ServiceProvider.findOneAndUpdate(
                 { _id : providerId },
@@ -566,9 +583,10 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 }}},
                 { new : true },
             )
+            sendPush(tittle, message, existingOne?.deviceToken || "", type, data);
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
         }
-
+            
         return res.status(200).json({ success: true, message: 'Already added into recent connection few second ago'});
         
     } catch (error) {
