@@ -91,7 +91,7 @@ export const verifyOtp = async (req: any, res: any) => {
     try {
         const { userOtp, isEmployeeLogin, deviceToken } = req.body;
 
-        if (!userOtp || typeof isEmployeeLogin === 'undefined' || !deviceToken) {
+        if (!userOtp || typeof isEmployeeLogin === 'undefined') {
             return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin or deviceToken" });
         }
 
