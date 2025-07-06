@@ -25,6 +25,10 @@
         type: Boolean,
         default: false,
       },
+      deviceToken : {
+        type : String,
+        default: null,
+      }
     },
     { discriminatorKey: "role"}
   );

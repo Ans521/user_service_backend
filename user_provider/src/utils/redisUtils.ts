@@ -3,30 +3,48 @@ import admin from "firebase-admin";
 import dotenv from 'dotenv';
 dotenv.config();
 
-// const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
-const serviceAccount : any = {}
-// serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
+serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-// });
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+});
 
-export const sendPush = async (message : string, name : any, deviceToken : any) => {
-    
-    const fcmToken = deviceToken;
-    
+export const sendPush = async (
+    tittle : string,
+    message : string,
+    deviceToken : string,
+    status? : string,
+    type? : string,
+    data? : string
+  ) => {
+
+        const fcmToken = deviceToken;
+
+        if (!fcmToken) {
+            console.error('No FCM token provided');
+            return;  
+        }
+
+        console.log(type, 'type');
+
       try {
         await admin.messaging().send({
-            token: fcmToken,
-            notification: {
-              title: `New message from the ${name}`,
-              body: `${message}`,
-            },
-        });
-
+          token: fcmToken,
+          notification: {
+            title: tittle,
+            body: message,
+          },
+          data: {
+            type: type || 'notification',
+            message,
+            status: status || '',
+            provider: JSON.stringify(data) || ''
+          }
+    });
   } catch (error) {
     console.error('Error sending push:', error);
   }
 }
 
-    
+                

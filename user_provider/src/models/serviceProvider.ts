@@ -1,6 +1,6 @@
 import { Base } from "./baseSchema";
 import mongoose from "mongoose";
-import {imagesKey} from "../shortObj"
+import { imagesKey } from "../shortObj"
 import { timeStamp } from "console";
 import { send } from "process";
 const serviceProviderSchema = new mongoose.Schema({
@@ -12,14 +12,14 @@ const serviceProviderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  imageUrl:{
-    type : {
-      [imagesKey.aadharCard] : String,
-      [imagesKey.aadharCardBack] : String,
-      [imagesKey.photo] : String,
-      [imagesKey.panCard] : String
+  imageUrl: {
+    type: {
+      [imagesKey.aadharCard]: String,
+      [imagesKey.aadharCardBack]: String,
+      [imagesKey.photo]: String,
+      [imagesKey.panCard]: String
     },
-    _id : false
+    _id: false
   },
   status: {
     type: String,
@@ -28,11 +28,11 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   category: {
     type: mongoose.Types.ObjectId,
-    ref : "Category"
+    ref: "Category"
   },
-  subcategory : {
-    type : mongoose.Schema.Types.ObjectId,
-    ref : "SubCategory"
+  subcategory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SubCategory"
   },
   aadharAddress: {
     type: String
@@ -42,14 +42,14 @@ const serviceProviderSchema = new mongoose.Schema({
     default: 0
   },
   reviewComments: {
-    type : [{
-      sendedBy : {type : mongoose.Schema.Types.ObjectId, ref: 'User'},
-      rating :  Number,
-      comment : String,
-      message : String
+    type: [{
+      sendedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      rating: Number,
+      comment: String,
+      message: String
     }],
-    default: [], 
-    _id : false
+    default: [],
+    _id: false
   },
   totalReviews: {
     type: Number,
@@ -64,7 +64,7 @@ const serviceProviderSchema = new mongoose.Schema({
     default: 0
   },
   aboutUs: {
-    type: String, 
+    type: String,
     default: ""
   },
   galleryImages: {
@@ -73,18 +73,18 @@ const serviceProviderSchema = new mongoose.Schema({
   },
   workingHours: {
     type: {
-        start : String,
-        end : String
-    }, 
-    default: {
-        start : "",
-        end : ""
+      start: String,
+      end: String
     },
-    _id : false
+    default: {
+      start: "",
+      end: ""
+    },
+    _id: false
   },
   workingDays: {
     type: [String],
-    enum :["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    enum: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     default: ["Mon", "Fri"]
   },
   dailyHoursAvailable: {
@@ -94,46 +94,42 @@ const serviceProviderSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  visitingTime : {
-    type : String
+  visitingTime: {
+    type: String
   },
-  services : {
-    type : [{
-      service : String,
-      serviceList : [String] 
+  services: {
+    type: [{
+      service: String,
+      serviceList: [String]
     }],
- },
- servicePrice : {
-  type : Number, 
-  default: 0
- },
- enquiry : {
-  type : [{
-    sender : {type : mongoose.Schema.Types.ObjectId, ref: 'User'},
-    messages : [new mongoose.Schema({
-      message : {type : String},
-      timeStamp : {type : Date, default : Date.now}
-    }, {_id : false})],
-  }],
- },
- scanQrUrl : {
-  type : String
   },
-  deviceToken : {
-    type: String,
-    default: ""
+  servicePrice: {
+    type: Number,
+    default: 0
   },
-    recentConnectedUser :[{
-      type : {type : String, required : true},
-      userPhoneRef : {
+  enquiry: {
+    type: [{
+      sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      messages: [new mongoose.Schema({
+        message: { type: String },
+        timeStamp: { type: Date, default: Date.now }
+      }, { _id: false })],
+    }],
+  },
+  scanQrUrl: {
+    type: String
+  },
+  recentConnectedUser: [{
+    type: { type: String, required: true },
+    userPhoneRef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
     },
-      timeStamp :{  type : Date, default : Date.now()},
-      _id : false
-    },
+    timeStamp: { type: Date, default: Date.now() },
+    _id: false
+  },
   ]
-  });
+});
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);
