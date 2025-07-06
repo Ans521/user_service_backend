@@ -851,7 +851,8 @@ export const getProviderInfo = async (req: any, res: any) => {
                 aboutus: provider?.aboutUs || "The best service backend developer is Ansh",
                 scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
                 imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
-                services: provider?.services
+                services: provider?.services,
+                reviews : provider?.reviewComments
             };
             return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo });
         } else {
