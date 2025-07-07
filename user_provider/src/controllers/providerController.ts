@@ -7,6 +7,7 @@ import { Request } from "express";
 import { Offer } from "../models/offer";
 import { Base } from "../models/baseSchema";
 import { sendPush } from "../utils/redisUtils";
+import { PushPayload } from "../types/notification.type";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -583,7 +584,17 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 }}},
                 { new : true },
             )
-            sendPush(tittle, message, existingOne?.deviceToken || "", type, data);
+
+            const pushPayload : PushPayload = {
+                tittle,
+                message,
+                deviceToken: existingOne?.deviceToken || "",
+                type,
+                data,
+            }
+
+            sendPush(pushPayload);
+
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
         }
             

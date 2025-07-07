@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 
 import dotenv from 'dotenv';
+import { PushPayload } from "../types/notification.type";
 dotenv.config();
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
@@ -10,15 +11,14 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
 });
 
-export const sendPush = async (
-    tittle : string,
-    message : string,
-    deviceToken : string,
-    status? : string,
-    type? : string,
-    data? : string
-  ) => {
-
+export const sendPush = async ({
+  tittle,
+  message,
+  deviceToken,
+  status,
+  type,
+  data,
+}: PushPayload) => {
         const fcmToken = deviceToken;
 
         if (!fcmToken) {

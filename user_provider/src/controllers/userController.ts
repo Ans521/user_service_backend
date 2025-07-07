@@ -19,6 +19,7 @@ import { time, timeStamp } from "console";
 import { Base } from "../models/baseSchema";
 import { sendPush } from "../utils/redisUtils"
 import { Request } from "express";
+import { PushPayload } from "../types/notification.type";
 
 dotenv.config()
 connectDb()
@@ -379,7 +380,7 @@ export const handleSingleImageUrl = async (req: any, res: any) => {
             return res.status(400).send("No file uploaded.");
         }
 
-        const fileUrl = `http://localhost:4000/uploads/${req.file.filename}`
+        const fileUrl = `http://82.180.144.143:4000/uploads/${req.file.filename}`
 
         console.log("fileUrl", fileUrl)
 
@@ -491,19 +492,19 @@ export const addProvider = async (req: any, res: any) => {
         const files: any = {};
 
         if (req.files.AC) {
-            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
+            files["AC"] = `http://82.180.144.143:4000/uploads/${req.files.AC[0].filename}`
         }
 
         if (req.files.ACB) {
-            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
+            files["ACB"] = `http://82.180.144.143:4000/uploads/${req.files.ACB[0].filename}`
         }
 
         if (req.files.PC) {
-            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
+            files["PC"] = `http://82.180.144.143:4000/uploads/${req.files.PC[0].filename}`
         }
 
         if (req.files.PH) {
-            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
+            files["PH"] = `http://82.180.144.143:4000/uploads/${req.files.PH[0].filename}`
         }
 
         const isUserVerifed = true;
@@ -558,23 +559,25 @@ export const updateProviderStatus = async (req: any, res: any) => {
             { status: status, isUserVerifed},
             { new: true }
         )
+
         const tittle = `Account ${status}`;
-        if (status == 'approved' && id != undefined) {
-            console.log("response", response)
+
+        if ((status == 'approved' || status == 'rejected') && id != undefined) {
             if (!response) {
                 return res.status(404).json({ success: false, message: 'Service provider not found' });
             }
-            console.log("response.deviceToken", response?.deviceToken)
-            console.log("message", message)
-            sendPush(tittle, message, response?.deviceToken || "", status, type);
+            
+            const  pushPayload : PushPayload = {
+                tittle,
+                message,
+                deviceToken: response?.deviceToken || "",
+                status: status,
+                type: type,
+            }
+            sendPush(pushPayload);
+           
             sendNotification(socketId, message);
             return res.status(200).json({ success : true, message: 'successfully' });
-        } else if (status == 'rejected' && id != undefined) {
-
-            sendNotification(socketId, message);
-            sendPush(tittle, message, response?.deviceToken || "", status, type);
-            
-            return res.status(200).json({ success: true, message: 'successfully' });
         }
         return res.status(500).json({ success: false, message: 'something went wrong' });
     } catch (error) {
@@ -1138,7 +1141,14 @@ export const userSentMsg = async (req: any, res: any) => {
             senderName : senderData?.name,
         }
         const data = JSON.stringify(dataToSend);
-        sendPush(tittle, message, provider?.deviceToken || "", type, data);
+        const pushPayload : PushPayload = {
+            tittle,
+            message,
+            deviceToken: provider?.deviceToken || "",
+            type,
+            data,
+        }
+        sendPush(pushPayload);
 
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
         
