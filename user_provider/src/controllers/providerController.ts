@@ -554,19 +554,32 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
             phoneNo: phoneId,
         })
 
-        const existingOne : any = await ServiceProvider.findOne({
-            _id : providerId,
-            recentConnectedUser : {
-                $elemMatch : {
-                    userPhoneRef : phoneId,
-                    timeStamp : { $gt : new Date(Date.now() - 40000) } // new Date(...) → converts that timestamp back into a Date object.
+        const existingOne : any = await ServiceProvider.aggregate([
+            {$match : {_id : new Types.ObjectId(providerId)}},
+            {
+                $project : { // filter krte waqt no need for unwind
+                    matchedData : { // ye name hai result ka kii kisme store hoga You're creating a new field called matchedUsers.
+// This will contain the result of a $filter operation applied on the recentConnectedUser array
+                        $filter : {
+                            input : '$recentConnectedUser', // yee wo array hai jisme se filter krna hai
+                            as : 'user', // this is the name of the variable that will be used to refer to each element in the input array
+                            cond : { // using $and to combine multiple conditions
+                                $and : [
+                                    {$eq : ['$$user.userPhoneRef', phoneId]}, // this checks if the type of the user is equal to the type provided in the request
+                                    {$gt : ['$$user.timeStamp', new Date(Date.now() - 40000)]} // this checks if the timeStamp of the user is greater than the current time minus 5 minutes
+                                ]
+                            }
+                        }
+                    }
                 }
             }
-        });
-        const tittle = 'New Enquiry';
-        const message = `You have a new enquiry from ${id}`;
-        const providerData : any = await ServiceProvider.findOne({ _id : providerId }).lean();
+        ])
+        // new Date(Date.now() - 40000) .. MongoDB expects a Date object to compare with a date field (timeStamp).
 
+        const tittle = 'New Enquiry';
+        const message = `you have a new enquiry`;
+        const providerData : any = await ServiceProvider.findOne({ _id : providerId }).lean();
+        const deviceToken = providerData?.deviceToken || "";
         const sendToData = {
             userId: userData._id,
             userName: userData.name,
@@ -574,7 +587,7 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
             providerName: providerData?.name,
         }
         const data = JSON.stringify(sendToData);
-        if (!existingOne) {
+        if (existingOne[0].matchedData.length == 0) {
             await ServiceProvider.findOneAndUpdate(
                 { _id : providerId },
                 { $push: { 
@@ -587,9 +600,9 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
 
             const pushPayload : PushPayload = {
                 tittle,
-                message,
-                deviceToken: existingOne?.deviceToken || "",
-                type,
+                message : message,
+                deviceToken,
+                type : "new_inquiry",
                 data,
             }
 
@@ -597,7 +610,7 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
 
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
         }
-            
+        
         return res.status(200).json({ success: true, message: 'Already added into recent connection few second ago'});
         
     } catch (error) {
@@ -630,7 +643,7 @@ export const getRecentConnectedUser = async (req : any,  res : any) => {
             }},
             {$lookup : {
                 from : 'phonenumbers', // that means konse collection mei se lookup krenge
-                localField : 'senderInfo.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
+                localField : 'sender.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
                 foreignField : '_id', // that means users ke konse field mei se lookup krenge
                 as : 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
             }},
@@ -762,7 +775,7 @@ export const handleReview = async (req : any,  res : any) => {
         const existingComment = await ServiceProvider.findOne(
             {_id : providerIdObj, 'reviewComments.sendedBy' : phoneId},
             {reviewComments : {$elemMatch : {sendedBy : phoneId}}}
-        ).lean();
+        ).lean();   
 
         if(existingComment){
             return res.status(400).json({ success: false, message: 'You have already reviewed' });
