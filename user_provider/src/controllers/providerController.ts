@@ -554,8 +554,6 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
             phoneNo: phoneId,
         })
 
-        console.log("phoneId", phoneId);
-
         const existingOne : any = await ServiceProvider.aggregate([
             {$match : {_id : new Types.ObjectId(providerId)}},
             {
@@ -578,10 +576,8 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
         ])
         // new Date(Date.now() - 40000) .. MongoDB expects a Date object to compare with a date field (timeStamp).
 
-
-
         const tittle = 'New Enquiry';
-        const message = `You have a new enquiry`;
+        const message = `you have a new enquiry`;
         const providerData : any = await ServiceProvider.findOne({ _id : providerId }).lean();
         const deviceToken = providerData?.deviceToken || "";
         const sendToData = {
@@ -589,7 +585,6 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
             userName: userData.name,
             providerId : providerData?._id,
             providerName: providerData?.name,
-            message,
         }
         const data = JSON.stringify(sendToData);
         if (existingOne[0].matchedData.length == 0) {
@@ -605,16 +600,17 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
 
             const pushPayload : PushPayload = {
                 tittle,
-                message : "",
+                message : message,
                 deviceToken,
-                type,
+                type : "new_inquiry",
                 data,
             }
+
             sendPush(pushPayload);
 
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
         }
-            
+        
         return res.status(200).json({ success: true, message: 'Already added into recent connection few second ago'});
         
     } catch (error) {
@@ -647,7 +643,7 @@ export const getRecentConnectedUser = async (req : any,  res : any) => {
             }},
             {$lookup : {
                 from : 'phonenumbers', // that means konse collection mei se lookup krenge
-                localField : 'senderInfo.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
+                localField : 'sender.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
                 foreignField : '_id', // that means users ke konse field mei se lookup krenge
                 as : 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
             }},

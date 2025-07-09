@@ -546,12 +546,11 @@ export const updateProviderStatus = async (req: any, res: any) => {
     const socketId = userSocketMap.get(id);
     console.log("socketId", socketId)
     const message = `Your account has been ${status} by admin.`;
-    console.log("status", status)
     if (!status || !id) {
         return res.status(400).json({ success: false, message: 'Status and ID are required' });
     }
 
-    const type = status;
+    const type = 'status_update';
 
     const isUserVerifed = status === 'approved' ? true : false;
     try {
@@ -795,6 +794,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     phone: 1,
                     providerPic: { $ifNull: ["$imageUrl.photo", "Not available in Db"] },
                     servicePrice: { $ifNull: ["$servicePrice", 100] },
+                    workingHours : { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
                 }
             }
         ]);
@@ -1050,8 +1050,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 
 export const userSentMsg = async (req: any, res: any) => {
     try {
-        const { message } = req.body;
-        const { receiverId } = req.query; // recevier Id; // kiske pe jaa raha hai
+        const { message, receiverId } = req.body;
         const { id } = req.user; // sender Id; // kon bhej raha hai
 
         if (!Types.ObjectId.isValid(receiverId)) {
@@ -1152,22 +1151,22 @@ export const userSentMsg = async (req: any, res: any) => {
         }
         sendPush(pushPayload);
 
-        const addEnquiry: any = await ServiceProvider.updateOne(
-            { _id: receiverId },
-            {
-                $push: {
-                    recentConnectedUser: {
-                        type,
-                        userPhoneRef: senderId,
-                        timeStamp: new Date()
-                    }
-                }
-            }
-        );
-
-        if (!addEnquiry) {
-            return res.status(404).json({ success: false, message: 'Failed to update recent connected user' });
-        }
+        // const addEnquiry : any = await ServiceProvider.updateOne(
+        //     { _id: receiverId },
+        //     {
+        //         $push: {
+        //             recentConnectedUser: {
+        //                 type,
+        //                 userPhoneRef: senderId,
+        //                 timeStamp: new Date()
+        //             }
+        //         }
+        //     }
+        // );
+        
+        // if (addEnquiry.modifiedCount === 0) {
+        //     return res.status(404).json({ success: false, message: 'Failed to update recent connected user' });
+        // }
 
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
 
