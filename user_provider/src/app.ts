@@ -8,10 +8,7 @@ import path from 'path';
 import http from 'http'; 
 import {Server}  from 'socket.io'
 import cors from 'cors';
-import ioClient from "socket.io-client";
 import { userSocketMap } from "./controllers/socket";
-import '../src/cron'
-import { Socket } from "socket.io-client";
 dotenv.config();
 connectDb();
 
