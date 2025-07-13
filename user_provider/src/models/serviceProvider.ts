@@ -100,7 +100,7 @@ const serviceProviderSchema = new mongoose.Schema({
   services: {
     type: [{
       service: String,
-      serviceList: [String]
+      serviceList: String
     }],
   },
   servicePrice: {
@@ -125,6 +125,10 @@ const serviceProviderSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    isNotified : {
+      type: Boolean,
+      default: false
     },
     timeStamp: { type: Date, default: Date.now() },
     _id: false
