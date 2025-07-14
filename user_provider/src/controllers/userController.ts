@@ -783,12 +783,21 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 }
             },
             { $unwind: "$category" },
+            {$lookup: {
+                from: "phonenumbers",
+                localField: "phoneNo",
+                foreignField: "_id",
+                as: "phoneNo"
+            }},
+            { $unwind: "$phoneNo" },
             { $skip: skip },
             { $limit: limit },
             {
                 $project: {
                     _id: 1,
                     name: { $ifNull: ["$name", "John doe"] },
+                    phoneNumber : "$phoneNo.phoneNumber",
+                    email : "$phoneNo.email",
                     category: "$category.category",
                     avgRating: { $ifNull: ["$avgRating", 3.0] },
                     totalReviews: { $ifNull: ["$totalReviews", 1200] },
