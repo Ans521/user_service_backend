@@ -21,6 +21,7 @@ import { sendPush } from "../utils/redisUtils"
 import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { RecentConnection } from "../models/recentConnection";
+import { types } from "util";
 
 dotenv.config()
 connectDb()
@@ -743,9 +744,12 @@ export const getProviderWithCategory = async (req: any, res: any) => {
 
         if (search && search.trim() !== "") {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
-            console.log("subcatIds", subcatIds)
+            const catIds = await Category.find({ category: { $regex: search, $options: 'i' } }).select('_id');
+            const subCategoryFromCatIds = await SubCategory.find({ category: { $in: catIds.map((cat: any) => cat._id) } }).select('_id');
+            const filteredSubCatIds  = subCategoryFromCatIds.filter((subcat: any) => !subcatIds.some((id: any) => id._id.toString() === subcat._id.toString())).map((subcat: any) => subcat._id); // mtlb ki agr subcat id hai jo wo subcatIds mei nahi hai then ye filteredSubCatIds mei add krdo
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
-            query.subcategory = { $in: subcategoryIds };
+            const finalSubcategoryIds = [...subcategoryIds, ...filteredSubCatIds]; // agr subcatIds mei jo id hai or wo same filteredSubCatIds mei bhi hai toh usse filter krdo
+            query.subcategory = { $in: finalSubcategoryIds };
         }
         if (subcat) {
             if (!Array.isArray(subcat)) {
