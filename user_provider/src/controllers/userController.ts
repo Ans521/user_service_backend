@@ -783,12 +783,21 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 }
             },
             { $unwind: "$category" },
+            {$lookup: {
+                from: "phonenumbers",
+                localField: "phoneNo",
+                foreignField: "_id",
+                as: "phoneNo"
+            }},
+            { $unwind: "$phoneNo" },
             { $skip: skip },
             { $limit: limit },
             {
                 $project: {
                     _id: 1,
                     name: { $ifNull: ["$name", "John doe"] },
+                    phoneNumber : "$phoneNo.phoneNumber",
+                    email : "$phoneNo.email",
                     category: "$category.category",
                     avgRating: { $ifNull: ["$avgRating", 3.0] },
                     totalReviews: { $ifNull: ["$totalReviews", 1200] },
@@ -798,7 +807,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     phone: 1,
                     providerPic: { $ifNull: ["$imageUrl.photo", "Not available in Db"] },
                     servicePrice: { $ifNull: ["$servicePrice", 100] },
-                    workingHours : { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
+                    workingHrs : { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
                 }
             }
         ]);
@@ -854,7 +863,7 @@ export const getProviderInfo = async (req: any, res: any) => {
                 phone: provider?.phoneNo?.phoneNumber,
                 providerPic: provider?.imageUrl?.PH || "Not available",
                 completedTasks: provider.completedTasks || 0,
-                workingHours: provider?.workingHours || { start: "10AM", end: "5PM" },
+                workingHrs: provider?.workingHours || { start: "10.00", end: "12.00" },
                 workingDays: provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
                 aboutus: provider?.aboutUs || "The best service backend developer is Ansh",
                 scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
@@ -1003,6 +1012,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
                 role: user?.role || "User",
+                profilePic : user.profilePic || "http://82.180.144.143:4000/uploads/1746613692666.png",
                 isEmployeeLogin: user?.isEmployeeLogin || false,
             }
             return res.status(200).json({ message: 'Fetched the user info', data: userData });
