@@ -28,6 +28,10 @@
       deviceToken : {
         type : String,
         default: null,
+      },
+      isFromBecomeProvider : {
+        type : Boolean,
+        default: false,
       }
     },
     { discriminatorKey: "role"}
