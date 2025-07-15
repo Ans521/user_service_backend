@@ -902,14 +902,8 @@ export const sendReviewMsgToUser = async (req : any,  res : any) => {
 export const userToProvider = async (req: any, res: any) => {
     try {
         const { id } = req.user;
-        const { isFromBecomeProvider } = req.body;
-        console.log("id", id, "isFromBecomeProvider", isFromBecomeProvider);
         if (!id) {
             return res.status(400).json({ success: false, message: 'Unauthorized' });
-        }
-
-        if(!isFromBecomeProvider){
-            return res.status(400).json({ success: false, message: 'isFromBecomeProvider is required to be true' });
         }
 
         const phoneId = new Types.ObjectId(String(id));
