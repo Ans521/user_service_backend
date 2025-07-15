@@ -8,6 +8,8 @@ import { Offer } from "../models/offer";
 import { Base } from "../models/baseSchema";
 import { sendPush } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
+import { User } from "../models/user";
+import { profile } from "console";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -893,6 +895,60 @@ export const sendReviewMsgToUser = async (req : any,  res : any) => {
         
     }catch(error){
         console.log("error", error)
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const userToProvider = async (req: any, res: any) => {
+    try {
+        const { id } = req.user;
+        const { isFromBecomeProvider } = req.body;
+        console.log("id", id, "isFromBecomeProvider", isFromBecomeProvider);
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Unauthorized' });
+        }
+
+        if(!isFromBecomeProvider){
+            return res.status(400).json({ success: false, message: 'isFromBecomeProvider is required to be true' });
+        }
+
+        const phoneId = new Types.ObjectId(String(id));
+
+        const response =  await User.aggregate([
+            { $match: { phoneNo: phoneId } },
+            // {$lookup : {
+            //     from: 'phonenumbers',
+            //     localField: 'phoneNo',
+            //     foreignField: '_id',
+            //     as: 'userInfo'
+            // }},
+            // {$unwind : '$userInfo'},
+            {$project : {
+                _id: 1,
+                name: 1,
+                email: 1,
+                phoneNo: 1,
+                address: 1,
+                deviceToken: 1,
+            }}
+        ]);
+
+        if(!response || response.length === 0) {
+            return res.status(400).json({ success: false, message: 'User not found' });
+        }
+        
+        const deleteUser = await User.findOneAndDelete({ phoneNo: phoneId });
+
+        if (!deleteUser) {
+            return res.status(400).json({ success: false, message: 'User is not deleted' });
+        }
+
+        const providerCreated = await ServiceProvider.create(response[0]);
+
+        return res.status(200).json({ success: true, message: 'User role updated to serviceProvider', data: providerCreated });
+
+    } catch (error) {
+        console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
