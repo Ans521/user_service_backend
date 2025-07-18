@@ -462,7 +462,23 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
             providerPic = providerPicInfo[0]?.profilePic;
 
 
-            pipeline.push(
+            
+        } else {
+            const userPicInfo: any = await User.aggregate([
+                { $match: { phoneNo: phoneId } },
+                {
+                    $project: {
+                        profilePic: {
+                            $ifNull: ['$profilePic', 'not provided']
+                        }
+                    }
+                },
+                { $limit: 1 }
+            ]);
+            providerPic = userPicInfo[0]?.profilePic;
+        }
+
+        pipeline.push(
                 lookupStage,
                 {
                     $unwind: '$senderInfo',
@@ -496,28 +512,13 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                     $unwind: '$senderInfo'
                 }
             )
-        } else {
-            const userPicInfo: any = await User.aggregate([
-                { $match: { phoneNo: phoneId } },
-                {
-                    $project: {
-                        profilePic: {
-                            $ifNull: ['$profilePic', 'not provided']
-                        }
-                    }
-                },
-                { $limit: 1 }
-            ]);
-            providerPic = userPicInfo[0]?.profilePic;
-        }
-
         const response : any = await Base.aggregate(pipeline);
 
         //   $ifNull: Returns the first value if it's not null or missing, otherwise returns the second (fallback) value.
 
         //  '$senderInfo.profilePic': The field you want if it exists.
-      
-        if(!response.senderInfo){
+        
+        if(!response[0].senderInfo){
             response[0].senderInfo = [];
         }
         // Number	Purpose	Result
