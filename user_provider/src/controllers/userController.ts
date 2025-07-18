@@ -264,14 +264,18 @@ export const registerUser = async (req: any, res: any) => {
             const hashedMpin = await bcrypt.hash(mpin, 10);
             registerData.mpin = hashedMpin;
         }
-
+        console.log("registerData", registerData)
         const newUser = await User.findOneAndUpdate(
             { phoneNo: phoneNoId },
             { $set: registerData },
             { new: true }
         ).select('-__v -userMsg');
-
+        
+        if (!newUser) {
+            return res.status(404).json({ message: "User not found or not registered" });
+        }
         const token = jwt.sign({ id: phoneNoId.toString(), isEmployeeLogin: false }, secretKey, { expiresIn: '12h' })
+
         return res.status(200).json({
             message: "User registered successfully",
             data: newUser,
@@ -333,8 +337,12 @@ export const registerProvider = async (req: any, res: any) => {
         const newServiceProvider: any = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneNoId },
             { $set: serviceProviderData },
-            { new: true }
+            { new: true}
         ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages -__v -servicePrice -reviewComments -services -enquiry');
+
+        if(!newServiceProvider) {
+            return res.status(404).json({ message: "Service provider not found or not registered" });
+        }
         const sentData = {
             ...newServiceProvider?.toObject(),
             phone,
@@ -393,7 +401,6 @@ export const handleSingleImageUrl = async (req: any, res: any) => {
         return res.status(500).json({ message: "An error occurred, please try again later" });
     }
 }
-
 
 export const handleImageUrls = async (req: any, res: any) => {
     try {
@@ -1118,12 +1125,12 @@ export const userSentMsg = async (req: any, res: any) => {
         // For User side (userMsg list) // this is for kii user ne kiis ko msg kiye hai
         const userData: any = await User.findOne({
             phoneNo: senderId,
-            'userMsg.receiverId': receiverId,
+            'enquiry.sender': receiverId,
         });
 
         if (userData) {
             await User.findOneAndUpdate(
-                { phoneNo: senderId, 'userMsg.receiverId': receiverId },
+                { phoneNo: senderId, 'enquiry.sender': receiverId },
                 {
                     $push: { 'userMsg.$.messages': userMessage },
                 },
@@ -1134,8 +1141,8 @@ export const userSentMsg = async (req: any, res: any) => {
                 { phoneNo: senderId },
                 {
                     $push: {
-                        userMsg: {
-                            receiverId: receiverId,
+                        enquiry: {
+                            sender: receiverId,
                             messages: userMessage,
                         },
                     },
@@ -1155,6 +1162,7 @@ export const userSentMsg = async (req: any, res: any) => {
             senderName: senderData?.name,
             message
         }
+        
         const data = JSON.stringify(dataToSend);
         const pushPayload: PushPayload = {
             tittle,

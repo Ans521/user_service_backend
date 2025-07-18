@@ -32,9 +32,29 @@
       isFromBecomeProvider : {
         type : Boolean,
         default: false,
-      }
+      },
+      enquiry: {
+          type: [{
+            sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            messages: [new mongoose.Schema({
+              message: { type: String },
+              timeStamp: { type: Date, default: Date.now }
+            }, { _id: false })],
+          }],
+        },
+  recentConnectedUser: [{
+      type: { type: String, required: true },
+      userPhoneRef: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+      },
+      timeStamp: { type: Date, default: Date.now() },
+      _id: false
     },
-    { discriminatorKey: "role"}
+  ]  
+    },
+    { discriminatorKey: "role", strict: false}
   );
 
   export const Base = mongoose.model("Base", baseSchema);

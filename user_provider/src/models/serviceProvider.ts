@@ -107,33 +107,10 @@ const serviceProviderSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  enquiry: {
-    type: [{
-      sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      messages: [new mongoose.Schema({
-        message: { type: String },
-        timeStamp: { type: Date, default: Date.now }
-      }, { _id: false })],
-    }],
-  },
   scanQrUrl: {
     type: String
   },
-  recentConnectedUser: [{
-    type: { type: String, required: true },
-    userPhoneRef: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null
-    },
-    isNotified : {
-      type: Boolean,
-      default: false
-    },
-    timeStamp: { type: Date, default: Date.now() },
-    _id: false
-  },
-  ]
+
 });
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);

@@ -396,29 +396,55 @@ export const fetchUserSentMsg = async (req: any, res: any) => {
 
 export const fetchAllUserSentMsg = async (req: any, res: any) => {
     try {
-        const { id } = req.user;
+        console.log("req.user", req.user);
+        const { id, isEmployeeLogin } = req.user;
 
         if (!id) {
             return res.status(400).json({ success: false, message: 'unauthorized' });
         }
 
         const phoneId = new Types.ObjectId(String(id));
-        const providerPicInfo : any = await ServiceProvider.aggregate([
-            { $match: { phoneNo: phoneId } },
-            { $unwind: '$imageUrl' },
-            {
-                $project: {
-                    profilePic: {
-                        $ifNull: ['$imageUrl.PH', 'not provided']
+        let providerPic;
+        if(isEmployeeLogin){
+            const providerPicInfo : any = await ServiceProvider.aggregate([
+                { $match: { phoneNo: phoneId } },
+                { $unwind: '$imageUrl' },
+                {
+                    $project: {
+                        profilePic: {
+                            $ifNull: ['$imageUrl.PH', 'not provided']
+                        }
                     }
-                }
+                },
+                { $limit: 1 }
+            ]);
+            providerPic = providerPicInfo[0]?.profilePic
+        }else {
+            const userPicInfo: any = await User.aggregate([
+                { $match: { phoneNo: phoneId } },
+                {
+                    $project: {
+                        profilePic: {
+                            $ifNull: ['$profilePic', 'not provided']
+                        }
+                    }
+                },
+                { $limit: 1 }
+            ]);
+            console.log("user info", userPicInfo);
+            providerPic = userPicInfo[0]?.profilePic;
+        }
+
+            const lookupStage = {
+            $lookup: {
+                from: 'bases',
+                localField: 'sender',
+                foreignField: isEmployeeLogin ? 'phoneNo' : '_id',
+                as: 'senderInfo',
             },
-            { $limit: 1 }
-        ]);
+            };
 
-        const providerPic = providerPicInfo[0]?.profilePic
-
-        const response = await ServiceProvider.aggregate([
+        const response = await Base.aggregate([
             { $match: { phoneNo: phoneId } },
             {
                 $project: {
@@ -449,45 +475,38 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                     imageUrl: 1
                 },
             },
-            {
-                $lookup: {
-                    from: 'bases',
-                    localField: 'sender',
-                    foreignField: 'phoneNo',
-                    as: 'senderInfo',
-                },
-            },
+            lookupStage,
             {
                 $unwind: '$senderInfo',
             },
-            {
-                $lookup: {
-                    from: 'phonenumbers',
-                    localField: 'senderInfo.phoneNo',
-                    foreignField: '_id',
-                    as: 'senderInfo.phoneNo'
-                }
-            },
-            {
-                $unwind: '$senderInfo.phoneNo'
-            },
-            {
-                $project: {
-                    senderInfo: {
-                        _id: '$senderInfo._id',
-                        name: '$senderInfo.name',
-                        phoneNo: '$senderInfo.phoneNo.phoneNumber',
-                        email: '$senderInfo.phoneNo.email',
-                        profilePic: {
-                            $ifNull: ['$senderInfo.profilePic', 'not provided']
-                        }
-                    },
-                    latestMessage: 1,
-                }
-            },
-            {
-                $unwind: '$senderInfo'
-            }
+            // {
+            //     $lookup: {
+            //         from: 'phonenumbers',
+            //         localField: 'senderInfo.phoneNo',
+            //         foreignField: '_id',
+            //         as: 'senderInfo.phoneNo'
+            //     }
+            // },
+            // {
+            //     $unwind: '$senderInfo.phoneNo'
+            // },
+            // {
+            //     $project: {
+            //         senderInfo: {
+            //             _id: '$senderInfo._id',
+            //             name: '$senderInfo.name',
+            //             phoneNo: '$senderInfo.phoneNo.phoneNumber',
+            //             email: '$senderInfo.phoneNo.email',
+            //             profilePic: {
+            //                 $ifNull: ['$senderInfo.profilePic', 'not provided']
+            //             }
+            //         },
+            //         latestMessage: 1,
+            //     }
+            // },
+            // {
+            //     $unwind: '$senderInfo'
+            // }
         ]);
 
         //   $ifNull: Returns the first value if it's not null or missing, otherwise returns the second (fallback) value.
