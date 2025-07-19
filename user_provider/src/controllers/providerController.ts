@@ -9,7 +9,6 @@ import { Base } from "../models/baseSchema";
 import { sendPush } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
-import { profile } from "console";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -405,46 +404,16 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
 
         const phoneId = new Types.ObjectId(String(id));
         let providerPic;
-        if(isEmployeeLogin){
-            const providerPicInfo : any = await ServiceProvider.aggregate([
-                { $match: { phoneNo: phoneId } },
-                { $unwind: '$imageUrl' },
-                {
-                    $project: {
-                        profilePic: {
-                            $ifNull: ['$imageUrl.PH', 'not provided']
-                        }
-                    }
-                },
-                { $limit: 1 }
-            ]);
-            providerPic = providerPicInfo[0]?.profilePic
-        }else {
-            const userPicInfo: any = await User.aggregate([
-                { $match: { phoneNo: phoneId } },
-                {
-                    $project: {
-                        profilePic: {
-                            $ifNull: ['$profilePic', 'not provided']
-                        }
-                    }
-                },
-                { $limit: 1 }
-            ]);
-            console.log("user info", userPicInfo);
-            providerPic = userPicInfo[0]?.profilePic;
-        }
-
-            const lookupStage = {
+        const lookupStage = {
             $lookup: {
                 from: 'bases',
                 localField: 'sender',
                 foreignField: isEmployeeLogin ? 'phoneNo' : '_id',
                 as: 'senderInfo',
             },
-            };
 
-        const response = await Base.aggregate([
+        };
+        const pipeline: any = [
             { $match: { phoneNo: phoneId } },
             {
                 $project: {
@@ -475,43 +444,87 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                     imageUrl: 1
                 },
             },
-            lookupStage,
-            {
-                $unwind: '$senderInfo',
-            },
-            // {
-            //     $lookup: {
-            //         from: 'phonenumbers',
-            //         localField: 'senderInfo.phoneNo',
-            //         foreignField: '_id',
-            //         as: 'senderInfo.phoneNo'
-            //     }
-            // },
-            // {
-            //     $unwind: '$senderInfo.phoneNo'
-            // },
-            // {
-            //     $project: {
-            //         senderInfo: {
-            //             _id: '$senderInfo._id',
-            //             name: '$senderInfo.name',
-            //             phoneNo: '$senderInfo.phoneNo.phoneNumber',
-            //             email: '$senderInfo.phoneNo.email',
-            //             profilePic: {
-            //                 $ifNull: ['$senderInfo.profilePic', 'not provided']
-            //             }
-            //         },
-            //         latestMessage: 1,
-            //     }
-            // },
-            // {
-            //     $unwind: '$senderInfo'
-            // }
-        ]);
+        ];
+
+        if (isEmployeeLogin) {
+            const providerPicInfo: any = await ServiceProvider.aggregate([
+                { $match: { phoneNo: phoneId } },
+                { $unwind: '$imageUrl' },
+                {
+                    $project: {
+                        profilePic: {
+                            $ifNull: ['$imageUrl.PH', 'not provided']
+                        }
+                    }
+                },
+                { $limit: 1 }
+            ]);
+            providerPic = providerPicInfo[0]?.profilePic;
+
+
+            
+        } else {
+            const userPicInfo: any = await User.aggregate([
+                { $match: { phoneNo: phoneId } },
+                {
+                    $project: {
+                        profilePic: {
+                            $ifNull: ['$profilePic', 'not provided']
+                        }
+                    }
+                },
+                { $limit: 1 }
+            ]);
+            providerPic = userPicInfo[0]?.profilePic;
+        }
+
+        pipeline.push(
+                lookupStage,
+                {
+                    $unwind: '$senderInfo',
+                },
+                {
+                    $lookup: {
+                        from: 'phonenumbers',
+                        localField: 'senderInfo.phoneNo',
+                        foreignField: '_id',
+                        as: 'senderInfo.phoneNo'
+                    }
+                },
+                {
+                    $unwind: '$senderInfo.phoneNo'
+                },
+                {
+                    $project: {
+                        senderInfo: {
+                            _id: '$senderInfo._id',
+                            name: '$senderInfo.name',
+                            phoneNo: '$senderInfo.phoneNo.phoneNumber',
+                            email: '$senderInfo.phoneNo.email',
+                            profilePic: {
+                                $ifNull: ['$senderInfo.profilePic', 'not provided']
+                            }
+                        },
+                        latestMessage: 1,
+                    }
+                },
+                {
+                    $unwind: '$senderInfo'
+                }
+            )
+        const response : any = await Base.aggregate(pipeline);
 
         //   $ifNull: Returns the first value if it's not null or missing, otherwise returns the second (fallback) value.
 
         //  '$senderInfo.profilePic': The field you want if it exists.
+        
+        if(!response[0].senderInfo){
+            response[0].senderInfo = [];
+        }
+        // Number	Purpose	Result
+        // 1 (in $slice)	Limit to the first 1 item from the sorted messages	[ latestMessage ]
+        // 0 (in $arrayElemAt)	Get the first (and only) element from that array	latestMessage
+
 
         return res.status(200).json({ success: true, data: response, providerPic });
     } catch (error) {
@@ -521,30 +534,30 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
 }
 
 
-        // $expr allows you to use aggregation expressions inside a regular query (not just in pipelines).
+// $expr allows you to use aggregation expressions inside a regular query (not just in pipelines).
 
-        // $eq is a comparison operator that checks if two values are equal.
+// $eq is a comparison operator that checks if two values are equal.
 
-        // "$recentConnectedUser" references the field in the document.
+// "$recentConnectedUser" references the field in the document.
 
-        // "new Types.ObjectId(id)" is the value you're comparing to. 
+// "new Types.ObjectId(id)" is the value you're comparing to. 
 
-        // $ne is a comparison operator that checks if two values are not equal.
+// $ne is a comparison operator that checks if two values are not equal.
 
-    type EnquiryType = 'phone' | 'email' | 'chat'
+type EnquiryType = 'phone' | 'email' | 'chat'
 
-    interface EnquiryRequestBody {
-        providerId: string;
-        type : EnquiryType
-    }
+interface EnquiryRequestBody {
+    providerId: string;
+    type: EnquiryType
+}
 
-    // interface CustomRequest extends Request means:
-    // You are creating your own version of Express’s Request object with additional typing — only for the places where you explicitly use CustomRequest.
+// interface CustomRequest extends Request means:
+// You are creating your own version of Express’s Request object with additional typing — only for the places where you explicitly use CustomRequest.
 
 
-    interface CustomRequest extends Request<any, any, EnquiryRequestBody> {
-        user : {id : string}
-    }
+interface CustomRequest extends Request<any, any, EnquiryRequestBody> {
+    user: { id: string }
+}
 
 
 // Position	Purpose
@@ -558,36 +571,36 @@ const allowedTypes = ['whatsapp', 'phone', 'chat'];
 
 export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) => {
     try {
-        const{ type, providerId } = req.body;
+        const { type, providerId } = req.body;
         const { id } = req.user;
 
-        if(!type || !providerId) {
+        if (!type || !providerId) {
             return res.status(400).json({ success: false, message: 'please provide type and providerId' });
         }
 
-        if(type && !allowedTypes.includes(type)) {
+        if (type && !allowedTypes.includes(type)) {
             return res.status(400).json({ success: false, message: 'Invalid type' });
         }
 
         const phoneId = new Types.ObjectId(String(id));
 
-        const userData : any = await Base.findOne({
+        const userData: any = await Base.findOne({
             phoneNo: phoneId,
         })
 
-        const existingOne : any = await ServiceProvider.aggregate([
-            {$match : {_id : new Types.ObjectId(providerId)}},
+        const existingOne: any = await ServiceProvider.aggregate([
+            { $match: { _id: new Types.ObjectId(providerId) } },
             {
-                $project : { // filter krte waqt no need for unwind
-                    matchedData : { // ye name hai result ka kii kisme store hoga You're creating a new field called matchedUsers.
-// This will contain the result of a $filter operation applied on the recentConnectedUser array
-                        $filter : {
-                            input : '$recentConnectedUser', // yee wo array hai jisme se filter krna hai
-                            as : 'user', // this is the name of the variable that will be used to refer to each element in the input array
-                            cond : { // using $and to combine multiple conditions
-                                $and : [
-                                    {$eq : ['$$user.userPhoneRef', phoneId]}, // this checks if the type of the user is equal to the type provided in the request
-                                    {$gt : ['$$user.timeStamp', new Date(Date.now() - 40000)]} // this checks if the timeStamp of the user is greater than the current time minus 5 minutes
+                $project: { // filter krte waqt no need for unwind
+                    matchedData: { // ye name hai result ka kii kisme store hoga You're creating a new field called matchedUsers.
+                        // This will contain the result of a $filter operation applied on the recentConnectedUser array
+                        $filter: {
+                            input: '$recentConnectedUser', // yee wo array hai jisme se filter krna hai
+                            as: 'user', // this is the name of the variable that will be used to refer to each element in the input array
+                            cond: { // using $and to combine multiple conditions
+                                $and: [
+                                    { $eq: ['$$user.userPhoneRef', phoneId] }, // this checks if the type of the user is equal to the type provided in the request
+                                    { $gt: ['$$user.timeStamp', new Date(Date.now() - 40000)] } // this checks if the timeStamp of the user is greater than the current time minus 5 minutes
                                 ]
                             }
                         }
@@ -599,91 +612,119 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
 
         const tittle = 'New Enquiry';
         const message = `you have a new enquiry`;
-        const providerData : any = await ServiceProvider.findOne({ _id : providerId }).lean();
+        const providerData: any = await Base.findOne({ _id: providerId }).lean();
         const deviceToken = providerData?.deviceToken || "";
         const sendToData = {
             userId: userData._id,
             userName: userData.name,
-            providerId : providerData?._id,
+            providerId: providerData?._id,
             providerName: providerData?.name,
         }
         const data = JSON.stringify(sendToData);
         if (existingOne[0].matchedData.length == 0) {
             await ServiceProvider.findOneAndUpdate(
-                { _id : providerId },
-                { $push: { 
-                    recentConnectedUser: { 
-                        type, 
-                        userPhoneRef : phoneId
-                }}},
-                { new : true },
+                { _id: providerId },
+                {
+                    $push: {
+                        recentConnectedUser: {
+                            type,
+                            userPhoneRef: phoneId
+                        }
+                    }
+                },
+                { new: true },
             )
-
-            const pushPayload : PushPayload = {
+            await User.findOneAndUpdate(
+                {phoneNo : phoneId},
+                {
+                    $push: {
+                        recentConnectedUser : {
+                            type,
+                            userPhoneRef: providerId
+                        }
+                    }
+                },
+                {new : true}
+            )
+            const pushPayload: PushPayload = {
                 tittle,
-                message : message,
+                message: message,
                 deviceToken,
-                type : "new_inquiry",
+                type: "new_inquiry",
                 data,
             }
 
             sendPush(pushPayload);
 
-            return res.status(200).json({ success: true, message: 'Successfully added into recent connection'});
+            return res.status(200).json({ success: true, message: 'Successfully added into recent connection' });
         }
-        
-        return res.status(200).json({ success: true, message: 'Already added into recent connection few second ago'});
-        
+
+        return res.status(200).json({ success: true, message: 'Already added into recent connection few second ago' });
+
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
 
-export const getRecentConnectedUser = async (req : any,  res : any) => {
+export const getRecentConnectedUser = async (req: any, res: any) => {
     try {
-        const { id } = req.user;
+        const { id, isEmployeeLogin} = req.user;
 
         const phoneId = new Types.ObjectId(String(id));
+        
 
-        const response = await ServiceProvider.aggregate([
-            {$match : {phoneNo : phoneId}},
-            {$project : {
-                recentConnectedUser : 1
-            }},
-            {$unwind : '$recentConnectedUser'},
-            {$lookup : {
-                from : 'bases', // that means konse collection mei se lookup krenge
-                localField : 'recentConnectedUser.userPhoneRef', // that means recentConnectedUser ke konse field mei se lookup krenge
-                foreignField : 'phoneNo', // that means bases ke konse field mei se lookup krenge
-                as : 'sender' // this is name of the result
-            }},
-            {$unwind : '$sender'},
-            {$project : {
-                sender : 1,
-                recentConnectedUser : 1
-            }},
-            {$lookup : {
-                from : 'phonenumbers', // that means konse collection mei se lookup krenge
-                localField : 'sender.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
-                foreignField : '_id', // that means users ke konse field mei se lookup krenge
-                as : 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
-            }},
-            {$unwind : '$sender.phoneNo'},
-            {$project : {
-                senderInfo : {
-                    id : '$sender._id',
-                    name : {$ifNull : ['$sender.name', 'not provided']},
-                    phoneNo : {$ifNull : ['$sender.phoneNo.phoneNumber', 'not provided']},
-                    profilePic : {$ifNull : ['$sender.profilePic', 'not provided']},
-                    email : {$ifNull : ['$sender.phoneNo.email', 'not provided']},
-                    address :{$ifNull : ['$sender.address', 'not provided' ] }
+        // provider mei toh userRef rhegii user kii phoneId kii kisne connect kiya hai and user recentconncetd mei userRef me rehgii provide ki _id kii hum kisse connect kr rhe hai
+        const lookupStage = {
+                $lookup: {
+                    from: 'bases', // that means konse collection mei se lookup krenge
+                    localField: 'recentConnectedUser.userPhoneRef', // that means recentConnectedUser ke konse field mei se lookup krenge
+                    foreignField: isEmployeeLogin ? 'phoneNo' : '_id', // that means bases ke konse field mei se lookup krenge
+                    as: 'sender' // this is name of the result
                 },
-                recentConnectedUser : {
-                    type : 1,
-                    timeStamp : 1
+            }
+
+        const response = await Base.aggregate([
+            { $match: { phoneNo: phoneId } },
+            {
+                $project: {
+                    recentConnectedUser: 1
                 }
-            }}  
-        ]) 
+            },
+            { $unwind: '$recentConnectedUser' },
+            lookupStage,
+            { $unwind: '$sender' },
+            {
+                $project: {
+                    sender: 1,
+                    recentConnectedUser: 1
+                }
+            },
+            {
+                $lookup: {
+                    from: 'phonenumbers', // that means konse collection mei se lookup krenge
+                    localField: 'sender.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
+                    foreignField: '_id', // that means users ke konse field mei se lookup krenge
+                    as: 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
+                }
+            },
+            { $unwind: '$sender.phoneNo' },
+            {
+                $project: {
+                    senderInfo: {
+                        id: '$sender._id',
+                        name: { $ifNull: ['$sender.name', 'not provided'] },
+                        phoneNo: { $ifNull: ['$sender.phoneNo.phoneNumber', 'not provided'] },
+                        profilePic: { $ifNull: ['$sender.profilePic', 'not provided'] },
+                        email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
+                        address: { $ifNull: ['$sender.address', 'not provided'] }
+                    },
+                    recentConnectedUser: {
+                        type: 1,
+                        timeStamp: 1
+                    }
+                }
+            }
+        ])
 
         if (!response) {
             return res.status(400).json({ success: false, message: 'Recent Connected User not found' });
@@ -695,19 +736,19 @@ export const getRecentConnectedUser = async (req : any,  res : any) => {
     }
 }
 
-export const insertOffer = async (req : any,  res : any) => {
+export const insertOffer = async (req: any, res: any) => {
     try {
         const { data } = req.body;
         console.log("reqObj", data);
 
-        const validData = data.filter((item : any) => item.imageUrl && item.price && item.validity)
+        const validData = data.filter((item: any) => item.imageUrl && item.price && item.validity)
 
-        if(validData.length === 0) {
+        if (validData.length === 0) {
             return res.status(400).json({ success: false, message: 'Please provide valid data' });
         }
         const response = await Offer.insertMany(validData);
-        
-        if(!response){
+
+        if (!response) {
             return res.status(400).json({ success: false, message: 'Offer not added' });
         }
         return res.status(200).json({ success: true, message: 'Offer added successfully' });
@@ -717,10 +758,10 @@ export const insertOffer = async (req : any,  res : any) => {
     }
 }
 
-export const getAllOffer = async (req : any,  res : any) => {
+export const getAllOffer = async (req: any, res: any) => {
     try {
         const data = await Offer.find();
-        if(!data){
+        if (!data) {
             return res.status(400).json({ success: false, message: 'Offer not found' });
         }
         return res.status(200).json({ success: true, data });
@@ -730,63 +771,63 @@ export const getAllOffer = async (req : any,  res : any) => {
     }
 }
 
-export const deleteOffer = async (req : any,  res : any) => {
-    try{
-        const {id} = req.query;
+export const deleteOffer = async (req: any, res: any) => {
+    try {
+        const { id } = req.query;
 
-        if(!id){
+        if (!id) {
             return res.status(400).json({ success: false, message: 'Please provide valid id' });
         }
-        
+
         const response = await Offer.findByIdAndDelete(id).lean();
 
-        if(!response){
+        if (!response) {
             return res.status(400).json({ success: false, message: 'Offer is not deleted mor may be id provided id doesnt exist' });
         }
 
         return res.status(200).json({ success: true, message: 'Offer deleted successfully' });
-    }catch(error){
+    } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
-export const updateOffer = async (req : any,  res : any) => {
+export const updateOffer = async (req: any, res: any) => {
     try {
         const { id } = req.query;
         const { data } = req.body;
-        
+
         const response = await Offer.updateOne(
-            { _id : id },
-            { $set : data }
+            { _id: id },
+            { $set: data }
         );
 
-        if(!response.modifiedCount){
+        if (!response.modifiedCount) {
             return res.status(400).json({ success: false, message: 'Offer not updated' });
         }
-        
+
         return res.status(200).json({ success: true, message: 'Offer updated successfully' });
-        
+
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
 
-export const handleReview = async (req : any,  res : any) => {
+export const handleReview = async (req: any, res: any) => {
     try {
         const { rating, comment, providerId } = req.body;
         const { id } = req.user;
-        if(rating > 5 || rating < 1){
+        if (rating > 5 || rating < 1) {
             return res.status(400).json({ success: false, message: 'Invalid rating' });
         }
-        if(!rating || !providerId){
+        if (!rating || !providerId) {
             return res.status(400).json({ success: false, message: 'Review is required' });
         }
 
         const phoneId = new Types.ObjectId(String(id));
 
-        const data : any = {
-            sendedBy : phoneId,
+        const data: any = {
+            sendedBy: phoneId,
             rating,
             comment
         }
@@ -794,125 +835,137 @@ export const handleReview = async (req : any,  res : any) => {
 
         const providerIdObj = new Types.ObjectId(String(providerId));
         const existingComment = await ServiceProvider.findOne(
-            {_id : providerIdObj, 'reviewComments.sendedBy' : phoneId},
-            {reviewComments : {$elemMatch : {sendedBy : phoneId}}}
-        ).lean();   
+            { _id: providerIdObj, 'reviewComments.sendedBy': phoneId },
+            { reviewComments: { $elemMatch: { sendedBy: phoneId } } }
+        ).lean();
 
-        if(existingComment){
+        if (existingComment) {
             return res.status(400).json({ success: false, message: 'You have already reviewed' });
         }
 
         const response = await ServiceProvider.updateOne(
-            { _id : providerIdObj },
-            { $push : { reviewComments : data } }
+            { _id: providerIdObj },
+            { $push: { reviewComments: data } }
         );
 
         const reviewData = await ServiceProvider.aggregate([
-            { $match : { _id : providerIdObj } },
-            {$unwind : '$reviewComments'},
-            {$group : {
-                _id : "$_id",
-                avgRating : { $avg : '$reviewComments.rating' }
-            }},
-            {$project : {
-                _id : 1,
-                avgRating : 1 
-            }},
+            { $match: { _id: providerIdObj } },
+            { $unwind: '$reviewComments' },
             {
-                $merge : {
-                    into : 'bases',
-                    whenMatched : 'merge',
-                    whenNotMatched : 'discard'
+                $group: {
+                    _id: "$_id",
+                    avgRating: { $avg: '$reviewComments.rating' }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    avgRating: 1
+                }
+            },
+            {
+                $merge: {
+                    into: 'bases',
+                    whenMatched: 'merge',
+                    whenNotMatched: 'discard'
                 }
             }
         ])
-        
-        if(!response){
+
+        if (!response) {
             return res.status(400).json({ success: false, message: 'Review not added' });
         }
-        return res.status(200).json({ success: true, message: 'Review added successfully', data : reviewData });
+        return res.status(200).json({ success: true, message: 'Review added successfully', data: reviewData });
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
 
-export const getAllReview = async (req : any,  res : any) => {
+export const getAllReview = async (req: any, res: any) => {
     try {
         const { id } = req.user;
         const phoneId = new Types.ObjectId(String(id));
         const response = await ServiceProvider.aggregate([
-            { $match : { phoneNo : phoneId } },
-            {$project : {
-                reviewComments : 1
-            }},
-            {$unwind : '$reviewComments'},
-            {$lookup : {
-                from : 'bases', // that means konse collection mei se lookup krenge
-                localField : 'reviewComments.sendedBy', // that means recentConnectedUser ke konse field mei se lookup krenge
-                foreignField : 'phoneNo', // that means users ke konse field mei se lookup krenge
-                as : 'reviewComments.sendedBy' // This embeds the result inside senderInfo.phoneNo field directly.
-            }},
-            {$unwind : '$reviewComments.sendedBy'},
-            {$project : {
-                rating : '$reviewComments.rating',
-                name : '$reviewComments.sendedBy.name',
-                message : {$ifNull : ['$reviewComments.message', '']},
-                comment : {$ifNull : ['$reviewComments.comment', '']},
-                senderId : '$reviewComments.sendedBy.phoneNo',
-            }},
+            { $match: { phoneNo: phoneId } },
             {
-                $group : {
-                    _id : null,
-                    avgRating : {$avg : '$rating'},
-                    reviews : {$push : '$$ROOT'}
+                $project: {
+                    reviewComments: 1
+                }
+            },
+            { $unwind: '$reviewComments' },
+            {
+                $lookup: {
+                    from: 'bases', // that means konse collection mei se lookup krenge
+                    localField: 'reviewComments.sendedBy', // that means recentConnectedUser ke konse field mei se lookup krenge
+                    foreignField: 'phoneNo', // that means users ke konse field mei se lookup krenge
+                    as: 'reviewComments.sendedBy' // This embeds the result inside senderInfo.phoneNo field directly.
+                }
+            },
+            { $unwind: '$reviewComments.sendedBy' },
+            {
+                $project: {
+                    rating: '$reviewComments.rating',
+                    name: '$reviewComments.sendedBy.name',
+                    message: { $ifNull: ['$reviewComments.message', ''] },
+                    comment: { $ifNull: ['$reviewComments.comment', ''] },
+                    senderId: '$reviewComments.sendedBy.phoneNo',
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgRating: { $avg: '$rating' },
+                    reviews: { $push: '$$ROOT' }
                 }
             }
         ])
-        if(!response){
+        if (!response) {
             return res.status(400).json({ success: false, message: 'Review not found' });
         }
-        return res.status(200).json({ success: true, data : response });
+        return res.status(200).json({ success: true, data: response });
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 }
 
-export const sendReviewMsgToUser = async (req : any,  res : any) => {
-    try{
+export const sendReviewMsgToUser = async (req: any, res: any) => {
+    try {
         const { id } = req.user;
-        const {reviewId, message} = req.body;
-        
-        if(!reviewId || !message){
+        const { reviewId, message } = req.body;
+
+        if (!reviewId || !message) {
             return res.status(400).json({ success: false, message: 'Message is missing or reviewId is missing' });
         }
 
         const phoneId = new Types.ObjectId(String(id));
-        
+
         const response = await ServiceProvider.updateOne(
-            { phoneNo : phoneId, reviewComments : {
-                $elemMatch : {
-                    sendedBy : reviewId, 
-                    $or : [
-                        {message : {$in : [null, ''] } },
-                        {message : {$exists : false} }
-                    ]
-                }
-            }},
             {
-                $set : {
-                    'reviewComments.$.message' : message
+                phoneNo: phoneId, reviewComments: {
+                    $elemMatch: {
+                        sendedBy: reviewId,
+                        $or: [
+                            { message: { $in: [null, ''] } },
+                            { message: { $exists: false } }
+                        ]
+                    }
+                }
+            },
+            {
+                $set: {
+                    'reviewComments.$.message': message
                 }
             }
         );
-        
-        if(!response.modifiedCount){
+
+        if (!response.modifiedCount) {
             return res.status(400).json({ success: false, message: 'Message not sent' });
         }
         return res.status(200).json({ success: true, message: 'Message sent successfully' });
-        
-    }catch(error){
+
+    } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
@@ -927,7 +980,7 @@ export const userToProvider = async (req: any, res: any) => {
 
         const phoneId = new Types.ObjectId(String(id));
 
-        const response =  await User.aggregate([
+        const response = await User.aggregate([
             { $match: { phoneNo: phoneId } },
             // {$lookup : {
             //     from: 'phonenumbers',
@@ -936,20 +989,22 @@ export const userToProvider = async (req: any, res: any) => {
             //     as: 'userInfo'
             // }},
             // {$unwind : '$userInfo'},
-            {$project : {
-                _id: 1,
-                name: 1,
-                email: 1,
-                phoneNo: 1,
-                address: 1,
-                deviceToken: 1,
-            }}
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    email: 1,
+                    phoneNo: 1,
+                    address: 1,
+                    deviceToken: 1,
+                }
+            }
         ]);
 
-        if(!response || response.length === 0) {
+        if (!response || response.length === 0) {
             return res.status(400).json({ success: false, message: 'User not found' });
         }
-        
+
         const deleteUser = await User.findOneAndDelete({ phoneNo: phoneId });
 
         if (!deleteUser) {
