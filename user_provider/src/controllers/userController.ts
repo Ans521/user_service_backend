@@ -843,7 +843,8 @@ export const getProviderInfo = async (req: any, res: any) => {
         //     },
         //     { new: true }
         //   );
-        const provider: any = await ServiceProvider.findOne({ _id: id, status: "approved" }).populate(['phoneNo', 'email', 'category', 'subcategory']);
+
+        const provider : any = await ServiceProvider.findOne({ _id: id, status: "approved" }).populate(['phoneNo', 'email']);
 
         if (provider) {
             if (provider?.services?.length == 0) {
@@ -878,7 +879,44 @@ export const getProviderInfo = async (req: any, res: any) => {
                 services: provider?.services,
                 reviews: provider?.reviewComments
             };
-            return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo });
+            const categoryToFind = provider?.subcategory || '';
+
+
+            const providerListResponse = await ServiceProvider.aggregate([
+                {$match : { status: 'approved', subcategory: categoryToFind }},
+                {$lookup : {
+                    from : 'phonenumbers',
+                    localField : 'phoneNo',
+                    foreignField : '_id',
+                    as : 'phoneNo'
+                }},
+                {$unwind : '$phoneNo'},
+                {$lookup : {
+                    from : 'categories',
+                    localField : 'category',
+                    foreignField : '_id',
+                    as : 'category'
+                }},
+                {$unwind : '$category'},
+                {$project : {
+                    _id: 1,
+                    name: { $ifNull: ["$name", "John Doe"] },
+                    phoneNumber: "$phoneNo.phoneNumber",
+                    email: "$phoneNo.email",
+                    avgRating: { $ifNull: ["$avgRating", 3.0] },
+                    totalReviews: { $ifNull: ["$totalReviews", 1200] },
+                    completedTasks: { $ifNull: ["$completedTasks", 0] },
+                    workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
+                    experience: { $ifNull: ["$experience", 4] },
+                    phone: 1,
+                    providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
+                    servicePrice: { $ifNull: ["$servicePrice", 100] },
+                    workingHrs : { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
+                    category: { $ifNull: ["$category.category", "Not available"]}
+                }} 
+            ])
+            
+            return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo, providerList: providerListResponse });
         } else {
             return res.status(401).json({ data: { message: 'Provided Id have no info' } });
         }
