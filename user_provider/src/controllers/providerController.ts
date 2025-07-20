@@ -647,13 +647,17 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 },
                 {new : true}
             )
+
+            const providerData : any = await ServiceProvider.findOne({ _id: providerId }).lean().select('_id phoneNo');
+            const phoneIdOfLoggedInProvider = providerData?.phoneNo;
+            console.log("phoneIdofLoggedInProvider", providerData);
             await ServiceProvider.findOneAndUpdate(
                 {phoneNo : phoneId},
                 {
                     $push: {
                         recentConnectedUser : {
                             type,
-                            userPhoneRef: providerId,
+                            userPhoneRef: phoneIdOfLoggedInProvider,
                             isByMe: isEmployeeLogin ? true: false,
                         }
                     }
@@ -730,7 +734,8 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                         phoneNo: { $ifNull: ['$sender.phoneNo.phoneNumber', 'not provided'] },
                         profilePic: { $ifNull: ['$sender.profilePic', 'not provided'] },
                         email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
-                        address: { $ifNull: ['$sender.address', 'not provided'] }
+                        address: { $ifNull: ['$sender.address', 'not provided'] },
+                        workingHrs: { $ifNull: ['$sender.workingHrs', 'not provided'] }
                     },
                     recentConnectedUser: {
                         type: 1,
