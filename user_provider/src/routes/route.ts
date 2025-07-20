@@ -1,7 +1,7 @@
 import express from "express";
 import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
-import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer, handleReview, getAllReview, sendReviewMsgToUser, deleteOffer, userToProvider} from "../controllers/providerController";
+import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer, handleReview, getAllReview, sendReviewMsgToUser, deleteOffer, userToProvider, bannerMain} from "../controllers/providerController";
 
 
 const router = express.Router();
@@ -52,7 +52,7 @@ router.post('/post-review', verifyToken, handleReview);
 router.get('/get-all-review', verifyToken, getAllReview);
 router.post('/send-review-message', verifyToken, sendReviewMsgToUser);
 router.post('/user-to-provider', verifyToken, userToProvider);
-
+router.patch('/update-main-cat', bannerMain); // admin api
 // if we want to update few values, then use patch
 // if we want to replace entire resource with the current resource, then use put
 

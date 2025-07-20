@@ -418,6 +418,7 @@ export const handleImageUrls = async (req: any, res: any) => {
 
         const isUserVerifed = false;
         const isloggedInBefore = true;
+        
         const providerData: any = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneData?._id },
             {
@@ -630,8 +631,9 @@ export const seeAllCategory = async (req: any, res: any) => {
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
         const filteredSubcategories = subcategories.map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" });
-        const response = await Promise.all(categories.map(async (cat: any) => ({
+        const response = await Promise.all(categories.map(async (cat: any) => ({    
             category: cat?._doc.category,
+            isMain : cat?._doc.isMain || false,
             _id: cat?._doc._id,
             subcategories: subcategories?.filter((subcat: any) => subcat?.category?.toString() == cat?._id.toString()).map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" })
         })))
