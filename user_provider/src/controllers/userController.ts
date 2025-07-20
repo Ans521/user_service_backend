@@ -1110,7 +1110,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 export const userSentMsg = async (req: any, res: any) => {
     try {
         const { message, receiverId } = req.body;
-        const { id } = req.user; // sender Id; // kon bhej raha hai
+        const { id, isEmployeeLogin} = req.user; // sender Id; // kon bhej raha hai
 
         if (!Types.ObjectId.isValid(receiverId)) {
             return res.status(400).json({ success: false, message: 'Invalid provider id' });
@@ -1189,6 +1189,21 @@ export const userSentMsg = async (req: any, res: any) => {
             );
         }
 
+        if(isEmployeeLogin){
+            const ownerData = await ServiceProvider.findOneAndUpdate(
+                { phoneNo: senderId},
+                {
+                    $push: {
+                        enquiry: {
+                            sender: senderId,
+                            messages: userMessage,
+                            isByMe : true
+                        },
+                    },
+                },
+                { new: true }
+            )
+        }
         const tittle = `New message from ${senderData.name}`;
         const type = "message";
 
@@ -1209,7 +1224,7 @@ export const userSentMsg = async (req: any, res: any) => {
             type,
             data
         }
-        sendPush(pushPayload);
+        // sendPush(pushPayload);
 
         // const addEnquiry : any = await ServiceProvider.updateOne(
         //     { _id: receiverId },

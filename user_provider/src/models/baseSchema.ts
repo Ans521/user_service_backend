@@ -36,10 +36,12 @@
       enquiry: {
           type: [{
             sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            isByMe: { type: Boolean, default: false },
             messages: [new mongoose.Schema({
               message: { type: String },
               timeStamp: { type: Date, default: Date.now }
-            }, { _id: false })],
+            },
+             { _id: false })],
           }],
         },
   recentConnectedUser: [{
@@ -48,6 +50,10 @@
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         default: null
+      },
+      isByMe : {
+        type: Boolean,
+        default: false
       },
       timeStamp: { type: Date, default: Date.now() },
       _id: false
