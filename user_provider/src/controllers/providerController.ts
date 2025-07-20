@@ -425,6 +425,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                 $project: {
                     _id: 0,
                     sender: '$enquiry.sender',
+                    isByMe : '$enquiry.isByMe',
                     latestMessage: {
                         $arrayElemAt: [
                             {
@@ -501,11 +502,14 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                             name: '$senderInfo.name',
                             phoneNo: '$senderInfo.phoneNo.phoneNumber',
                             email: '$senderInfo.phoneNo.email',
+                            address : '$senderInfo.address',
+                            workingHrs : {ifNull: ['$senderInfo.workingHrs', 'not provided']},
                             profilePic: {
                                 $ifNull: ['$senderInfo.profilePic', 'not provided']
                             }
                         },
                         latestMessage: 1,
+                        isByMe: 1
                     }
                 },
                 {
@@ -517,10 +521,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
         //   $ifNull: Returns the first value if it's not null or missing, otherwise returns the second (fallback) value.
 
         //  '$senderInfo.profilePic': The field you want if it exists.
-        
-        if(!response[0].senderInfo){
-            response[0].senderInfo = [];
-        }
+    
         // Number	Purpose	Result
         // 1 (in $slice)	Limit to the first 1 item from the sorted messages	[ latestMessage ]
         // 0 (in $arrayElemAt)	Get the first (and only) element from that array	latestMessage
@@ -572,7 +573,7 @@ const allowedTypes = ['whatsapp', 'phone', 'chat'];
 export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) => {
     try {
         const { type, providerId } = req.body;
-        const { id } = req.user;
+        const { id, isEmployeeLogin } : any = req.user;
 
         if (!type || !providerId) {
             return res.status(400).json({ success: false, message: 'please provide type and providerId' });
@@ -646,6 +647,19 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 },
                 {new : true}
             )
+            await ServiceProvider.findOneAndUpdate(
+                {phoneNo : phoneId},
+                {
+                    $push: {
+                        recentConnectedUser : {
+                            type,
+                            userPhoneRef: providerId,
+                            isByMe: isEmployeeLogin ? true: false,
+                        }
+                    }
+                },
+                {new : true}
+            )
             const pushPayload: PushPayload = {
                 tittle,
                 message: message,
@@ -654,7 +668,7 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 data,
             }
 
-            sendPush(pushPayload);
+            // sendPush(pushPayload);
 
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection' });
         }
@@ -682,7 +696,7 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                     as: 'sender' // this is name of the result
                 },
             }
-
+        
         const response = await Base.aggregate([
             { $match: { phoneNo: phoneId } },
             {
@@ -720,6 +734,7 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                     },
                     recentConnectedUser: {
                         type: 1,
+                        isByMe: 1,
                         timeStamp: 1
                     }
                 }
