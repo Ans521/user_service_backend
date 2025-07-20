@@ -502,6 +502,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                             name: '$senderInfo.name',
                             phoneNo: '$senderInfo.phoneNo.phoneNumber',
                             email: '$senderInfo.phoneNo.email',
+                            address : '$senderInfo.address',
                             profilePic: {
                                 $ifNull: ['$senderInfo.profilePic', 'not provided']
                             }
@@ -704,39 +705,39 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
             },
             { $unwind: '$recentConnectedUser' },
             lookupStage,
-            // { $unwind: '$sender' },
-            // {
-            //     $project: {
-            //         sender: 1,
-            //         recentConnectedUser: 1
-            //     }
-            // },
-            // {
-            //     $lookup: {
-            //         from: 'phonenumbers', // that means konse collection mei se lookup krenge
-            //         localField: 'sender.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
-            //         foreignField: '_id', // that means users ke konse field mei se lookup krenge
-            //         as: 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
-            //     }
-            // },
-            // { $unwind: '$sender.phoneNo' },
-            // {
-            //     $project: {
-            //         senderInfo: {
-            //             id: '$sender._id',
-            //             name: { $ifNull: ['$sender.name', 'not provided'] },
-            //             phoneNo: { $ifNull: ['$sender.phoneNo.phoneNumber', 'not provided'] },
-            //             profilePic: { $ifNull: ['$sender.profilePic', 'not provided'] },
-            //             email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
-            //             address: { $ifNull: ['$sender.address', 'not provided'] }
-            //         },
-            //         recentConnectedUser: {
-            //             type: 1,
-            //             isByMe: 1,
-            //             timeStamp: 1
-            //         }
-            //     }
-            // }
+            { $unwind: '$sender' },
+            {
+                $project: {
+                    sender: 1,
+                    recentConnectedUser: 1
+                }
+            },
+            {
+                $lookup: {
+                    from: 'phonenumbers', // that means konse collection mei se lookup krenge
+                    localField: 'sender.phoneNo', // that means recentConnectedUser ke konse field mei se lookup krenge
+                    foreignField: '_id', // that means users ke konse field mei se lookup krenge
+                    as: 'sender.phoneNo' // This embeds the result inside senderInfo.phoneNo field directly.
+                }
+            },
+            { $unwind: '$sender.phoneNo' },
+            {
+                $project: {
+                    senderInfo: {
+                        id: '$sender._id',
+                        name: { $ifNull: ['$sender.name', 'not provided'] },
+                        phoneNo: { $ifNull: ['$sender.phoneNo.phoneNumber', 'not provided'] },
+                        profilePic: { $ifNull: ['$sender.profilePic', 'not provided'] },
+                        email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
+                        address: { $ifNull: ['$sender.address', 'not provided'] }
+                    },
+                    recentConnectedUser: {
+                        type: 1,
+                        isByMe: 1,
+                        timeStamp: 1
+                    }
+                }
+            }
         ])
 
         if (!response) {
