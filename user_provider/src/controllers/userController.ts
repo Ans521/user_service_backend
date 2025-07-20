@@ -882,7 +882,7 @@ export const getProviderInfo = async (req: any, res: any) => {
             const categoryToFind = provider?.subcategory || '';
 
 
-            const providerListResponse = await ServiceProvider.aggregate([
+            const providerResponse = await ServiceProvider.aggregate([
                 {$match : { status: 'approved', subcategory: categoryToFind }},
                 {$lookup : {
                     from : 'phonenumbers',
@@ -915,7 +915,10 @@ export const getProviderInfo = async (req: any, res: any) => {
                     category: { $ifNull: ["$category.category", "Not available"]}
                 }} 
             ])
-            
+            console.log("providerListResponse", providerResponse)
+
+            const providerListResponse = providerResponse.filter((provider: any) => provider._id.toString() !== id.toString());
+
             return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo, providerList: providerListResponse });
         } else {
             return res.status(401).json({ data: { message: 'Provided Id have no info' } });
@@ -1034,7 +1037,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 isUserVerified: provider?.isUserVerifed || false,
                 isProfileCompleted: provider?.isProfileCompleted || false,
                 experience: provider?.experience || 4,
-                workingHrs: provider?.workingHours || { start: "10AM", end: "5PM" },
+                workingHrs: provider?.workingHours || { start: "10.00", end: "05.00" },
                 role: provider?.role || "ServiceProvider",
                 isEmployeeLogin: provider?.isEmployeeLogin || true,
                 workingDays: provider?.workingDays || "Everyday",

@@ -517,7 +517,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                 }
             )
         const response : any = await Base.aggregate(pipeline);
-
+        console.log("response", response);
         //   $ifNull: Returns the first value if it's not null or missing, otherwise returns the second (fallback) value.
 
         //  '$senderInfo.profilePic': The field you want if it exists.
@@ -705,7 +705,7 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
             { $match: { phoneNo: phoneId } },
             {
                 $project: {
-                    recentConnectedUser: 1
+                    recentConnectedUser: 1,
                 }
             },
             { $unwind: '$recentConnectedUser' },
@@ -727,6 +727,15 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
             },
             { $unwind: '$sender.phoneNo' },
             {
+                $lookup : {
+                    from: 'categories',
+                    localField: 'sender.category',
+                    foreignField: '_id',
+                    as: 'sender.category'
+                }
+            },
+            {$unwind: '$sender.category'},
+            {
                 $project: {
                     senderInfo: {
                         id: '$sender._id',
@@ -735,7 +744,12 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                         profilePic: { $ifNull: ['$sender.profilePic', 'not provided'] },
                         email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
                         address: { $ifNull: ['$sender.address', 'not provided'] },
-                        workingHrs: { $ifNull: ['$sender.workingHrs', 'not provided'] }
+                        workingHrs: { $ifNull: ['$sender.workingHours', 'not provided'] },
+                        avgRating : { $ifNull: ['$sender.avgRating', 'not provided'] },
+                        experience: { $ifNull: ['$sender.experience', 'not provided'] },
+                        completedTasks : { $ifNull: ['$sender.completedTasks', 'not provided'] },
+                        servicePrice : { $ifNull: ['$sender.servicePrice', 'not provided'] },
+                        category : { $ifNull: ['$sender.category.category', 'not provided'] },
                     },
                     recentConnectedUser: {
                         type: 1,
