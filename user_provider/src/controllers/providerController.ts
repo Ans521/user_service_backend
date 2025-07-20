@@ -234,6 +234,7 @@ export const updateBanner = async (req: any, res: any) => {
         if (!_id) {
             return res.status(400).json({ success: false, message: 'id is required' });
         }
+
         const result = await Banner.findByIdAndUpdate(
             { _id },
             { imageUrl: data[0].imageUrl, link: data[0].link, position },
@@ -243,6 +244,34 @@ export const updateBanner = async (req: any, res: any) => {
         return res.status(200).json({ success: true, message: 'Banner updated successfully', data: result });
     } catch (error) {
         console.log("error", error);
+    }
+}
+
+export const bannerMain = async (req: any, res: any) => {
+    try {
+        const { id, isMain } = req.query;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'id is required' });
+        }
+        console.log("id", id, "isMain", isMain);
+
+        const catId = new Types.ObjectId(String(id));
+        const cat = await Category.findById(catId);
+
+        if (!cat) {
+            return res.status(400).json({ success: false, message: 'Banner not found' });
+        }
+
+        const response = await Category.updateOne(
+            { _id: catId },
+            { $set: { isMain: isMain } }
+        );
+        console.log("response", response);
+        return res.status(200).json({ success: true, message: 'Banner updated successfully' });
+    } catch (err) {
+        console.error("Error updating banner:", err);
+        return res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 export const setServiceList = async (req: any, res: any) => {
@@ -425,7 +454,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                 $project: {
                     _id: 0,
                     sender: '$enquiry.sender',
-                    isByMe : '$enquiry.isByMe',
+                    isByMe: '$enquiry.isByMe',
                     latestMessage: {
                         $arrayElemAt: [
                             {
@@ -463,7 +492,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
             providerPic = providerPicInfo[0]?.profilePic;
 
 
-            
+
         } else {
             const userPicInfo: any = await User.aggregate([
                 { $match: { phoneNo: phoneId } },
@@ -480,48 +509,48 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
         }
 
         pipeline.push(
-                lookupStage,
-                {
-                    $unwind: '$senderInfo',
-                },
-                {
-                    $lookup: {
-                        from: 'phonenumbers',
-                        localField: 'senderInfo.phoneNo',
-                        foreignField: '_id',
-                        as: 'senderInfo.phoneNo'
-                    }
-                },
-                {
-                    $unwind: '$senderInfo.phoneNo'
-                },
-                {
-                    $project: {
-                        senderInfo: {
-                            _id: '$senderInfo._id',
-                            name: '$senderInfo.name',
-                            phoneNo: '$senderInfo.phoneNo.phoneNumber',
-                            email: '$senderInfo.phoneNo.email',
-                            address : '$senderInfo.address',
-                            workingHrs : {ifNull: ['$senderInfo.workingHrs', 'not provided']},
-                            profilePic: {
-                                $ifNull: ['$senderInfo.profilePic', 'not provided']
-                            }
-                        },
-                        latestMessage: 1,
-                        isByMe: 1
-                    }
-                },
-                {
-                    $unwind: '$senderInfo'
+            lookupStage,
+            {
+                $unwind: '$senderInfo',
+            },
+            {
+                $lookup: {
+                    from: 'phonenumbers',
+                    localField: 'senderInfo.phoneNo',
+                    foreignField: '_id',
+                    as: 'senderInfo.phoneNo'
                 }
-            )
-        const response : any = await Base.aggregate(pipeline);
+            },
+            {
+                $unwind: '$senderInfo.phoneNo'
+            },
+            {
+                $project: {
+                    senderInfo: {
+                        _id: '$senderInfo._id',
+                        name: '$senderInfo.name',
+                        phoneNo: '$senderInfo.phoneNo.phoneNumber',
+                        email: '$senderInfo.phoneNo.email',
+                        address: '$senderInfo.address',
+                        workingHrs: { ifNull: ['$senderInfo.workingHrs', 'not provided'] },
+                        profilePic: {
+                            $ifNull: ['$senderInfo.profilePic', 'not provided']
+                        }
+                    },
+                    latestMessage: 1,
+                    isByMe: 1
+                }
+            },
+            {
+                $unwind: '$senderInfo'
+            }
+        )
+        const response: any = await Base.aggregate(pipeline);
         console.log("response", response);
         //   $ifNull: Returns the first value if it's not null or missing, otherwise returns the second (fallback) value.
 
         //  '$senderInfo.profilePic': The field you want if it exists.
-    
+
         // Number	Purpose	Result
         // 1 (in $slice)	Limit to the first 1 item from the sorted messages	[ latestMessage ]
         // 0 (in $arrayElemAt)	Get the first (and only) element from that array	latestMessage
@@ -573,7 +602,7 @@ const allowedTypes = ['whatsapp', 'phone', 'chat'];
 export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) => {
     try {
         const { type, providerId } = req.body;
-        const { id, isEmployeeLogin } : any = req.user;
+        const { id, isEmployeeLogin }: any = req.user;
 
         if (!type || !providerId) {
             return res.status(400).json({ success: false, message: 'please provide type and providerId' });
@@ -636,33 +665,33 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 { new: true },
             )
             await User.findOneAndUpdate(
-                {phoneNo : phoneId},
+                { phoneNo: phoneId },
                 {
                     $push: {
-                        recentConnectedUser : {
+                        recentConnectedUser: {
                             type,
                             userPhoneRef: providerId
                         }
                     }
                 },
-                {new : true}
+                { new: true }
             )
 
-            const providerData : any = await ServiceProvider.findOne({ _id: providerId }).lean().select('_id phoneNo');
+            const providerData: any = await ServiceProvider.findOne({ _id: providerId }).lean().select('_id phoneNo');
             const phoneIdOfLoggedInProvider = providerData?.phoneNo;
             console.log("phoneIdofLoggedInProvider", providerData);
             await ServiceProvider.findOneAndUpdate(
-                {phoneNo : phoneId},
+                { phoneNo: phoneId },
                 {
                     $push: {
-                        recentConnectedUser : {
+                        recentConnectedUser: {
                             type,
                             userPhoneRef: phoneIdOfLoggedInProvider,
-                            isByMe: isEmployeeLogin ? true: false,
+                            isByMe: isEmployeeLogin ? true : false,
                         }
                     }
                 },
-                {new : true}
+                { new: true }
             )
             const pushPayload: PushPayload = {
                 tittle,
@@ -686,21 +715,21 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
 
 export const getRecentConnectedUser = async (req: any, res: any) => {
     try {
-        const { id, isEmployeeLogin} = req.user;
+        const { id, isEmployeeLogin } = req.user;
 
         const phoneId = new Types.ObjectId(String(id));
-        
+
 
         // provider mei toh userRef rhegii user kii phoneId kii kisne connect kiya hai and user recentconncetd mei userRef me rehgii provide ki _id kii hum kisse connect kr rhe hai
         const lookupStage = {
-                $lookup: {
-                    from: 'bases', // that means konse collection mei se lookup krenge
-                    localField: 'recentConnectedUser.userPhoneRef', // that means recentConnectedUser ke konse field mei se lookup krenge
-                    foreignField: isEmployeeLogin ? 'phoneNo' : '_id', // that means bases ke konse field mei se lookup krenge
-                    as: 'sender' // this is name of the result
-                },
-            }
-        
+            $lookup: {
+                from: 'bases', // that means konse collection mei se lookup krenge
+                localField: 'recentConnectedUser.userPhoneRef', // that means recentConnectedUser ke konse field mei se lookup krenge
+                foreignField: isEmployeeLogin ? 'phoneNo' : '_id', // that means bases ke konse field mei se lookup krenge
+                as: 'sender' // this is name of the result
+            },
+        }
+
         const response = await Base.aggregate([
             { $match: { phoneNo: phoneId } },
             {
@@ -727,14 +756,14 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
             },
             { $unwind: '$sender.phoneNo' },
             {
-                $lookup : {
+                $lookup: {
                     from: 'categories',
                     localField: 'sender.category',
                     foreignField: '_id',
                     as: 'sender.category'
                 }
             },
-            {$unwind: '$sender.category'},
+            { $unwind: '$sender.category' },
             {
                 $project: {
                     senderInfo: {
@@ -745,11 +774,11 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                         email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
                         address: { $ifNull: ['$sender.address', 'not provided'] },
                         workingHrs: { $ifNull: ['$sender.workingHours', 'not provided'] },
-                        avgRating : { $ifNull: ['$sender.avgRating', 'not provided'] },
+                        avgRating: { $ifNull: ['$sender.avgRating', 'not provided'] },
                         experience: { $ifNull: ['$sender.experience', 'not provided'] },
-                        completedTasks : { $ifNull: ['$sender.completedTasks', 'not provided'] },
-                        servicePrice : { $ifNull: ['$sender.servicePrice', 'not provided'] },
-                        category : { $ifNull: ['$sender.category.category', 'not provided'] },
+                        completedTasks: { $ifNull: ['$sender.completedTasks', 'not provided'] },
+                        servicePrice: { $ifNull: ['$sender.servicePrice', 'not provided'] },
+                        category: { $ifNull: ['$sender.category.category', 'not provided'] },
                     },
                     recentConnectedUser: {
                         type: 1,
