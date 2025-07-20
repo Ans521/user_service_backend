@@ -503,6 +503,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                             phoneNo: '$senderInfo.phoneNo.phoneNumber',
                             email: '$senderInfo.phoneNo.email',
                             address : '$senderInfo.address',
+                            workingHrs : {ifNull: ['$senderInfo.workingHrs', 'not provided']},
                             profilePic: {
                                 $ifNull: ['$senderInfo.profilePic', 'not provided']
                             }
