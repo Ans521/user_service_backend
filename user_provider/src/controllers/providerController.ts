@@ -541,7 +541,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         completedTasks : { $ifNull: ['$senderInfo.completedTasks', 0]
                         },
                         experience : { $ifNull: ['$senderInfo.experience', 0] },
-                        servicePrice: { $ifNull: ['$sender.servicePrice', 'not provided'] },
+                        servicePrice: { $ifNull: ['$sender.servicePrice', 0] },
 
                     },
                     latestMessage: 1,
@@ -777,16 +777,16 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                         id: '$sender._id',
                         name: { $ifNull: ['$sender.name', 'not provided'] },
                         phoneNo: { $ifNull: ['$sender.phoneNo.phoneNumber', 'not provided'] },
-                        profilePic: { $ifNull: ['$sender.profilePic', 'not provided'] },
+                        profilePic: { $ifNull: ['$sender.imageUrl.PH', 'not provided'] },
                         email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
-                        address: { $ifNull: ['$sender.address', 'not provided'] },
-                        workingHrs: { $ifNull: ['$sender.workingHours', 'not provided'] },
+                        address: { $ifNull: ['$sender.address', 'mohali'] },
+                        workingHrs: { $ifNull: ['$sender.workingHours', { start: 'not provided', end: 'not provided' }] },
                         avgRating: { $ifNull: ['$sender.avgRating', 0] },
-                        experience: { $ifNull: ['$sender.experience', 'not provided'] },
+                        experience: { $ifNull: ['$sender.experience', 12] },
                         completedTasks: { $ifNull: ['$sender.completedTasks', 'not provided'] },
-                        servicePrice: { $ifNull: ['$sender.servicePrice', 'not provided'] },
+                        servicePrice: { $ifNull: ['$sender.servicePrice', 0] },
                         category: { $ifNull: ['$sender.category.category', 'not provided'] },
-                        vistingTime: { $ifNull: ['$senderInfo.vistingTime', 'not provided'] }
+                        vistingTime: { $ifNull: ['$senderInfo.vistingTime', "10.00 Am"] }
                     },
                     recentConnectedUser: {
                         type: 1,
