@@ -536,7 +536,11 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                             $ifNull: ['$senderInfo.avgRating', 'not provided']
                         },
                         workingHrs: { $ifNull: ['$senderInfo.workingHours', {"start" : "10.00", "end" : "23.00"}] },
-                        profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided']}
+                        profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided']},
+                        vistingTime: { $ifNull: ['$senderInfo.vistingTime', 'not provided'] },
+                        completedTasks : { $ifNull: ['$senderInfo.completedTasks', 0]
+                        },
+                        experience : { $ifNull: ['$senderInfo.experience', 0] },
                     },
                     latestMessage: 1,
                     isByMe: 1
@@ -780,6 +784,7 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                         completedTasks: { $ifNull: ['$sender.completedTasks', 'not provided'] },
                         servicePrice: { $ifNull: ['$sender.servicePrice', 'not provided'] },
                         category: { $ifNull: ['$sender.category.category', 'not provided'] },
+                        vistingTime: { $ifNull: ['$senderInfo.vistingTime', 'not provided'] }
                     },
                     recentConnectedUser: {
                         type: 1,
