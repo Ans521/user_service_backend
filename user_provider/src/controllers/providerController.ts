@@ -533,7 +533,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         email: '$senderInfo.phoneNo.email',
                         address: '$senderInfo.address',
                         avgRating : {
-                            $ifNull: ['$senderInfo.avgRating', 'not provided']
+                            $ifNull: ['$senderInfo.avgRating', 0]
                         },
                         workingHrs: { $ifNull: ['$senderInfo.workingHours', {"start" : "10.00", "end" : "23.00"}] },
                         profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided']},
@@ -779,7 +779,7 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
                         email: { $ifNull: ['$sender.phoneNo.email', 'not provided'] },
                         address: { $ifNull: ['$sender.address', 'not provided'] },
                         workingHrs: { $ifNull: ['$sender.workingHours', 'not provided'] },
-                        avgRating: { $ifNull: ['$sender.avgRating', 'not provided'] },
+                        avgRating: { $ifNull: ['$sender.avgRating', 0] },
                         experience: { $ifNull: ['$sender.experience', 'not provided'] },
                         completedTasks: { $ifNull: ['$sender.completedTasks', 'not provided'] },
                         servicePrice: { $ifNull: ['$sender.servicePrice', 'not provided'] },
