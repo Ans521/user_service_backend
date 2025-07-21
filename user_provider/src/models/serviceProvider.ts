@@ -87,9 +87,6 @@ const serviceProviderSchema = new mongoose.Schema({
     enum: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     default: ["Mon", "Fri"]
   },
-  dailyHoursAvailable: {
-    type: String
-  },
   completedTasks: {
     type: Number,
     default: 0
@@ -110,7 +107,6 @@ const serviceProviderSchema = new mongoose.Schema({
   scanQrUrl: {
     type: String
   },
-
 });
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);
