@@ -541,6 +541,8 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         completedTasks : { $ifNull: ['$senderInfo.completedTasks', 0]
                         },
                         experience : { $ifNull: ['$senderInfo.experience', 0] },
+                        servicePrice: { $ifNull: ['$sender.servicePrice', 'not provided'] },
+
                     },
                     latestMessage: 1,
                     isByMe: 1
