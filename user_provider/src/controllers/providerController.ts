@@ -532,6 +532,9 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         phoneNo: '$senderInfo.phoneNo.phoneNumber',
                         email: '$senderInfo.phoneNo.email',
                         address: '$senderInfo.address',
+                        avgRating : {
+                            $ifNull: ['$senderInfo.avgRating', 'not provided']
+                        },
                         workingHrs: { $ifNull: ['$senderInfo.workingHours', {"start" : "10.00", "end" : "23.00"}] },
                         profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided']}
                     },
