@@ -532,10 +532,8 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         phoneNo: '$senderInfo.phoneNo.phoneNumber',
                         email: '$senderInfo.phoneNo.email',
                         address: '$senderInfo.address',
-                        workingHrs: { ifNull: ['$senderInfo.workingHrs', 'not provided'] },
-                        profilePic: {
-                            $ifNull: ['$senderInfo.profilePic', 'not provided']
-                        }
+                        workingHrs: { $ifNull: ['$senderInfo.workingHours', {"start" : "10.00", "end" : "23.00"}] },
+                        profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided']}
                     },
                     latestMessage: 1,
                     isByMe: 1
@@ -556,7 +554,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
         // 0 (in $arrayElemAt)	Get the first (and only) element from that array	latestMessage
 
 
-        return res.status(200).json({ success: true, data: response, providerPic });
+        return res.status(200).json({ success: true, data: response, profileImage : providerPic });
     } catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
