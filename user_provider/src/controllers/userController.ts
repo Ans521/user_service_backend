@@ -1132,13 +1132,17 @@ export const userSentMsg = async (req: any, res: any) => {
             timeStamp: new Date(),
         };
 
-        const senderId = new Types.ObjectId(String(id));
-        const senderData: any = await Base.findOne({ phoneNo: senderId }).select("name").lean();
+        const sender = new Types.ObjectId(String(id));
+        
+        const senderData: any = await Base.findOne({ phoneNo: sender }).select("name").lean();
+        const senderId = senderData?._id;
 
+        console.log("senderid", senderId)
         const serviceData: any = await ServiceProvider.findOne({
             _id: receiverId,
             'enquiry.sender': senderId,
         });
+
         if (serviceData) {
             // sender already exists → push new message
             await ServiceProvider.findOneAndUpdate(
@@ -1156,7 +1160,7 @@ export const userSentMsg = async (req: any, res: any) => {
                 {
                     $push: {
                         enquiry: {
-                            sender: id,
+                            sender: senderId,
                             messages: userMessage,
                         },
                     },
@@ -1167,13 +1171,13 @@ export const userSentMsg = async (req: any, res: any) => {
 
         // For User side (userMsg list) // this is for kii user ne kiis ko msg kiye hai
         const userData: any = await User.findOne({
-            phoneNo: senderId,
+            _id: senderId,
             'enquiry.sender': receiverId,
         });
 
         if (userData) {
             await User.findOneAndUpdate(
-                { phoneNo: senderId, 'enquiry.sender': receiverId },
+                { _id : senderId, 'enquiry.sender': receiverId },
                 {
                     $push: { 'userMsg.$.messages': userMessage },
                 },
@@ -1181,7 +1185,7 @@ export const userSentMsg = async (req: any, res: any) => {
             );
         } else {
             await User.findOneAndUpdate(
-                { phoneNo: senderId },
+                { _id : senderId },
                 {
                     $push: {
                         enquiry: {
@@ -1196,11 +1200,11 @@ export const userSentMsg = async (req: any, res: any) => {
 
         if(isEmployeeLogin){
             const ownerData = await ServiceProvider.findOneAndUpdate(
-                { phoneNo: senderId},
+                { _id : senderId},
                 {
                     $push: {
                         enquiry: {
-                            sender: senderId,
+                            sender: receiverId,
                             messages: userMessage,
                             isByMe : true
                         },
