@@ -437,7 +437,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
             $lookup: {
                 from: 'bases',
                 localField: 'sender',
-                foreignField: isEmployeeLogin ? 'phoneNo' : '_id',
+                foreignField: '_id',
                 as: 'senderInfo',
             },
 
@@ -542,7 +542,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         },
                         experience : { $ifNull: ['$senderInfo.experience', 0] },
                         servicePrice: { $ifNull: ['$sender.servicePrice', 0] },
-
+                        
                     },
                     latestMessage: 1,
                     isByMe: 1
