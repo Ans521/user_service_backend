@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 import { SubCategory } from "../models/subCategory";
 import { Category } from "../models/categorySchema";
 import { Banner } from "../models/banner";
-import { Request } from "express";
+import { Request, response } from "express";
 import { Offer } from "../models/offer";
 import { Base } from "../models/baseSchema";
 import { sendPush } from "../utils/redisUtils";
@@ -887,7 +887,7 @@ export const updateOffer = async (req: any, res: any) => {
 export const handleReview = async (req: any, res: any) => {
     try {
         const { rating, comment, providerId } = req.body;
-        const { id } = req.user;
+        const { id, isEmployeeLogin } = req.user;
         if (rating > 5 || rating < 1) {
             return res.status(400).json({ success: false, message: 'Invalid rating' });
         }
@@ -896,30 +896,35 @@ export const handleReview = async (req: any, res: any) => {
         }
 
         const phoneId = new Types.ObjectId(String(id));
-
+        const reviewUser : any = await Base.findOne({ phoneNo: phoneId }, {name : 1}).lean();
+    
+        const userName = reviewUser?.name;
         const data: any = {
             sendedBy: phoneId,
             rating,
             comment
         }
-        console.log("phoneId", phoneId)
 
         const providerIdObj = new Types.ObjectId(String(providerId));
-        const existingComment = await ServiceProvider.findOne(
-            { _id: providerIdObj, 'reviewComments.sendedBy': phoneId },
-            { reviewComments: { $elemMatch: { sendedBy: phoneId } } }
-        ).lean();
+        // const existingComment = await ServiceProvider.findOne(
+        //     { _id: providerIdObj, 'reviewComments.sendedBy': phoneId },
+        //     { 
+        //         reviewComments: { $elemMatch: { sendedBy: phoneId } }
+        //     }
+        // ).lean();
 
-        if (existingComment) {
-            return res.status(400).json({ success: false, message: 'You have already reviewed' });
-        }
+        // if (existingComment) {
+        //     return res.status(400).json({ success: false, message: 'You have already reviewed' });
+        // }
 
-        const response = await ServiceProvider.updateOne(
-            { _id: providerIdObj },
-            { $push: { reviewComments: data } }
-        );
+        // const response = await ServiceProvider.updateOne(
+        //     { _id: providerIdObj },
+        //     { $push: { reviewComments: data } }
+        // );
 
-        const reviewData = await ServiceProvider.aggregate([
+        // ye reviewData mei iss liye chla raha huu kyukii jb koii user provider ko review dega toh review toh mei insert krwa raha hu but avgRating bhi toh provider kii change hogi then usse update krne ke liye mei ye merge kr raha mtlb kii user ne review diya or wo reviewComments mei add hogya then mei uspe $avg lga ke uski avg nikal raha hu then jo nayii avg aayi hai usse update kr sku avgRating mei...
+
+        await ServiceProvider.aggregate([
             { $match: { _id: providerIdObj } },
             { $unwind: '$reviewComments' },
             {
@@ -929,24 +934,32 @@ export const handleReview = async (req: any, res: any) => {
                 }
             },
             {
-                $project: {
-                    _id: 1,
-                    avgRating: 1
-                }
-            },
-            {
                 $merge: {
                     into: 'bases',
+                    on : '_id',
                     whenMatched: 'merge',
                     whenNotMatched: 'discard'
                 }
             }
         ])
 
-        if (!response) {
-            return res.status(400).json({ success: false, message: 'Review not added' });
+        const provider : any = await ServiceProvider.findOne({ _id: providerIdObj}, {deviceToken : 1}).lean();
+
+        if(!response){
+            return res.status(400).json({ success: false, message: 'Review is not added' });
         }
-        return res.status(200).json({ success: true, message: 'Review added successfully', data: reviewData });
+        const pushPayload : PushPayload = {
+            tittle : 'New Review',
+            message : `You have new review from ${userName}`,
+            deviceToken : provider?.deviceToken,
+            type : 'notification',
+        }
+
+        sendPush(pushPayload)
+
+
+        return res.status(200).json({ success: true, message: 'Review added successfully' });
+
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -957,6 +970,7 @@ export const getAllReview = async (req: any, res: any) => {
     try {
         const { id } = req.user;
         const phoneId = new Types.ObjectId(String(id));
+        console.log("phoneId", phoneId)
         const response = await ServiceProvider.aggregate([
             { $match: { phoneNo: phoneId } },
             {
