@@ -940,14 +940,20 @@ export const getProviderInfo = async (req: any, res: any) => {
                 { $unset: "senders" },
                 {
                     $project : {
-                        email : '$phoneNo.email',
-                        phoneNo : '$phoneNo.phoneNumber',
-                        fullData : "$$ROOT"
+                        data : {
+                            $mergeObjects: [
+                                "$$ROOT",
+                                {
+                                    email : '$phoneNo.email',
+                                    phoneNo : '$phoneNo.phoneNumber'
+                                }
+                            ]
+                        }
                     }
                 },
                 {
-                    $project : {
-                        "fullData.phoneNo" : 0
+                    $replaceRoot: {
+                        newRoot: "$data"
                     }
                 }
             ])
