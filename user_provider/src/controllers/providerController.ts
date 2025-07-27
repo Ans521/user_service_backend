@@ -906,21 +906,21 @@ export const handleReview = async (req: any, res: any) => {
         }
 
         const providerIdObj = new Types.ObjectId(String(providerId));
-        // const existingComment = await ServiceProvider.findOne(
-        //     { _id: providerIdObj, 'reviewComments.sendedBy': phoneId },
-        //     { 
-        //         reviewComments: { $elemMatch: { sendedBy: phoneId } }
-        //     }
-        // ).lean();
+        const existingComment = await ServiceProvider.findOne(
+            { _id: providerIdObj, 'reviewComments.sendedBy': phoneId },
+            { 
+                reviewComments: { $elemMatch: { sendedBy: phoneId } }
+            }
+        ).lean();
 
-        // if (existingComment) {
-        //     return res.status(400).json({ success: false, message: 'You have already reviewed' });
-        // }
+        if (existingComment) {
+            return res.status(400).json({ success: false, message: 'You have already reviewed' });
+        }
 
-        // const response = await ServiceProvider.updateOne(
-        //     { _id: providerIdObj },
-        //     { $push: { reviewComments: data } }
-        // );
+        const response = await ServiceProvider.updateOne(
+            { _id: providerIdObj },
+            { $push: { reviewComments: data } }
+        );
 
         // ye reviewData mei iss liye chla raha huu kyukii jb koii user provider ko review dega toh review toh mei insert krwa raha hu but avgRating bhi toh provider kii change hogi then usse update krne ke liye mei ye merge kr raha mtlb kii user ne review diya or wo reviewComments mei add hogya then mei uspe $avg lga ke uski avg nikal raha hu then jo nayii avg aayi hai usse update kr sku avgRating mei...
 
@@ -930,7 +930,9 @@ export const handleReview = async (req: any, res: any) => {
             {
                 $group: {
                     _id: "$_id",
-                    avgRating: { $avg: '$reviewComments.rating' }
+                    avgRating: { $avg: '$reviewComments.rating' },
+                    completedTasks : { $sum: 1 },
+                    totalReviews : { $sum: 1 }
                 }
             },
             {
@@ -946,7 +948,7 @@ export const handleReview = async (req: any, res: any) => {
         const provider : any = await ServiceProvider.findOne({ _id: providerIdObj}, {deviceToken : 1}).lean();
 
         if(!response){
-            return res.status(400).json({ success: false, message: 'Review is not added' });
+            return res.status(400).json({ success: false, message: 'Review is not added'});
         }
         const pushPayload : PushPayload = {
             tittle : 'New Review',
