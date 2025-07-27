@@ -877,7 +877,7 @@ export const getProviderInfo = async (req: any, res: any) => {
                                 serviceList: "Facial, Styling, Anti-Aging, Face Spa"
                             }]]
                         },
-                        galleryImages: 1,
+                        imageGallery: 1,
                         scanQrUrl: 1,
                         aboutUs: 1,
                         reviewComments: 1,
