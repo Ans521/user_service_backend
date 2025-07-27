@@ -337,10 +337,10 @@ export const registerProvider = async (req: any, res: any) => {
         const newServiceProvider: any = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneNoId },
             { $set: serviceProviderData },
-            { new: true}
+            { new: true }
         ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages -__v -servicePrice -reviewComments -services -enquiry');
 
-        if(!newServiceProvider) {
+        if (!newServiceProvider) {
             return res.status(404).json({ message: "Service provider not found or not registered" });
         }
         const sentData = {
@@ -418,7 +418,7 @@ export const handleImageUrls = async (req: any, res: any) => {
 
         const isUserVerifed = false;
         const isloggedInBefore = true;
-        
+
         const providerData: any = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneData?._id },
             {
@@ -631,9 +631,9 @@ export const seeAllCategory = async (req: any, res: any) => {
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
         const filteredSubcategories = subcategories.map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" });
-        const response = await Promise.all(categories.map(async (cat: any) => ({    
+        const response = await Promise.all(categories.map(async (cat: any) => ({
             category: cat?._doc.category,
-            isMain : cat?._doc.isMain || false,
+            isMain: cat?._doc.isMain || false,
             _id: cat?._doc._id,
             subcategories: subcategories?.filter((subcat: any) => subcat?.category?.toString() == cat?._id.toString()).map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" })
         })))
@@ -755,7 +755,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             const subcatIds = await SubCategory.find({ name: { $regex: search, $options: 'i' } }).select('_id');
             const catIds = await Category.find({ category: { $regex: search, $options: 'i' } }).select('_id');
             const subCategoryFromCatIds = await SubCategory.find({ category: { $in: catIds.map((cat: any) => cat._id) } }).select('_id');
-            const filteredSubCatIds  = subCategoryFromCatIds.filter((subcat: any) => !subcatIds.some((id: any) => id._id.toString() === subcat._id.toString())).map((subcat: any) => subcat._id); // mtlb ki agr subcat id hai jo wo subcatIds mei nahi hai then ye filteredSubCatIds mei add krdo
+            const filteredSubCatIds = subCategoryFromCatIds.filter((subcat: any) => !subcatIds.some((id: any) => id._id.toString() === subcat._id.toString())).map((subcat: any) => subcat._id); // mtlb ki agr subcat id hai jo wo subcatIds mei nahi hai then ye filteredSubCatIds mei add krdo
             const subcategoryIds = subcatIds.map((sub: any) => sub._id);
             const finalSubcategoryIds = [...subcategoryIds, ...filteredSubCatIds]; // agr subcatIds mei jo id hai or wo same filteredSubCatIds mei bhi hai toh usse filter krdo
             query.subcategory = { $in: finalSubcategoryIds };
@@ -792,12 +792,14 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 }
             },
             { $unwind: "$category" },
-            {$lookup: {
-                from: "phonenumbers",
-                localField: "phoneNo",
-                foreignField: "_id",
-                as: "phoneNo"
-            }},
+            {
+                $lookup: {
+                    from: "phonenumbers",
+                    localField: "phoneNo",
+                    foreignField: "_id",
+                    as: "phoneNo"
+                }
+            },
             { $unwind: "$phoneNo" },
             { $skip: skip },
             { $limit: limit },
@@ -805,8 +807,8 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 $project: {
                     _id: 1,
                     name: { $ifNull: ["$name", "John doe"] },
-                    phoneNumber : "$phoneNo.phoneNumber",
-                    email : "$phoneNo.email",
+                    phoneNumber: "$phoneNo.phoneNumber",
+                    email: "$phoneNo.email",
                     category: "$category.category",
                     avgRating: { $ifNull: ["$avgRating", 3.0] },
                     totalReviews: { $ifNull: ["$totalReviews", 1200] },
@@ -816,7 +818,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     phone: 1,
                     providerPic: { $ifNull: ["$imageUrl.photo", "Not available in Db"] },
                     servicePrice: { $ifNull: ["$servicePrice", 100] },
-                    workingHrs : { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
+                    workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
                 }
             }
         ]);
@@ -846,82 +848,172 @@ export const getProviderInfo = async (req: any, res: any) => {
         //     { new: true }
         //   );
 
-        const provider : any = await ServiceProvider.findOne({ _id: id, status: "approved" }).populate(['phoneNo', 'email']);
+        const provider: any = await ServiceProvider.findOne({ _id: id, status: "approved" }).populate(['phoneNo', 'email']);
 
         if (provider) {
-            if (provider?.services?.length == 0) {
-                const services =
-                    [
-                        {
-                            service: "Hair Services",
-                            serviceList: ["Hair Cut, Styling, HairColoring, Hair Spa"]
+            const providerObjectId = new Types.ObjectId(String(id));
+            const providerInfo2 = await ServiceProvider.aggregate([
+                { $match: { _id: providerObjectId } },
+                {
+                    $project: {
+                        _id: 1,
+                        name: { $ifNull: ["$name", "John doe"] },
+                        avgRating: { $ifNull: ["$avgRating", 3.0] },
+                        totalReviews: { $ifNull: ["$totalReviews", 1200] },
+                        completedTasks: { $ifNull: ["$completedTasks", 1200] },
+                        workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
+                        experience: { $ifNull: ["$experience", 4] },
+                        phoneNo: 1,
+                        providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
+                        servicePrice: { $ifNull: ["$servicePrice", 100] },
+                        workingHrs: { $ifNull: ["$workingHours", { start: "19.00", end: "5.00" }] },
+                        services: {
+                            $ifNull: ["$services", [{
+                                service: "Hair Services",
+                                serviceList: ["Hair Cut, Styling, HairColoring, Hair Spa"]
+                            },
+                            {
+                                service: "Skin Services",
+                                serviceList: ["Facial, Styling, Anti-Aging, Face Spa"]
+                            }]]
                         },
-
-                        {
-                            service: "Skin Services",
-                            serviceList: ["Facial, Styling, Anti-Aging, Face Spa"]
+                        galleryImages: 1,
+                        scanQrUrl: 1,
+                        aboutUs: 1,
+                        reviewComments: 1,
+                        address : 1,
+                        aadharAddress : 1
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "phonenumbers",
+                        localField: "phoneNo",
+                        foreignField: "_id",
+                        as: "phoneNo"
+                    }
+                },
+                { $unwind: "$phoneNo" },
+                {
+                    $lookup: {
+                        from: "bases",
+                        localField: "reviewComments.sendedBy",
+                        foreignField: "phoneNo",
+                        as: "senders"
+                    }
+                },
+                {
+                    $set: {
+                        reviewComments: {
+                            $map: {
+                                input: '$reviewComments',
+                                as: 'rc',
+                                in: {
+                                    rating: '$$rc.rating',
+                                    comment: '$$rc.comment',
+                                    timeStamp: { $ifNull: ["$$rc.time", "$$NOW"] },
+                                    sendedBy: {
+                                        $let: {
+                                            vars: {
+                                                sender: {
+                                                    $arrayElemAt: [
+                                                        {
+                                                            $filter: {
+                                                                input: "$senders",
+                                                                cond: { $eq: ["$$rc.sendedBy", "$$this.phoneNo"] }
+                                                            }
+                                                        },
+                                                        0
+                                                    ]
+                                                }
+                                            },
+                                            in: {
+                                                name: "$$sender.name",
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    ]
-                provider.services = services
-            }
-            const providerInfo = {
-                _id: provider?.id,
-                name: provider?.name || "John doe",
-                avgRating: provider?.avgRating || 4.5,
-                totalReviews: provider?.totalReviews || 1200,
-                experience: provider.experience || 3,
-                phone: provider?.phoneNo?.phoneNumber,
-                providerPic: provider?.imageUrl?.PH || "Not available",
-                completedTasks: provider.completedTasks || 0,
-                workingHrs: provider?.workingHours || { start: "10.00", end: "12.00" },
-                workingDays: provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                aboutus: provider?.aboutUs || "The best service backend developer is Ansh",
-                scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
-                imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
-                services: provider?.services,
-                reviews: provider?.reviewComments
-            };
+                    }
+                },
+                { $unset: "senders" },
+                {
+                    $project : {
+                        email : '$phoneNo.email',
+                        phoneNo : '$phoneNo.phoneNumber',
+                        fullData : "$$ROOT"
+                    }
+                },
+                {
+                    $project : {
+                        "fullData.phoneNo" : 0
+                    }
+                }
+            ])
+            // const providerInfo = {
+            //     _id: provider?.id,
+            //     name: provider?.name || "John doe",
+            //     avgRating: provider?.avgRating || 4.5,
+            //     totalReviews: provider?.totalReviews || 1200,
+            //     experience: provider.experience || 3,
+            //     phone: provider?.phoneNo?.phoneNumber,
+            //     providerPic: provider?.imageUrl?.PH || "Not available",
+            //     completedTasks: provider.completedTasks || 0,
+            //     workingHrs: provider?.workingHours || { start: "10.00", end: "12.00" },
+            //     workingDays: provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            //     aboutus: provider?.aboutUs || "The best service backend developer is Ansh",
+            //     scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
+            //     imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
+            //     services: provider?.services,
+            //     reviews: provider?.reviewComments
+            // };
             const categoryToFind = provider?.subcategory || '';
 
 
             const providerResponse = await ServiceProvider.aggregate([
-                {$match : { status: 'approved', subcategory: categoryToFind }},
-                {$lookup : {
-                    from : 'phonenumbers',
-                    localField : 'phoneNo',
-                    foreignField : '_id',
-                    as : 'phoneNo'
-                }},
-                {$unwind : '$phoneNo'},
-                {$lookup : {
-                    from : 'categories',
-                    localField : 'category',
-                    foreignField : '_id',
-                    as : 'category'
-                }},
-                {$unwind : '$category'},
-                {$project : {
-                    _id: 1,
-                    name: { $ifNull: ["$name", "John Doe"] },
-                    phoneNumber: "$phoneNo.phoneNumber",
-                    email: "$phoneNo.email",
-                    avgRating: { $ifNull: ["$avgRating", 3.0] },
-                    totalReviews: { $ifNull: ["$totalReviews", 1200] },
-                    completedTasks: { $ifNull: ["$completedTasks", 0] },
-                    workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
-                    experience: { $ifNull: ["$experience", 4] },
-                    phone: 1,
-                    providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
-                    servicePrice: { $ifNull: ["$servicePrice", 100] },
-                    workingHrs : { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
-                    category: { $ifNull: ["$category.category", "Not available"]}
-                }} 
+                { $match: { status: 'approved', subcategory: categoryToFind } },
+                {
+                    $lookup: {
+                        from: 'phonenumbers',
+                        localField: 'phoneNo',
+                        foreignField: '_id',
+                        as: 'phoneNo'
+                    }
+                },
+                { $unwind: '$phoneNo' },
+                {
+                    $lookup: {
+                        from: 'categories',
+                        localField: 'category',
+                        foreignField: '_id',
+                        as: 'category'
+                    }
+                },
+                { $unwind: '$category' },
+                {
+                    $project: {
+                        _id: 1,
+                        name: { $ifNull: ["$name", "John Doe"] },
+                        phoneNumber: "$phoneNo.phoneNumber",
+                        email: "$phoneNo.email",
+                        avgRating: { $ifNull: ["$avgRating", 3.0] },
+                        totalReviews: { $ifNull: ["$totalReviews", 1200] },
+                        completedTasks: { $ifNull: ["$completedTasks", 0] },
+                        workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
+                        experience: { $ifNull: ["$experience", 4] },
+                        phone: 1,
+                        providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
+                        servicePrice: { $ifNull: ["$servicePrice", 100] },
+                        workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
+                        category: { $ifNull: ["$category.category", "Not available"] }
+                    }
+                }
             ])
-            console.log("providerListResponse", providerResponse)
 
             const providerListResponse = providerResponse.filter((provider: any) => provider._id.toString() !== id.toString());
-
-            return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo, providerList: providerListResponse });
+            // data: providerInfo, providerList: providerListResponse
+            return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo2, providerList: providerListResponse});
         } else {
             return res.status(401).json({ data: { message: 'Provided Id have no info' } });
         }
@@ -1062,7 +1154,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
                 role: user?.role || "User",
-                profilePic : user.profilePic || "http://82.180.144.143:4000/uploads/1746613692666.png",
+                profilePic: user.profilePic || "http://82.180.144.143:4000/uploads/1746613692666.png",
                 isEmployeeLogin: user?.isEmployeeLogin || false,
             }
             return res.status(200).json({ message: 'Fetched the user info', data: userData });
@@ -1115,7 +1207,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 export const userSentMsg = async (req: any, res: any) => {
     try {
         const { message, receiverId } = req.body;
-        const { id, isEmployeeLogin} = req.user; // sender Id; // kon bhej raha hai
+        const { id, isEmployeeLogin } = req.user; // sender Id; // kon bhej raha hai
 
         if (!Types.ObjectId.isValid(receiverId)) {
             return res.status(400).json({ success: false, message: 'Invalid provider id' });
@@ -1133,7 +1225,7 @@ export const userSentMsg = async (req: any, res: any) => {
         };
 
         const sender = new Types.ObjectId(String(id));
-        
+
         const senderData: any = await Base.findOne({ phoneNo: sender }).select("name").lean();
         const senderId = senderData?._id;
 
@@ -1177,7 +1269,7 @@ export const userSentMsg = async (req: any, res: any) => {
 
         if (userData) {
             await User.findOneAndUpdate(
-                { _id : senderId, 'enquiry.sender': receiverId },
+                { _id: senderId, 'enquiry.sender': receiverId },
                 {
                     $push: { 'userMsg.$.messages': userMessage },
                 },
@@ -1185,7 +1277,7 @@ export const userSentMsg = async (req: any, res: any) => {
             );
         } else {
             await User.findOneAndUpdate(
-                { _id : senderId },
+                { _id: senderId },
                 {
                     $push: {
                         enquiry: {
@@ -1198,15 +1290,15 @@ export const userSentMsg = async (req: any, res: any) => {
             );
         }
 
-        if(isEmployeeLogin){
+        if (isEmployeeLogin) {
             const ownerData = await ServiceProvider.findOneAndUpdate(
-                { _id : senderId},
+                { _id: senderId },
                 {
                     $push: {
                         enquiry: {
                             sender: receiverId,
                             messages: userMessage,
-                            isByMe : true
+                            isByMe: true
                         },
                     },
                 },
@@ -1224,7 +1316,7 @@ export const userSentMsg = async (req: any, res: any) => {
             senderName: senderData?.name,
             message
         }
-        
+
         const data = JSON.stringify(dataToSend);
         const pushPayload: PushPayload = {
             tittle,
@@ -1247,7 +1339,7 @@ export const userSentMsg = async (req: any, res: any) => {
         //         }
         //     }
         // );
-        
+
         // if (addEnquiry.modifiedCount === 0) {
         //     return res.status(404).json({ success: false, message: 'Failed to update recent connected user' });
         // }
