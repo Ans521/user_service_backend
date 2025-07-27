@@ -6,7 +6,7 @@ import { Banner } from "../models/banner";
 import { Request, response } from "express";
 import { Offer } from "../models/offer";
 import { Base } from "../models/baseSchema";
-import { sendPush } from "../utils/redisUtils";
+import { sendPush, sendPushToAll } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
 
@@ -822,6 +822,8 @@ export const insertOffer = async (req: any, res: any) => {
         if (!response) {
             return res.status(400).json({ success: false, message: 'Offer not added' });
         }
+        sendPushToAll("New Offer")
+
         return res.status(200).json({ success: true, message: 'Offer added successfully' });
     } catch (error) {
         console.log("error", error)
@@ -875,7 +877,7 @@ export const updateOffer = async (req: any, res: any) => {
         if (!response.modifiedCount) {
             return res.status(400).json({ success: false, message: 'Offer not updated' });
         }
-
+        sendPushToAll("Offer Updates")
         return res.status(200).json({ success: true, message: 'Offer updated successfully' });
 
     } catch (error) {
@@ -994,6 +996,7 @@ export const getAllReview = async (req: any, res: any) => {
                 $project: {
                     rating: '$reviewComments.rating',
                     name: '$reviewComments.sendedBy.name',
+                    timeStamp: { $ifNull: ['$reviewComments.timeStamp',  "$$NOW"] },
                     message: { $ifNull: ['$reviewComments.message', ''] },
                     comment: { $ifNull: ['$reviewComments.comment', ''] },
                     senderId: '$reviewComments.sendedBy.phoneNo',
