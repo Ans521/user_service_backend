@@ -870,11 +870,11 @@ export const getProviderInfo = async (req: any, res: any) => {
                         services: {
                             $ifNull: ["$services", [{
                                 service: "Hair Services",
-                                serviceList: ["Hair Cut, Styling, HairColoring, Hair Spa"]
+                                serviceList: "Hair Cut, Styling, HairColoring, Hair Spa"
                             },
                             {
                                 service: "Skin Services",
-                                serviceList: ["Facial, Styling, Anti-Aging, Face Spa"]
+                                serviceList: "Facial, Styling, Anti-Aging, Face Spa"
                             }]]
                         },
                         galleryImages: 1,
