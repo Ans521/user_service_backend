@@ -9,6 +9,7 @@ import { Base } from "../models/baseSchema";
 import { sendPush, sendPushToAll } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
+import { Order } from "../models/order";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -532,17 +533,18 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
                         phoneNo: '$senderInfo.phoneNo.phoneNumber',
                         email: '$senderInfo.phoneNo.email',
                         address: '$senderInfo.address',
-                        avgRating : {
+                        avgRating: {
                             $ifNull: ['$senderInfo.avgRating', 0]
                         },
-                        workingHrs: { $ifNull: ['$senderInfo.workingHours', {"start" : "10.00", "end" : "23.00"}] },
-                        profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided']},
+                        workingHrs: { $ifNull: ['$senderInfo.workingHours', { "start": "10.00", "end": "23.00" }] },
+                        profilePic: { $ifNull: ['$senderInfo.imageUrl.PH', 'not provided'] },
                         vistingTime: { $ifNull: ['$senderInfo.vistingTime', 'not provided'] },
-                        completedTasks : { $ifNull: ['$senderInfo.completedTasks', 0]
+                        completedTasks: {
+                            $ifNull: ['$senderInfo.completedTasks', 0]
                         },
-                        experience : { $ifNull: ['$senderInfo.experience', 0] },
+                        experience: { $ifNull: ['$senderInfo.experience', 0] },
                         servicePrice: { $ifNull: ['$sender.servicePrice', 0] },
-                        
+
                     },
                     latestMessage: 1,
                     isByMe: 1
@@ -563,7 +565,7 @@ export const fetchAllUserSentMsg = async (req: any, res: any) => {
         // 0 (in $arrayElemAt)	Get the first (and only) element from that array	latestMessage
 
 
-        return res.status(200).json({ success: true, data: response, profileImage : providerPic });
+        return res.status(200).json({ success: true, data: response, profileImage: providerPic });
     } catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -833,11 +835,48 @@ export const insertOffer = async (req: any, res: any) => {
 
 export const getAllOffer = async (req: any, res: any) => {
     try {
+        const { id } = req.user;
+
+        const objId = new Types.ObjectId(String(id));
+
+        const order: any = await Order.findOne({
+            serviceProviderId: objId,
+            status: "paid",
+            isActive: true
+        }).sort({ endDate: -1 }).lean();
+
+        if (!order) {
+            return res.status(200).json({
+                isActive: false,
+                message: "No active subscription."
+            });
+        }
+
+        if (order.endDate < new Date()) {
+            await Order.findOneAndUpdate({
+                serviceProviderId: objId,
+            },
+                {
+                    isActive: false,
+                })
+
+            return res.status(403).json({
+                message: "Your subscription has been expired.",
+                isExpired : true
+            })
+        }
+
         const data = await Offer.find();
+        
         if (!data) {
             return res.status(400).json({ success: false, message: 'Offer not found' });
         }
-        return res.status(200).json({ success: true, data });
+
+        const validity = order.endDate.getTime() - new Date().getTime();
+
+        const validityInDays = Math.ceil(validity / (1000 * 60 * 60 * 24)); 
+
+        return res.status(200).json({ success: true, data, offer : order, isExpired: false, validity : validityInDays});
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -898,8 +937,8 @@ export const handleReview = async (req: any, res: any) => {
         }
 
         const phoneId = new Types.ObjectId(String(id));
-        const reviewUser : any = await Base.findOne({ phoneNo: phoneId }, {name : 1}).lean();
-    
+        const reviewUser: any = await Base.findOne({ phoneNo: phoneId }, { name: 1 }).lean();
+
         const userName = reviewUser?.name;
         const data: any = {
             sendedBy: phoneId,
@@ -910,7 +949,7 @@ export const handleReview = async (req: any, res: any) => {
         const providerIdObj = new Types.ObjectId(String(providerId));
         const existingComment = await ServiceProvider.findOne(
             { _id: providerIdObj, 'reviewComments.sendedBy': phoneId },
-            { 
+            {
                 reviewComments: { $elemMatch: { sendedBy: phoneId } }
             }
         ).lean();
@@ -933,30 +972,30 @@ export const handleReview = async (req: any, res: any) => {
                 $group: {
                     _id: "$_id",
                     avgRating: { $avg: '$reviewComments.rating' },
-                    completedTasks : { $sum: 1 },
-                    totalReviews : { $sum: 1 }
+                    completedTasks: { $sum: 1 },
+                    totalReviews: { $sum: 1 }
                 }
             },
             {
                 $merge: {
                     into: 'bases',
-                    on : '_id',
+                    on: '_id',
                     whenMatched: 'merge',
                     whenNotMatched: 'discard'
                 }
             }
         ])
 
-        const provider : any = await ServiceProvider.findOne({ _id: providerIdObj}, {deviceToken : 1}).lean();
+        const provider: any = await ServiceProvider.findOne({ _id: providerIdObj }, { deviceToken: 1 }).lean();
 
-        if(!response){
-            return res.status(400).json({ success: false, message: 'Review is not added'});
+        if (!response) {
+            return res.status(400).json({ success: false, message: 'Review is not added' });
         }
-        const pushPayload : PushPayload = {
-            tittle : 'New Review',
-            message : `You have new review from ${userName}`,
-            deviceToken : provider?.deviceToken,
-            type : 'notification',
+        const pushPayload: PushPayload = {
+            tittle: 'New Review',
+            message: `You have new review from ${userName}`,
+            deviceToken: provider?.deviceToken,
+            type: 'notification',
         }
 
         sendPush(pushPayload)
@@ -996,7 +1035,7 @@ export const getAllReview = async (req: any, res: any) => {
                 $project: {
                     rating: '$reviewComments.rating',
                     name: '$reviewComments.sendedBy.name',
-                    timeStamp: { $ifNull: ['$reviewComments.timeStamp',  "$$NOW"] },
+                    timeStamp: { $ifNull: ['$reviewComments.timeStamp', "$$NOW"] },
                     message: { $ifNull: ['$reviewComments.message', ''] },
                     comment: { $ifNull: ['$reviewComments.comment', ''] },
                     senderId: '$reviewComments.sendedBy.phoneNo',

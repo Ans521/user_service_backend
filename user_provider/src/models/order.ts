@@ -1,31 +1,34 @@
 import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema({
-    serviceProviderId : {
+    razorpay_order_id : {
+        type :  String,
+        required : true
+    },
+    providerId : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "ServiceProvider",
     },
-    // userId : {
-    //     type : mongoose.Schema.Types.ObjectId,
-    //     ref : "User",
-    // },
-    // offerid : {
-    //     type : mongoose.Schema.Types.ObjectId,
-    //     ref : "Service",
-    //     required : true
-    // }, 
-    price : {
-        type : Number,
+    offerid : {
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "Offer",
         required : true
     },
     status : {
         type : String,
-        enum : ["created", "accepted", "rejected", "completed"],
-        default : "created"
+        enum : ["pending", "paid", "failed"],
+        default : "pending"
     },
-    createdAt : {
+    startDate : {
         type : Date,
         default : Date.now
+    },
+    endDate : {
+        type : Date,
+    },
+    isActive : {
+        type : Boolean,
+        default : true
     }
 })
 
