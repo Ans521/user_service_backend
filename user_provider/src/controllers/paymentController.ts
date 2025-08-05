@@ -66,7 +66,7 @@ const razorpay = new Razorpay({
 export const webHook = async (req: any, res: any) => {
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
   const signature = req.headers["x-razorpay-signature"];
-
+  console.log("webhookSecret", webhookSecret);
   console.log("signature", signature);
   const shasum = crypto.createHmac("sha256", webhookSecret!);
   shasum.update(JSON.stringify(req.body));
@@ -84,8 +84,7 @@ export const webHook = async (req: any, res: any) => {
     const providerId = order.notes.providerId;
 
     const offerId = order.notes.offerId;
-    console.log("providerId", providerId);
-    console.log("offerId", offerId);
+   
     if (!providerId || !offerId) {
       console.log("❌ Missing providerId or offerId in order notes");
       return res.status(400).json({ status: "missing providerId or offerId" });
@@ -99,13 +98,12 @@ export const webHook = async (req: any, res: any) => {
       return res.status(404).json({ status: "offer not found" });
     }
 
-    console.log("endDateOffer", endDateOffer);
     const validity = endDateOffer.validity || 30;
+    console.log("event", event)
+    if (event === "payment.captured") {
 
-    if (event === "order.captured") {
 
-
-    await Order.create({
+    const createdOrder =await Order.create({
       providerId : new Types.ObjectId(String(providerId)),
       offerid: offerId,
       razorpay_order_id: order.order_id,
@@ -114,14 +112,26 @@ export const webHook = async (req: any, res: any) => {
       startDate: new Date(),
       endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
       });
+      console.log('Order created:', createdOrder);
+
     }
 
+
+    console.log("event", event);
     if (event === "payment.failed") {
-      await Order.create(
-        { razorpay_order_id: order.id},
-        { status: "paid" }
-      )
-      console.log("❌ Payment failed via webhook");
+
+   const createdOrder =  await Order.create({
+      providerId : new Types.ObjectId(String(providerId)),
+      offerid: offerId,
+      razorpay_order_id: order.order_id,
+      status: "paid",
+      isActive: true,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
+      });
+
+        console.log('Order created:', createdOrder);
+
     }
     return res.json({ status: "ok",  });
   } else {
