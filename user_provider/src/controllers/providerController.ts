@@ -840,7 +840,7 @@ export const getAllOffer = async (req: any, res: any) => {
         const objId = new Types.ObjectId(String(id));
 
         const order: any = await Order.findOne({
-            serviceProviderId: objId,
+            providerId: objId,
             status: "paid",
             isActive: true
         }).sort({ endDate: -1 }).lean();
