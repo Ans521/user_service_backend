@@ -46,7 +46,7 @@ router.get('/fetch-all-sent-msg', verifyToken, fetchAllUserSentMsg);
 router.post('/send-enquiry', verifyToken, sendRecentConnectionEnquiry);
 router.get('/get-recent-connection', verifyToken, getRecentConnectedUser);
 router.post('/add-offer', insertOffer);
-router.get('/get-all-offer', getAllOffer);
+router.get('/get-all-offer',verifyToken, getAllOffer);
 router.delete('/delete-offer', deleteOffer);
 router.patch('/update-offer', updateOffer);
 router.post('/post-review', verifyToken, handleReview);

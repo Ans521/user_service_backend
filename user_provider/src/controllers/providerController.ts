@@ -848,7 +848,8 @@ export const getAllOffer = async (req: any, res: any) => {
         if (!order) {
             return res.status(200).json({
                 isActive: false,
-                message: "No active subscription."
+                message: "No active subscription.",
+                isExpired : false
             });
         }
 
@@ -860,7 +861,7 @@ export const getAllOffer = async (req: any, res: any) => {
                     isActive: false,
                 })
 
-            return res.status(403).json({
+            return res.status(200).json({
                 message: "Your subscription has been expired.",
                 isExpired : true
             })
