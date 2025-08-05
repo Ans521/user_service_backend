@@ -10,6 +10,7 @@ import { sendPush, sendPushToAll } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
 import { Order } from "../models/order";
+import { DatabaseService } from "firebase-admin/lib/database/database";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -845,11 +846,14 @@ export const getAllOffer = async (req: any, res: any) => {
             isActive: true
         }).sort({ endDate: -1 }).lean();
 
+        const data = await Offer.find();
+
         if (!order) {
             return res.status(200).json({
                 isActive: false,
                 message: "No active subscription.",
-                isExpired : false
+                isExpired : false,
+                data
             });
         }
 
@@ -863,11 +867,11 @@ export const getAllOffer = async (req: any, res: any) => {
 
             return res.status(200).json({
                 message: "Your subscription has been expired.",
-                isExpired : true
+                isExpired : true,
+                data
             })
         }
 
-        const data = await Offer.find();
         
         if (!data) {
             return res.status(400).json({ success: false, message: 'Offer not found' });
