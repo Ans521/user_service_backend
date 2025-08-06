@@ -22,6 +22,7 @@ import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { RecentConnection } from "../models/recentConnection";
 import { types } from "util";
+import paymentLink from "razorpay/dist/types/paymentLink";
 
 dotenv.config()
 connectDb()
@@ -1119,11 +1120,12 @@ export const getInfoUserProvider = async (req: any, res: any) => {
 
         if (isEmployeeLogin) {
             const provider: any = await ServiceProvider.findOne({ phoneNo: findId })
-                .populate(['phoneNo', 'email', 'category', 'subcategory']);
+                .populate(['phoneNo', 'email', 'category', 'subcategory', 'orderId']);
 
             if (!provider) {
                 return res.status(404).json({ message: "No provider found" });
             }
+
             if (provider?.services?.length === 0) {
                 provider.services = [{ service: "Hair Services", serviceList: ["Hair Cut, Styling, HairColoring, Hair Spa"] }, { service: "Skin Services", serviceList: ["Facial, Styling, Anti-Aging, Face Spa"] }]
             }
@@ -1147,6 +1149,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
                 services: provider?.services,
                 imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1747842657687.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
+                paymentInfo : provider?.orderId || [],
             }
 
             return res.status(200).json({ message: 'Fetched the provider info', data: providerData });

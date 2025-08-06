@@ -108,6 +108,10 @@ const serviceProviderSchema = new mongoose.Schema({
   scanQrUrl: {
     type: String
   },
+  orderId : {
+    type : mongoose.Types.ObjectId,
+    ref : "Order"
+  }
 });
 
 export const ServiceProvider = Base.discriminator("ServiceProvider", serviceProviderSchema);

@@ -4,6 +4,7 @@ import { Order } from "../models/order";
 import crypto from "crypto";
 import { Offer } from "../models/offer";
 import { ObjectId } from "mongoose";
+import { ServiceProvider } from "../models/serviceProvider";
 const razorpay = new Razorpay({
   key_id: "rzp_test_X1dulJU5zjt8JR",
   key_secret: "z7ztdMspvTvYDoqD7rFNjLDd",
@@ -103,7 +104,7 @@ export const webHook = async (req: any, res: any) => {
     if (event === "payment.captured") {
 
 
-    const createdOrder =await Order.create({
+      const createdOrder =await Order.create({
       providerId : new Types.ObjectId(String(providerId)),
       offerid: offerId,
       razorpay_order_id: order.id,
@@ -112,7 +113,13 @@ export const webHook = async (req: any, res: any) => {
       startDate: new Date(),
       endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
       });
-      console.log('Order created:', createdOrder);
+
+      const orderId = createdOrder._id
+
+      await ServiceProvider.findOneAndUpdate(
+        { _id: new Types.ObjectId(String(providerId)) },
+        { $set: { orderId } }
+      )
 
     }else if (event === "payment.authorized") {
       const createdOrder =await Order.create({
@@ -124,11 +131,17 @@ export const webHook = async (req: any, res: any) => {
       startDate: new Date(),
       endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
       });
+
+      const orderId = createdOrder._id
+
+      await ServiceProvider.findOneAndUpdate(
+        { _id: new Types.ObjectId(String(providerId)) },
+        { $set: { orderId } }
+      )
       console.log('Order created:', createdOrder);
     }
 
 
-    console.log("event", event);
     if (event === "payment.failed") {
 
     const createdOrder =  await Order.create({
