@@ -839,9 +839,18 @@ export const getAllOffer = async (req: any, res: any) => {
         const { id } = req.user;
 
         const objId = new Types.ObjectId(String(id));
+        
+        const provider = await ServiceProvider.findOne({
+            phoneNo: objId
+        }
+).select('_id').lean()
+        console.log("provider", provider);
+        if(!provider){
+            return res.status(400).json({ success: false, message: 'Provider not found' });
+        }
 
         const order: any = await Order.findOne({
-            providerId: objId,
+            providerId: provider._id,
             status: "paid",
             isActive: true
         }).sort({ endDate: -1 }).lean();
