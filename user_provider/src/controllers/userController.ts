@@ -1128,6 +1128,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 provider.services = [{ service: "Hair Services", serviceList: ["Hair Cut, Styling, HairColoring, Hair Spa"] }, { service: "Skin Services", serviceList: ["Facial, Styling, Anti-Aging, Face Spa"] }]
             }
             const providerData = {
+                _id: provider?._id,
                 name: provider?.name || "John Doe",
                 providerPic: provider?.imageUrl?.PH || "",
                 address: provider?.address || "123 Main St",
