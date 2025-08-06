@@ -106,7 +106,7 @@ export const webHook = async (req: any, res: any) => {
     const createdOrder =await Order.create({
       providerId : new Types.ObjectId(String(providerId)),
       offerid: offerId,
-      razorpay_order_id: order.order_id,
+      razorpay_order_id: order.id,
       status: "paid",
       isActive: true,
       startDate: new Date(),
