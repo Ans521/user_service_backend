@@ -1149,7 +1149,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
                 services: provider?.services,
                 imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1747842657687.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
-                paymentInfo : provider?.orderId || [],
+                isOrderPaid : provider?.orderId?.status === 'paid' ? true : false,
             }
 
             return res.status(200).json({ message: 'Fetched the provider info', data: providerData });
@@ -1170,6 +1170,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
             return res.status(200).json({ message: 'Fetched the user info', data: userData });
         }
     } catch (error) {
+        console.log("error", error);
         return res.status(500).json({ success: false, message: 'Failed to fetch user info' });
     }
 };
