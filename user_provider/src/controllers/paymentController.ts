@@ -3,7 +3,6 @@ import { Types } from "mongoose";
 import { Order } from "../models/order";
 import crypto from "crypto";
 import { Offer } from "../models/offer";
-import { ObjectId } from "mongoose";
 import { ServiceProvider } from "../models/serviceProvider";
 const razorpay = new Razorpay({
   key_id: "rzp_test_X1dulJU5zjt8JR",
@@ -126,7 +125,7 @@ export const webHook = async (req: any, res: any) => {
       providerId : new Types.ObjectId(String(providerId)),
       offerid: offerId,
       razorpay_order_id: order.id,
-      status: "paid",
+      status: "pending",
       isActive: true,
       startDate: new Date(),
       endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
@@ -148,7 +147,7 @@ export const webHook = async (req: any, res: any) => {
         providerId : new Types.ObjectId(String(providerId)),
         offerid: offerId,
         razorpay_order_id: order.order_id,
-        status: "paid",
+        status: "failed",
         isActive: true,
         startDate: new Date(),
         endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
@@ -162,3 +161,50 @@ export const webHook = async (req: any, res: any) => {
   }
 };
 
+export const getPaymentHistory = async (req: any, res: any) => {
+  try {
+    const { id } = req.user;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    const objId = new Types.ObjectId(String(id));
+
+    const serviceProvider = await ServiceProvider.findOne({ phoneNo: objId }).select('_id').lean()
+    if (!serviceProvider) {
+      return res.status(404).json({ success: false, message: "Service Provider not found" });
+    }
+    const providerId = serviceProvider._id;
+
+    const paymentHistory = await Order.aggregate([
+      {$match: { providerId: new Types.ObjectId(String(providerId)) }},
+      {$lookup : {
+        from: "offers",
+        localField: "offerid",
+        foreignField: "_id",
+        as: "offerid"
+      }},
+      {$unwind: "$offerid"},
+      {$project: {
+        _id: 1,
+        razorpay_order_id: 1,
+        status: 1,
+        startDate: 1,
+        isActive: 1,
+        offerPrice: "$offerid.price",
+        offerValidity: "$offerid.validity",
+      }
+    }
+    ])
+
+    
+
+
+
+    res.status(200).json({ success: true, paymentHistory });
+  } catch (error) {
+    console.error("Error fetching order history:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
