@@ -55,7 +55,7 @@ router.post('/send-review-message', verifyToken, sendReviewMsgToUser);
 router.post('/user-to-provider', verifyToken, userToProvider);
 router.patch('/update-main-cat', bannerMain); // admin api
 router.post('/rajorpay/webhook', express.raw({ type: "application/json" }), webHook);
-router.post('/get-payment-history', verifyToken, getPaymentHistory);
+router.get('/get-payment-history', verifyToken, getPaymentHistory);
 
 // if we want to update few values, then use patch
 // if we want to replace entire resource with the current resource, then use put
