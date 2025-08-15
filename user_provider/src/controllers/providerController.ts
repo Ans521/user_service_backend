@@ -836,16 +836,20 @@ export const insertOffer = async (req: any, res: any) => {
 
 export const getAllOffer = async (req: any, res: any) => {
     try {
-        const { id } = req.user;
+        const { id, role } = req.user;
+        if (role === 'admin'){
+            const data = await Offer.find();
+            return res.status(200).json({ success: true, data });  
+        }
 
         const objId = new Types.ObjectId(String(id));
-        
+
         const provider = await ServiceProvider.findOne({
             phoneNo: objId
         }
-).select('_id').lean()
+        ).select('_id').lean()
         console.log("provider", provider);
-        if(!provider){
+        if (!provider) {
             return res.status(400).json({ success: false, message: 'Provider not found' });
         }
 
@@ -861,7 +865,7 @@ export const getAllOffer = async (req: any, res: any) => {
             return res.status(200).json({
                 isActive: false,
                 message: "No active subscription.",
-                isExpired : false,
+                isExpired: false,
                 data
             });
         }
@@ -876,21 +880,21 @@ export const getAllOffer = async (req: any, res: any) => {
 
             return res.status(200).json({
                 message: "Your subscription has been expired.",
-                isExpired : true,
+                isExpired: true,
                 data
             })
         }
 
-        
+
         if (!data) {
             return res.status(400).json({ success: false, message: 'Offer not found' });
         }
 
         const validity = order.endDate.getTime() - new Date().getTime();
 
-        const validityInDays = Math.ceil(validity / (1000 * 60 * 60 * 24)); 
+        const validityInDays = Math.ceil(validity / (1000 * 60 * 60 * 24));
 
-        return res.status(200).json({ success: true, data, offer : order, isExpired: false, validity : validityInDays});
+        return res.status(200).json({ success: true, data, offer: order, isExpired: false, validity: validityInDays });
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });

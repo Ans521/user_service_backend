@@ -3,10 +3,17 @@ const secretKey = '1n1b484n39886ni124114inai';
 
 const verifyToken = (req : any, res : any, next : any) => {
     const authToken : any = req.headers.authorization;
-    console.log("authToken", authToken)
-    const token : any = authToken?.split(" ")[1];
-    console.log("token", token)
-    if (!token) return res.status(401).json({ message: "No token provided" });
+
+    let token : any = authToken?.split(" ")[1];
+
+    if (!token && req.cookies?.token) {
+       token = req.cookies.token;
+    }
+
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+    console.log("token", token);
     try {
       console.log("secretKey")
       const decoded = jwt.verify(token, secretKey);
