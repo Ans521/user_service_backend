@@ -5,7 +5,7 @@ import {connectDb} from "./config/db";
 import authRouter from "./routes/route";
 import cookieParser from 'cookie-parser';
 import path from 'path';
-import http from 'http'; 
+import http from 'http';
 import {Server}  from 'socket.io'
 import cors from 'cors';
 import { userSocketMap } from "./controllers/socket";
@@ -43,9 +43,8 @@ io.on('connect', async (socket: any) => {
         userSocketMap.delete(socket.userId);
     });
 });
-
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: ["http://localhost:3000", "http://82.180.144.143:5000"],
   credentials: true
 }));
 
