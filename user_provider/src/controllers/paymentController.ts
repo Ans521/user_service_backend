@@ -104,13 +104,13 @@ export const webHook = async (req: any, res: any) => {
 
 
       const createdOrder =await Order.create({
-      providerId : new Types.ObjectId(String(providerId)),
-      offerid: offerId,
-      razorpay_order_id: order.id,
-      status: "paid",
-      isActive: true,
-      startDate: new Date(),
-      endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
+        providerId : new Types.ObjectId(String(providerId)),
+        offerid: offerId,
+        razorpay_order_id: order.id,
+        status: "paid",
+        isActive: true,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
       });
 
       const orderId = createdOrder._id
@@ -154,7 +154,7 @@ export const webHook = async (req: any, res: any) => {
         });
       console.log('Order created:', createdOrder);  
     }
-    return res.json({ status: "ok",  });
+    return res.json({ status: "ok" });
   } else {
     console.log("❌ Invalid webhook signature");
     return res.status(400).json({ status: "invalid signature" });
@@ -197,10 +197,6 @@ export const getPaymentHistory = async (req: any, res: any) => {
       }
     }
     ])
-
-    
-
-
 
     res.status(200).json({ success: true, paymentHistory });
   } catch (error) {
