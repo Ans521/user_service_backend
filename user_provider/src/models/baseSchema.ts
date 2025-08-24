@@ -36,7 +36,7 @@
       enquiry: {
           type: [{
             sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-            isByMe: { type: Boolean, default: false },
+            isByMe: { type: Boolean},
             messages: [new mongoose.Schema({
               message: { type: String },
               timeStamp: { type: Date, default: Date.now }

@@ -761,6 +761,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             const finalSubcategoryIds = [...subcategoryIds, ...filteredSubCatIds]; // agr subcatIds mei jo id hai or wo same filteredSubCatIds mei bhi hai toh usse filter krdo
             query.subcategory = { $in: finalSubcategoryIds };
         }
+
         if (subcat) {
             if (!Array.isArray(subcat)) {
                 return res.status(400).json({ data: { message: "Subcate should be array of the subcat Ids or Id." } });
@@ -781,7 +782,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             // }
         }
 
-        console.log("query", query)
         const providers = await ServiceProvider.aggregate([
             { $match: query },
             {
@@ -802,8 +802,33 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 }
             },
             { $unwind: "$phoneNo" },
+            {
+                $lookup : {
+                    from : 'orders',
+                    let : {orderId :  "$orderId"},
+                    pipeline : [
+                        { $match : 
+                            { $expr : 
+                                { $and : 
+                                    [
+                                        {$eq : ["$_id", "$$orderId"]},
+                                        {$gt : ["$endDate", new Date()]},
+                                        // {$eq : ["$status", "paid"]},
+                                        { $eq : ["$isActive", true]}
+                                    ] 
+                                } 
+                            } },
+                    ],
+                    as : "orderId"
+                }
+            },
             { $skip: skip },
             { $limit: limit },
+            {
+                $match : {
+                    orderId : { $ne : []} // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
+                }
+            },
             {
                 $project: {
                     _id: 1,

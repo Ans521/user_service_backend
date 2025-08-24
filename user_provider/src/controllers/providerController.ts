@@ -168,11 +168,13 @@ export const addBanner = async (req: any, res: any) => {
 export const getAllBanner = async (req: any, res: any) => {
     try {
         const { position } = req.query;
+        // const { id } = req.user;
         if (!position) {
             return res.status(400).json({ success: false, message: 'position is required' });
         }
+
         let banners;
-        if (position == 'all') {
+        if (position == 'all'){
             banners = await Banner.find().lean();
         } else {
             banners = await Banner.find({ position }).lean();
@@ -184,8 +186,32 @@ export const getAllBanner = async (req: any, res: any) => {
             (banner: any) =>
                 banner.imageUrl && banner.link && banner.imageUrl?.trim() !== "" && banner.link?.trim() !== ""
         );
-
+        
+        // const providerIdObj = new Types.ObjectId(String(id));
         if (position === 'all') {
+            // const order: any = await Order.findOne({
+            //     providerId: providerIdObj,
+            //     status: "paid",
+            //     isActive: true
+            // }).sort({ endDate: -1 }).lean();
+
+            // if(order){
+            //     if (order.endDate < new Date()) {
+            //     await Order.findOneAndUpdate({
+            //         serviceProviderId: providerIdObj,
+            //     },
+            //         {
+            //             isActive: false,
+            //         })
+
+            //     await ServiceProvider.updateOne(
+            //         { phoneNo: providerIdObj },
+            //         { $unset: { offerId: 1 } }
+            //     )
+            // }
+            // }
+            
+
 
             const topBanner = validBanners.filter((ban) => ban.position === 'top').map(({ _id, imageUrl, link }) => ({ _id, imageUrl, link }));
 
@@ -837,9 +863,9 @@ export const insertOffer = async (req: any, res: any) => {
 export const getAllOffer = async (req: any, res: any) => {
     try {
         const { id, role } = req.user;
-        if (role === 'admin'){
+        if (role === 'admin') {
             const data = await Offer.find();
-            return res.status(200).json({ success: true, data });  
+            return res.status(200).json({ success: true, data });
         }
 
         const objId = new Types.ObjectId(String(id));
@@ -848,7 +874,7 @@ export const getAllOffer = async (req: any, res: any) => {
             phoneNo: objId
         }
         ).select('_id').lean()
-        console.log("provider", provider);
+
         if (!provider) {
             return res.status(400).json({ success: false, message: 'Provider not found' });
         }
@@ -857,7 +883,7 @@ export const getAllOffer = async (req: any, res: any) => {
             providerId: provider._id,
             status: "paid",
             isActive: true
-        }).sort({ endDate: -1 }).lean();
+        }).sort({ startDate: -1 }).lean();
 
         const data = await Offer.find();
 
@@ -878,13 +904,17 @@ export const getAllOffer = async (req: any, res: any) => {
                     isActive: false,
                 })
 
+            await ServiceProvider.updateOne(
+                { phoneNo: objId },
+                { $unset: { orderId: 1 } }
+            )
+            
             return res.status(200).json({
                 message: "Your subscription has been expired.",
                 isExpired: true,
                 data
             })
         }
-
 
         if (!data) {
             return res.status(400).json({ success: false, message: 'Offer not found' });
@@ -895,6 +925,7 @@ export const getAllOffer = async (req: any, res: any) => {
         const validityInDays = Math.ceil(validity / (1000 * 60 * 60 * 24));
 
         return res.status(200).json({ success: true, data, offer: order, isExpired: false, validity: validityInDays });
+
     } catch (error) {
         console.log("error", error)
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
