@@ -1357,7 +1357,7 @@ export const userSentMsg = async (req: any, res: any) => {
         const pushPayload: PushPayload = {
             tittle,
             message: "",
-            deviceToken: provider?.deviceToken || "",
+            deviceToken: senderData?.deviceToken || "",
             type,
             data
         }
