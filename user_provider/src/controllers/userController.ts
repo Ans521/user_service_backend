@@ -1250,6 +1250,8 @@ export const userSentMsg = async (req: any, res: any) => {
         }
 
         const provider: any = await ServiceProvider.findOne({ _id: receiverId });
+
+        console.log("provider", provider.deviceToken)
         if (!provider) {
             return res.status(404).json({ message: "Provider id provided is wrong" });
         }
