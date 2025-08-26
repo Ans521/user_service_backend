@@ -1262,9 +1262,9 @@ export const userSentMsg = async (req: any, res: any) => {
 
         const sender = new Types.ObjectId(String(id));
 
-        const senderData: any = await Base.findOne({ phoneNo: sender }).select("name").lean();
+        const senderData: any = await Base.findOne({ phoneNo: sender }).select("name deviceToken").lean();
         const senderId = senderData?._id;
-
+        console.log("senderData", senderData)
         console.log("senderid", senderId)
         const serviceData: any = await ServiceProvider.findOne({
             _id: receiverId,
