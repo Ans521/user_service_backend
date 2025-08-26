@@ -1361,6 +1361,7 @@ export const userSentMsg = async (req: any, res: any) => {
             type,
             data
         }
+        console.log("pushPayload", pushPayload)
         sendPush(pushPayload);
 
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
