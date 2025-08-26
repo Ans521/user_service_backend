@@ -1250,7 +1250,6 @@ export const userSentMsg = async (req: any, res: any) => {
         }
 
         const provider: any = await ServiceProvider.findOne({ _id: receiverId });
-
         if (!provider) {
             return res.status(404).json({ message: "Provider id provided is wrong" });
         }
@@ -1357,7 +1356,7 @@ export const userSentMsg = async (req: any, res: any) => {
         const pushPayload: PushPayload = {
             tittle,
             message: "",
-            deviceToken: senderData?.deviceToken || "",
+            deviceToken: provider?.deviceToken || "",
             type,
             data
         }
