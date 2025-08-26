@@ -145,7 +145,7 @@ export const verifyOtp = async (req: any, res: any) => {
 
                 await User.updateOne({ _id: userData._id }, { deviceToken });
 
-                const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: false }, secretKey, { expiresIn: '12h' })
+                const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: false }, secretKey)
 
                 return res.status(200).json({
                     message: "User logged in before",
@@ -188,7 +188,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 await ServiceProvider.updateOne({ _id: providerData._id }, { deviceToken });
                 if (providerData?.isUserVerifed) {
                     redisOperation(phoneNo1, userOtp, false);
-                    const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: true }, secretKey, { expiresIn: '12h' })
+                    const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: true }, secretKey)
                     return res.status(200).json({
                         message: "Service provider verified",
                         data: sentData,
@@ -196,7 +196,7 @@ export const verifyOtp = async (req: any, res: any) => {
                     });
                 } else {
                     redisOperation(phoneNo1, userOtp, false);
-                    const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: true }, secretKey, { expiresIn: '12h' })
+                    const token = jwt.sign({ id: phoneRef?._id.toString(), isEmployeeLogin: true }, secretKey)
                     return res.status(200).json({
                         message: "Service provider logged in before but not verified yet by admin",
                         data: sentData,
@@ -275,7 +275,7 @@ export const registerUser = async (req: any, res: any) => {
         if (!newUser) {
             return res.status(404).json({ message: "User not found or not registered" });
         }
-        const token = jwt.sign({ id: phoneNoId.toString(), isEmployeeLogin: false }, secretKey, { expiresIn: '12h' })
+        const token = jwt.sign({ id: phoneNoId.toString(), isEmployeeLogin: false }, secretKey)
 
         return res.status(200).json({
             message: "User registered successfully",
@@ -431,7 +431,7 @@ export const handleImageUrls = async (req: any, res: any) => {
             }, { new: true }
         ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages');
 
-        const token: string = jwt.sign({ id: phoneData?._id.toString(), isEmployeeLogin: true }, secretKey, { expiresIn: '12h' });
+        const token: string = jwt.sign({ id: phoneData?._id.toString(), isEmployeeLogin: true }, secretKey);
         const sentData = {
             ...providerData.toObject(),
             phone,
@@ -1361,24 +1361,7 @@ export const userSentMsg = async (req: any, res: any) => {
             type,
             data
         }
-        // sendPush(pushPayload);
-
-        // const addEnquiry : any = await ServiceProvider.updateOne(
-        //     { _id: receiverId },
-        //     {
-        //         $push: {
-        //             recentConnectedUser: {
-        //                 type,
-        //                 userPhoneRef: senderId,
-        //                 timeStamp: new Date()
-        //             }
-        //         }
-        //     }
-        // );
-
-        // if (addEnquiry.modifiedCount === 0) {
-        //     return res.status(404).json({ success: false, message: 'Failed to update recent connected user' });
-        // }
+        sendPush(pushPayload);
 
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
 
