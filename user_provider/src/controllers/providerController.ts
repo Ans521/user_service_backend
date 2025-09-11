@@ -10,7 +10,6 @@ import { sendPush, sendPushToAll } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
 import { Order } from "../models/order";
-import { DatabaseService } from "firebase-admin/lib/database/database";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -1084,7 +1083,7 @@ export const getAllReview = async (req: any, res: any) => {
                 $project: {
                     rating: '$reviewComments.rating',
                     name: '$reviewComments.sendedBy.name',
-                    timeStamp: { $ifNull: ['$reviewComments.timeStamp', "$$NOW"] },
+                    timeStamp: { $ifNull: ['$reviewComments.time', '$$NOW'] },
                     message: { $ifNull: ['$reviewComments.message', ''] },
                     comment: { $ifNull: ['$reviewComments.comment', ''] },
                     senderId: '$reviewComments.sendedBy.phoneNo',
