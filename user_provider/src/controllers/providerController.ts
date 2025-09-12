@@ -991,7 +991,8 @@ export const handleReview = async (req: any, res: any) => {
         const data: any = {
             sendedBy: phoneId,
             rating,
-            comment
+            comment,
+            time : new Date(),
         }
 
         const providerIdObj = new Types.ObjectId(String(providerId));

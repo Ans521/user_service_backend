@@ -47,7 +47,7 @@ const serviceProviderSchema = new mongoose.Schema({
       rating: Number,
       comment: String,
       message: String,
-      time : {type : Date, default : Date.now()}
+      time : Date
     }],
     default: [],
     _id: false
