@@ -16,6 +16,28 @@ connectDb();
 const app = express();
 const server = http.createServer(app);
 
+(async () => {
+//   await Base.syncIndexes();
+//   await Base.updateMany(
+//     {
+//         $or : [
+//             { location : { $exists : false } },
+//             { location : null },
+//         ]
+//     }, 
+//     {
+//         $set : {
+//             location : {
+//                 type : "Point",
+//                 coordinates : [0, 0] 
+//             }
+//         }
+//     }
+//   )
+
+
+  console.log("Indexes synced ✅");
+})();
 
 export const io = new Server(server, {
     cors: {
