@@ -24,7 +24,7 @@ router.get('/get-provider-list', getProviderList) // admin api
 router.post('/phone-by-admin', storePhone) // admin api
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory) // admin api
-router.get('/get-all-category', seeAllCategory)
+router.get('/get-all-category', verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory) // admin api
 router.post('/provider-with-filter', verifyToken, getProviderWithCategory)
 router.put('/update-info', verifyToken, updateProfile)

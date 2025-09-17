@@ -12,17 +12,15 @@ import { createClient } from 'redis';
 import { Category } from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
-import { Types } from "mongoose";
 import { sendNotification, userSocketMap } from "./socket";
 import { Socket } from "socket.io-client";
 import { time, timeStamp } from "console";
 import { Base } from "../models/baseSchema";
-import { sendPush } from "../utils/redisUtils"
+import { haversine, sendPush } from "../utils/redisUtils"
 import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
-import { RecentConnection } from "../models/recentConnection";
-import { types } from "util";
-import paymentLink from "razorpay/dist/types/paymentLink";
+import { Types } from "mongoose";
+import mongoose from "mongoose";
 
 dotenv.config()
 connectDb()
@@ -629,6 +627,68 @@ export const addCategory = async (req: any, res: any) => {
 
 export const seeAllCategory = async (req: any, res: any) => {
     try {
+        const {id} = req.user;
+        if(!id){
+            throw new Error("User ID required in request");
+        }
+        const {long, lat} = req.query;
+        console.log("long, lat", long, lat)
+
+        if(!long || !lat){
+            return res.status(400).json({ success: false, message: 'Longitude and latitude are required' });
+        }
+
+        const searcherId = new mongoose.Types.ObjectId(id);
+        
+        console.log("searcherId", searcherId)
+
+        const existedLatLong =  await Base.findOne({
+            phoneNo : searcherId,
+            location: { $exists: true, $ne: null } 
+        }).select('location');
+
+        console.log("existedLatLong", existedLatLong)
+
+        if(!existedLatLong){
+            await Base.updateOne(
+                {phoneNo : searcherId},
+                {
+                    $set : {
+                        location : {
+                        type : "Point",
+                        coordinates : [Number(long), Number(lat)]
+                    }
+                },
+             },
+             {upsert : true}
+            )
+        }else {
+            const prevLong : number = existedLatLong?.location!.coordinates[0];
+            const prevLat : number = existedLatLong?.location!.coordinates[1];
+            const dist = haversine(prevLat, prevLong, lat, long)
+
+            console.log("dist between the both cordinates", dist)
+
+            const distKm = dist / 1000; // convert to km
+            console.log("distKm", distKm)
+            
+            if(distKm > 3){
+                await Base.updateOne(
+                    {phoneNo : searcherId},
+                    {
+                        $set : {
+                            location : {
+                            type : "Point",
+                            coordinates : [Number(long), Number(lat)]
+                        }
+                    },
+                 },
+                 {upsert : true}
+            )
+            console.log("location updated", distKm)
+            }
+        }
+
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
         const filteredSubcategories = subcategories.map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" });
@@ -730,18 +790,33 @@ export const deleteCategory = async (req: any, res: any) => {
 // }
 
 
-
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
-        const { rating, subcat, minPrice, maxPrice, search } = req.body;
+        const { rating, subcat, minPrice, maxPrice, search, lat, long } = req.body;
+        const {id} = req.user;
+        console.log("id", id)
+
+         if(!lat && !long){
+            return res.status(400).json({ success: false, message: 'Latitude and Longitude are required' });
+        }
+
+        if (!Number.isFinite(lat) || !Number.isFinite(long)) {
+                throw new Error("Invalid coordinates; expected numbers like 77.12345 and 28.12345");
+        }
+        const searcherId = new Types.ObjectId(id);
+
+        console.log("searcherId", searcherId)
+
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
+       
 
         if (page < 1 || limit < 1) {
             return res.status(400).json({ success: false, message: 'Page and limit must be greater than 0' });
         }
+
         let query: any = {
             status: 'approved',
         };
@@ -766,6 +841,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             if (!Array.isArray(subcat)) {
                 return res.status(400).json({ data: { message: "Subcate should be array of the subcat Ids or Id." } });
             }
+
             const subcatObjectIds = subcat.map((sub: any) => new Types.ObjectId(String(sub)));
             query.subcategory = { $in: subcatObjectIds };
 
@@ -782,7 +858,19 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             // }
         }
 
-        const providers = await ServiceProvider.aggregate([
+        const providers = await Base.aggregate([
+            {
+                $geoNear: {
+                near: { type: "Point", coordinates: [long, lat] },
+                distanceField: "distance", // adds a `distance` field to each doc
+                spherical: true,
+                maxDistance: 30000, // 30 km in meters
+                query : {location : {$exists : true, $ne : null}} // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
+                    // query: { category: "cleaning" } // only cleaning staff
+                    // The query is just an extra filter that tells Mongo:
+                    // “Only consider providers that match this condition before computing distance.”
+                }
+            },
             { $match: query },
             {
                 $lookup: {
@@ -826,7 +914,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             { $limit: limit },
             {
                 $match : {
-                    orderId : { $ne : []} // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
+                    orderId : {$ne : []} // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
                 }
             },
             {
@@ -845,6 +933,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     providerPic: { $ifNull: ["$imageUrl.photo", "Not available in Db"] },
                     servicePrice: { $ifNull: ["$servicePrice", 100] },
                     workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
+                    distance: 1
                 }
             }
         ]);

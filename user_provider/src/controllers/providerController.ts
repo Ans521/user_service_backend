@@ -675,8 +675,8 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
         ])
         // new Date(Date.now() - 40000) .. MongoDB expects a Date object to compare with a date field (timeStamp).
 
-        const tittle = 'New Enquiry';
-        const message = `you have a new enquiry`;
+        const tittle = 'Enquiry';
+        const message = `You have a new enquiry`;
         const providerData: any = await Base.findOne({ _id: providerId }).lean();
         const deviceToken = providerData?.deviceToken || "";
         const sendToData = {
@@ -735,8 +735,11 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 type: "new_inquiry",
                 data,
             }
-
-            // sendPush(pushPayload);
+            
+            console.log("type", type);
+            if(type !== 'chat'){
+                sendPush(pushPayload);
+            }
 
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection' });
         }
