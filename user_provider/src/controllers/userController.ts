@@ -793,7 +793,15 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         
         console.log(`lat: ${lat}, long: ${long}`)
 
-        if (!Number.isFinite(lat) || !Number.isFinite(long)) {
+
+        console.log("Type of lat and long", typeof lat, typeof long)
+        const longNum = Number(long);
+        const latNum = Number(lat);
+
+        console.log("After conversion to number", typeof latNum, typeof longNum)
+
+        
+        if (!Number.isFinite(longNum) || !Number.isFinite(latNum)) {
                 throw new Error("Invalid coordinates; expected numbers like 77.12345 and 28.12345");
         }
         const searcherId = new Types.ObjectId(id);
@@ -850,11 +858,11 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         }
 
         console.log("Final query:", query);
-        console.log(`Coordinates being used - Latitude: ${lat}, Longitude: ${long}`);
+        console.log(`Coordinates being used - Latitude: ${latNum}, Longitude: ${longNum}`);
         const providers = await Base.aggregate([
             {
                 $geoNear: {
-                near: { type: "Point", coordinates: [long, lat] },
+                near: { type: "Point", coordinates: [longNum, latNum] },
                 distanceField: "distance", // adds a `distance` field to each doc
                 spherical: true,
                 // maxDistance: 50000, // 30 km in meters
