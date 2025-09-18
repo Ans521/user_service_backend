@@ -1082,17 +1082,20 @@ export const getAllReview = async (req: any, res: any) => {
                 $project: {
                     rating: '$reviewComments.rating',
                     name: '$reviewComments.sendedBy.name',
-                    timeStamp: { $ifNull: ['$reviewComments.time', '$$NOW'] },
+                    timeStamp: { $ifNull: ['$reviewComments.time', '$$NOW']},
                     message: { $ifNull: ['$reviewComments.message', ''] },
                     comment: { $ifNull: ['$reviewComments.comment', ''] },
                     senderId: '$reviewComments.sendedBy.phoneNo',
                 }
             },
             {
+                $sort :  {timeStamp : -1}
+            },
+            {
                 $group: {
                     _id: null,
                     avgRating: { $avg: '$rating' },
-                    reviews: { $push: '$$ROOT' }
+                    reviews: { $push: '$$ROOT' },
                 }
             }
         ])
