@@ -632,11 +632,6 @@ export const seeAllCategory = async (req: any, res: any) => {
             throw new Error("User ID required in request");
         }
         const {long, lat} = req.query;
-        console.log("long, lat", long, lat)
-
-        if(!long || !lat){
-            return res.status(400).json({ success: false, message: 'Longitude and latitude are required' });
-        }
 
         const searcherId = new mongoose.Types.ObjectId(id);
         
@@ -796,9 +791,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         const {id} = req.user;
         console.log("id", id)
 
-         if(!lat && !long){
-            return res.status(400).json({ success: false, message: 'Latitude and Longitude are required' });
-        }
 
         if (!Number.isFinite(lat) || !Number.isFinite(long)) {
                 throw new Error("Invalid coordinates; expected numbers like 77.12345 and 28.12345");
@@ -810,8 +802,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-
-       
 
         if (page < 1 || limit < 1) {
             return res.status(400).json({ success: false, message: 'Page and limit must be greater than 0' });
@@ -864,7 +854,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 near: { type: "Point", coordinates: [long, lat] },
                 distanceField: "distance", // adds a `distance` field to each doc
                 spherical: true,
-                maxDistance: 30000, // 30 km in meters
+                maxDistance: 50000, // 30 km in meters
                 query : {location : {$exists : true, $ne : null}} // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
                     // query: { category: "cleaning" } // only cleaning staff
                     // The query is just an extra filter that tells Mongo:

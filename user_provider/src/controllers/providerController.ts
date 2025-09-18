@@ -735,11 +735,6 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 type: "new_inquiry",
                 data,
             }
-            
-            console.log("type", type);
-            if(type !== 'chat'){
-                sendPush(pushPayload);
-            }
 
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection' });
         }
