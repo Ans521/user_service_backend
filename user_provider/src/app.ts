@@ -17,24 +17,23 @@ const app = express();
 const server = http.createServer(app);
 
 (async () => {
-//   await Base.syncIndexes();
-//   await Base.updateMany(
-//     {
-//         $or : [
-//             { location : { $exists : false } },
-//             { location : null },
-//         ]
-//     }, 
-//     {
-//         $set : {
-//             location : {
-//                 type : "Point",
-//                 coordinates : [0, 0] 
-//             }
-//         }
-//     }
+  // await Base.updateMany(
+  //   {
+  //       $or : [
+  //           { location : { $exists : true } },
+  //           { location : null } 
+  //       ]
+  //   },
+  //   {
+  //       $set : {
+  //           location : {
+  //               type : "Point",
+  //               coordinates : [30.707600, 76.715126] 
+  //           }
+  //       }
+  //   }
+// }
 //   )
-
 
   console.log("Indexes synced ✅");
 })();
