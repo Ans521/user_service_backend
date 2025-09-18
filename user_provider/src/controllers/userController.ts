@@ -790,7 +790,8 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         const { rating, subcat, minPrice, maxPrice, search, lat, long } = req.body;
         const {id} = req.user;
         console.log("id", id)
-
+        
+        console.log(`lat: ${lat}, long: ${long}`)
 
         if (!Number.isFinite(lat) || !Number.isFinite(long)) {
                 throw new Error("Invalid coordinates; expected numbers like 77.12345 and 28.12345");
@@ -848,13 +849,15 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             // }
         }
 
+        console.log("Final query:", query);
+        console.log(`Coordinates being used - Latitude: ${lat}, Longitude: ${long}`);
         const providers = await Base.aggregate([
             {
                 $geoNear: {
                 near: { type: "Point", coordinates: [long, lat] },
                 distanceField: "distance", // adds a `distance` field to each doc
                 spherical: true,
-                maxDistance: 50000, // 30 km in meters
+                // maxDistance: 50000, // 30 km in meters
                 query : {location : {$exists : true, $ne : null}} // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
                     // query: { category: "cleaning" } // only cleaning staff
                     // The query is just an extra filter that tells Mongo:
