@@ -857,21 +857,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             // }
         }
 
-        console.log("Final query:", query);
-        console.log(`Coordinates being used - Latitude: ${latNum}, Longitude: ${longNum}`);
-        const providers = await Base.aggregate([
-            {
-                $geoNear: {
-                near: { type: "Point", coordinates: [longNum, latNum] },
-                distanceField: "distance", // adds a `distance` field to each doc
-                spherical: true,
-                // maxDistance: 50000, // 30 km in meters
-                query : {location : {$exists : true, $ne : null}} // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
-                    // query: { category: "cleaning" } // only cleaning staff
-                    // The query is just an extra filter that tells Mongo:
-                    // “Only consider providers that match this condition before computing distance.”
-                }
-            },
+        const pipeline : any = [
             { $match: query },
             {
                 $lookup: {
@@ -937,7 +923,29 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     distance: 1
                 }
             }
-        ]);
+        ]
+        const geoNear = [
+            {
+                $geoNear: {
+                near: { type: "Point", coordinates: [longNum, latNum] },
+                distanceField: "distance", // adds a `distance` field to each doc
+                spherical: true,
+                // maxDistance: 50000, // 30 km in meters
+                query : {location : {$exists : true, $ne : null}} // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
+                    // query: { category: "cleaning" } // only cleaning staff
+                    // The query is just an extra filter that tells Mongo:
+                    // “Only consider providers that match this condition before computing distance.”
+                }
+            },
+        ]
+
+        if(latNum && longNum){
+            pipeline.unshift(...geoNear);
+        }
+        console.log("Pipeline:", JSON.stringify(pipeline, null, 2));
+        console.log("Final query:", query);
+        console.log(`Coordinates being used - Latitude: ${latNum}, Longitude: ${longNum}`);
+        const providers = await Base.aggregate(pipeline);
 
         if (providers.length === 0) {
             return res.status(200).json({ success: false, message: "No providers found" });
@@ -1047,8 +1055,18 @@ export const getProviderInfo = async (req: any, res: any) => {
                                                 name: "$$sender.name",
                                             }
                                         }
-                                    }
-                                }
+                                    },
+                                },
+                            }
+                        }
+                    }
+                },
+                {
+                    $set : {
+                        reviewComments : {
+                            $sortArray : {
+                                input : "$reviewComments",
+                                sortBy : { timeStamp : -1}
                             }
                         }
                     }
