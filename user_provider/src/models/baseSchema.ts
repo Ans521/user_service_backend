@@ -48,13 +48,17 @@ const baseSchema = new mongoose.Schema(
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { 
         type: [Number],
+        default: [0, 0],
         validate : {
         validator : function (val : number[]) {
+          if(!val || val.length === 0) return true; 
            return (
             Array.isArray(val) &&
             val.length === 2 &&
             val.every((n) => Number.isFinite(n))
-          );  // validator just return true or false on that basis mongoose will decide to save or not          
+          );  
+
+          // validator just return true or false on that basis mongoose will decide to save or not          
       },
       message: "Coordinates must be an array of [longitude, latitude]"
     }
