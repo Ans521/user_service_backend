@@ -152,11 +152,20 @@ export const addBanner = async (req: any, res: any) => {
     try {
         const { data } = req.body;
 
-        if (!data || data.length === 0) {
+        const {banner, bannerNotify} = data;
+        
+        if (!banner || banner.length === 0) {
             return res.status(400).json({ success: false, message: 'data is required' });
         }
 
-        const result = await Banner.insertMany(data);
+        const result = await Banner.insertMany(banner);
+
+
+        if(bannerNotify.length > 1){
+            sendPushToAll("New Banners Added 🎉", `Check out the latest ${bannerNotify.length} banners in our app.`, bannerNotify[0].imageUrl, "allUsers")
+        }else if(bannerNotify.length === 1){
+            sendPushToAll(bannerNotify[0].tittle, bannerNotify[0].message, bannerNotify[0].imageUrl, "allUsers")
+        }
 
         return res.status(200).json({ success: true, message: 'Banner added successfully', data: result });
     } catch {
@@ -836,19 +845,36 @@ export const getRecentConnectedUser = async (req: any, res: any) => {
 export const insertOffer = async (req: any, res: any) => {
     try {
         const { data } = req.body;
-        console.log("reqObj", data);
 
-        const validData = data.filter((item: any) => item.imageUrl && item.price && item.validity)
+        if (!data || data.length === 0) {
+            return res.status(400).json({ success: false, message: 'data is required' });
+        }
+
+        console.log("data", data);
+
+        const {insertPayload, notificationInfo} = data;
+
+        
+        const validData = insertPayload.filter((item: any) => item.imageUrl && item.price && item.validity)
+
+        console.log("validData", validData);
 
         if (validData.length === 0) {
             return res.status(400).json({ success: false, message: 'Please provide valid data' });
         }
+
+        if(notificationInfo.length > 1){
+            sendPushToAll("New Festive Offers 🎉", `Check out the latest ${notificationInfo.length} offers in our app.`, notificationInfo[0].imageUrl, "serviceProviders")
+        }else if(notificationInfo.length === 1){
+              sendPushToAll(notificationInfo[0].tittle, notificationInfo[0].message, notificationInfo[0].imageUrl, "serviceProviders")
+        }
+
         const response = await Offer.insertMany(validData);
 
         if (!response) {
             return res.status(400).json({ success: false, message: 'Offer not added' });
         }
-        sendPushToAll("New Offer")
+      
 
         return res.status(200).json({ success: true, message: 'Offer added successfully' });
     } catch (error) {
@@ -962,7 +988,6 @@ export const updateOffer = async (req: any, res: any) => {
         if (!response.modifiedCount) {
             return res.status(400).json({ success: false, message: 'Offer not updated' });
         }
-        sendPushToAll("Offer Updates")
         return res.status(200).json({ success: true, message: 'Offer updated successfully' });
 
     } catch (error) {

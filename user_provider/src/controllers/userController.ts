@@ -16,11 +16,12 @@ import { sendNotification, userSocketMap } from "./socket";
 import { Socket } from "socket.io-client";
 import { time, timeStamp } from "console";
 import { Base } from "../models/baseSchema";
-import { haversine, sendPush } from "../utils/redisUtils"
+import { haversine, sendPush, subscribeToTopic } from "../utils/redisUtils"
 import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
+import { subscribe } from "diagnostics_channel";
 
 dotenv.config()
 connectDb()
@@ -93,6 +94,9 @@ export const verifyOtp = async (req: any, res: any) => {
     try {
         const { userOtp, isEmployeeLogin, deviceToken } = req.body;
 
+        subscribeToTopic(deviceToken, "allUsers"); 
+
+        
         if (!userOtp || typeof isEmployeeLogin === 'undefined') {
             return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin or deviceToken" });
         }
@@ -170,6 +174,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 }
             }
         } else {
+            subscribeToTopic(deviceToken, "serviceProviders");
             const providerData: any = await ServiceProvider.findOne({ phoneNo: phoneRef }).populate('phoneNo').populate('email')
             const sentData = {
                 _id: providerData?._id,
@@ -793,17 +798,12 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         
         console.log(`lat: ${lat}, long: ${long}`)
 
-
         console.log("Type of lat and long", typeof lat, typeof long)
         const longNum = Number(long);
         const latNum = Number(lat);
 
         console.log("After conversion to number", typeof latNum, typeof longNum)
 
-        
-        if (!Number.isFinite(longNum) || !Number.isFinite(latNum)) {
-                throw new Error("Invalid coordinates; expected numbers like 77.12345 and 28.12345");
-        }
         const searcherId = new Types.ObjectId(id);
 
         console.log("searcherId", searcherId)
@@ -887,9 +887,9 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                                 { $and : 
                                     [
                                         {$eq : ["$_id", "$$orderId"]},
-                                        {$gt : ["$endDate", new Date()]},
+                                        // {$gt : ["$endDate", new Date()]},
                                         // {$eq : ["$status", "paid"]},
-                                        { $eq : ["$isActive", true]}
+                                        // { $eq : ["$isActive", true]}
                                     ] 
                                 } 
                             } },
