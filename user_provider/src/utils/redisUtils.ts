@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import dotenv from 'dotenv';
 import { PushPayload } from "../types/notification.type";
+import { Message } from "firebase-admin/messaging";
 
 dotenv.config();
 
@@ -10,6 +11,7 @@ serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
 });
+
 
 // ✅ Send push to a specific device
 export const sendPush = async ({
@@ -46,32 +48,56 @@ export const sendPush = async ({
 };
 
 
-export const sendPushToAll = async (newService: any) => {
+export const sendPushToAll = async (title: string, message: string, imageUrl: string, topic : string) => {
   try {
-    await admin.messaging().send({
-      topic : 'allUsers',
+
+    const messageToSend: Message = {
+      topic,
       notification: {
-        title: "Admin Update",
-        body: `Hii, Check Offer ${newService}`
-      }
-    });
+        title,
+        body: message,
+      },
+      android: {
+        notification: {
+          imageUrl: imageUrl
+        }
+      },
+      apns: {
+        fcmOptions: {
+          imageUrl: imageUrl
+        }
+      },
+    };
+
+    await admin.messaging().send(messageToSend);
     console.log('✅ Push broadcasted to allUsers!');
   } catch (error) {
     console.error('❌ Error sending push to all:', error);
   }
 };
 
-export const haversine = (lat1 : number, lon1 : number, lat2 : number, lon2 : number) => {
+
+export const subscribeToTopic = async (deviceToken: string, topic: string) => {
+  try {
+    await admin.messaging().subscribeToTopic(deviceToken, topic);
+    console.log(`✅ Device subscribed to ${topic}`);
+  }
+  catch (error) {
+    console.error('❌ Error subscribing to topic:', error);
+  }
+}
+
+export const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371e3;
-  const toRad = (x : any) => (x * Math.PI) / 180;
+  const toRad = (x: any) => (x * Math.PI) / 180;
   const φ1 = toRad(lat1), φ2 = toRad(lat2);
   const Δφ = toRad(lat2 - lat1), Δλ = toRad(lon2 - lon1);
 
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
 }
