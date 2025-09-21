@@ -125,7 +125,7 @@ export const webHook = async (req: any, res: any) => {
       providerId : new Types.ObjectId(String(providerId)),
       offerid: offerId,
       razorpay_order_id: order.id,
-      status: "pending",
+      status: "paid",
       isActive: true,
       startDate: new Date(),
       endDate: new Date(Date.now() + validity * 24 * 60 * 60 * 1000)
