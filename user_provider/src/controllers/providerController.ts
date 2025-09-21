@@ -10,6 +10,7 @@ import { sendPush, sendPushToAll } from "../utils/redisUtils";
 import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
 import { Order } from "../models/order";
+import { Notify } from "../models/notification";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -932,6 +933,9 @@ export const getAllOffer = async (req: any, res: any) => {
                 { $unset: { orderId: 1 } }
             )
             
+            await Order.deleteOne(
+                {_id: order._id }
+            )
             return res.status(200).json({
                 message: "Your subscription has been expired.",
                 isExpired: true,
@@ -1220,6 +1224,75 @@ export const userToProvider = async (req: any, res: any) => {
         return res.status(200).json({ success: true, message: 'User role updated to serviceProvider', data: providerCreated });
 
     } catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const sendNotificationToAll = async (req: any, res: any) => {
+    try {
+
+        console.log("req.user", req.body);
+        const { data } = req.body;
+
+        console.log("notify", data);
+        if (!data) {
+            return res.status(400).json({ success: false, message: 'Notification data is missing' });
+        }
+        const {tittle, message} = data;
+
+        if (!tittle || !message) {
+            return res.status(400).json({ success: false, message: 'Tittle or message is missing' });
+        }
+
+        sendPushToAll(tittle, message, "", "allUsers")
+
+        await Notify.create({
+            tittle,
+            message,
+            datetime: new Date(),
+        })
+
+        return res.status(200).json({ success: true, message: 'Notification sent successfully' });
+
+    }catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const getAllNotification = async (req: any, res: any) => {
+    try {
+        const response = await Notify.find().sort({ datetime: -1 });
+
+        return res.status(200).json({ success: true, data: response });
+    }catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+
+export const providerUserCount = async (req: any, res: any) => {
+    try {
+        const { id } = req.user;
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Unauthorized' });
+        }
+        
+        const response = await Base.aggregate([
+            {
+                $group : {
+                    _id : "$role",
+                    total : {$sum : 1}
+                }
+            }
+        ])
+
+        console.log("response", response);
+
+        return res.status(200).json({ success: true, data: response });
+    }catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }

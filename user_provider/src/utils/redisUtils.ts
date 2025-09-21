@@ -57,16 +57,16 @@ export const sendPushToAll = async (title: string, message: string, imageUrl: st
         title,
         body: message,
       },
-      android: {
-        notification: {
-          imageUrl: imageUrl
-        }
-      },
-      apns: {
-        fcmOptions: {
-          imageUrl: imageUrl
-        }
-      },
+      // android: {
+      //   notification: {
+      //     imageUrl: imageUrl
+      //   }
+      // },
+      // apns: {
+      //   fcmOptions: {
+      //     imageUrl: imageUrl
+      //   }
+      // },
     };
 
     await admin.messaging().send(messageToSend);

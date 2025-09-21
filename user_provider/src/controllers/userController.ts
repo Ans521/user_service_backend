@@ -13,15 +13,12 @@ import { Category } from "../models/categorySchema";
 import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
 import { sendNotification, userSocketMap } from "./socket";
-import { Socket } from "socket.io-client";
-import { time, timeStamp } from "console";
 import { Base } from "../models/baseSchema";
 import { haversine, sendPush, subscribeToTopic } from "../utils/redisUtils"
 import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
-import { subscribe } from "diagnostics_channel";
 
 dotenv.config()
 connectDb()
@@ -94,9 +91,7 @@ export const verifyOtp = async (req: any, res: any) => {
     try {
         const { userOtp, isEmployeeLogin, deviceToken } = req.body;
 
-        subscribeToTopic(deviceToken, "allUsers"); 
-
-        
+        subscribeToTopic(deviceToken, "allUsers");
         if (!userOtp || typeof isEmployeeLogin === 'undefined') {
             return res.status(400).json({ message: "Invalid Otp or Type of isEmplyoeeLogin or deviceToken" });
         }
@@ -274,7 +269,6 @@ export const registerUser = async (req: any, res: any) => {
             { $set: registerData },
             { new: true }
         ).select('-__v -userMsg');
-        
         if (!newUser) {
             return res.status(404).json({ message: "User not found or not registered" });
         }
@@ -452,21 +446,64 @@ export const handleImageUrls = async (req: any, res: any) => {
 
 export const getProviderList = async (req: any, res: any) => {
     try {
-        const providerData = await ServiceProvider.find({ role: 'ServiceProvider' }).populate('phoneNo');
-        const providers = providerData.map((provider: any) => {
-            return {
-                _id: provider._id,
-                name: provider.name,
-                phoneNo: provider.phoneNo?.phoneNumber,
-                imageUrl: provider.imageUrl,
-                status: provider.status
-            }
-        });
-        return res.status(200).json({ success: true, data: providers });
+        const providerData = await ServiceProvider.aggregate([
+            {
+                $lookup: {
+                    from: "orders",
+                    let: { orderId: "$orderId" },
+                    pipeline: [
+                        {
+                            $match:
+                            {
+                                $expr:
+                                {
+                                    $and: [
+                                        { $eq: ["$_id", "$$orderId"] },
+                                        { $gt: ["$endDate", new Date()] },
+                                        { $eq: ["$status", "paid"] },
+                                        { $eq: ["$isActive", true] }
+                                    ]
+                                }
+                            }
+                        }
+                ],
+                as : "orderDetails"
+            },
+        },
+        { $unwind: { path: "$orderDetails", preserveNullAndEmptyArrays: true } },
+         // preserveNullAndEmptyArrays :  keeps the document even if the array is empty or null.
+         {
+            $lookup : {
+            from : "phonenumbers",
+            localField : "phoneNo",
+            foreignField : "_id",
+            as : "phoneNo"
+         }
+        },
+        {$unwind : "$phoneNo"},
+        {$project : {
+            _id: 1,
+            name: 1,
+            phoneNo: "$phoneNo.phoneNumber",
+            address: 1,
+            aadharAddress: 1,
+            orderSubStatus : {$ifNull : ["$orderDetails.status", null]},
+            orderSubActive : {$ifNull : ["$orderDetails.isActive", null]},
+            isUserVerifed: 1, 
+            isProfileCompleted: 1,
+            loggedInBefore: 1,
+            avgRating: 1,
+            totalReviews: 1,
+            status: 1
+        }}
+    ]) 
+
+
+return res.status(200).json({ success: true, data: providerData });
     } catch (error) {
-        console.error('Error fetching service providers:', error);
-        return res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
+    console.error('Error fetching service providers:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+}
 };
 
 
@@ -632,63 +669,65 @@ export const addCategory = async (req: any, res: any) => {
 
 export const seeAllCategory = async (req: any, res: any) => {
     try {
-        const {id} = req.user;
-        if(!id){
-            throw new Error("User ID required in request");
-        }
-        const {long, lat} = req.query;
+        const { id, role } = req.user;
 
-        const searcherId = new mongoose.Types.ObjectId(id);
-        
-        console.log("searcherId", searcherId)
+        if (!role || role !== 'admin') {
+            if (!id) {
+                throw new Error("User ID required in request");
+            }
+            const { long, lat } = req.query;
 
-        const existedLatLong =  await Base.findOne({
-            phoneNo : searcherId,
-            location: { $exists: true, $ne: null } 
-        }).select('location');
+            const searcherId = new mongoose.Types.ObjectId(id);
 
-        console.log("existedLatLong", existedLatLong)
+            console.log("searcherId", searcherId)
 
-        if(!existedLatLong){
-            await Base.updateOne(
-                {phoneNo : searcherId},
-                {
-                    $set : {
-                        location : {
-                        type : "Point",
-                        coordinates : [Number(long), Number(lat)]
-                    }
-                },
-             },
-             {upsert : true}
-            )
-        }else {
-            const prevLong : number = existedLatLong?.location!.coordinates[0];
-            const prevLat : number = existedLatLong?.location!.coordinates[1];
-            const dist = haversine(prevLat, prevLong, lat, long)
+            const existedLatLong = await Base.findOne({
+                phoneNo: searcherId,
+                location: { $exists: true, $ne: null }
+            }).select('location');
 
-            console.log("dist between the both cordinates", dist)
+            console.log("existedLatLong", existedLatLong)
 
-            const distKm = dist / 1000; // convert to km
-            console.log("distKm", distKm)
-            
-            if(distKm > 3){
+            if (!existedLatLong) {
                 await Base.updateOne(
-                    {phoneNo : searcherId},
+                    { phoneNo: searcherId },
                     {
-                        $set : {
-                            location : {
-                            type : "Point",
-                            coordinates : [Number(long), Number(lat)]
-                        }
+                        $set: {
+                            location: {
+                                type: "Point",
+                                coordinates: [Number(long), Number(lat)]
+                            }
+                        },
                     },
-                 },
-                 {upsert : true}
-            )
-            console.log("location updated", distKm)
+                    { upsert: true }
+                )
+            } else {
+                const prevLong: number = existedLatLong?.location!.coordinates[0];
+                const prevLat: number = existedLatLong?.location!.coordinates[1];
+                const dist = haversine(prevLat, prevLong, lat, long)
+
+                console.log("dist between the both cordinates", dist)
+
+                const distKm = dist / 1000; // convert to km
+                console.log("distKm", distKm)
+
+                if (distKm > 3) {
+                    await Base.updateOne(
+                        { phoneNo: searcherId },
+                        {
+                            $set: {
+                                location: {
+                                    type: "Point",
+                                    coordinates: [Number(long), Number(lat)]
+                                }
+                            },
+                        },
+                        { upsert: true }
+                    )
+                    console.log("location updated", distKm)
+                }
             }
         }
-
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
         const filteredSubcategories = subcategories.map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" });
@@ -793,9 +832,9 @@ export const deleteCategory = async (req: any, res: any) => {
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
         const { rating, subcat, minPrice, maxPrice, search, lat, long } = req.body;
-        const {id} = req.user;
+        const { id } = req.user;
         console.log("id", id)
-        
+
         console.log(`lat: ${lat}, long: ${long}`)
 
         console.log("Type of lat and long", typeof lat, typeof long)
@@ -857,7 +896,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             // }
         }
 
-        const pipeline : any = [
+        const pipeline: any = [
             { $match: query },
             {
                 $lookup: {
@@ -878,30 +917,34 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             },
             { $unwind: "$phoneNo" },
             {
-                $lookup : {
-                    from : 'orders',
-                    let : {orderId :  "$orderId"},
-                    pipeline : [
-                        { $match : 
-                            { $expr : 
-                                { $and : 
-                                    [
-                                        {$eq : ["$_id", "$$orderId"]},
-                                        // {$gt : ["$endDate", new Date()]},
-                                        // {$eq : ["$status", "paid"]},
-                                        // { $eq : ["$isActive", true]}
-                                    ] 
-                                } 
-                            } },
+                $lookup: {
+                    from: 'orders',
+                    let: { orderId: "$orderId" },
+                    pipeline: [
+                        {
+                            $match:
+                            {
+                                $expr:
+                                {
+                                    $and:
+                                        [
+                                            { $eq: ["$_id", "$$orderId"] },
+                                            // {$gt : ["$endDate", new Date()]},
+                                            // {$eq : ["$status", "paid"]},
+                                            // { $eq : ["$isActive", true]}
+                                        ]
+                                }
+                            }
+                        },
                     ],
-                    as : "orderId"
+                    as: "orderId"
                 }
             },
             { $skip: skip },
             { $limit: limit },
             {
-                $match : {
-                    orderId : {$ne : []} // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
+                $match: {
+                    orderId: { $ne: [] } // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
                 }
             },
             {
@@ -927,11 +970,11 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         const geoNear = [
             {
                 $geoNear: {
-                near: { type: "Point", coordinates: [longNum, latNum] },
-                distanceField: "distance", // adds a `distance` field to each doc
-                spherical: true,
-                // maxDistance: 50000, // 30 km in meters
-                query : {location : {$exists : true, $ne : null}} // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
+                    near: { type: "Point", coordinates: [longNum, latNum] },
+                    distanceField: "distance", // adds a `distance` field to each doc
+                    spherical: true,
+                    // maxDistance: 50000, // 30 km in meters
+                    query: { location: { $exists: true, $ne: null } } // like location is field so don't put $ infront of it.. but put $location then MongoDB interprets $location as an operator, not a field.
                     // query: { category: "cleaning" } // only cleaning staff
                     // The query is just an extra filter that tells Mongo:
                     // “Only consider providers that match this condition before computing distance.”
@@ -939,7 +982,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             },
         ]
 
-        if(latNum && longNum){
+        if (latNum && longNum) {
             pipeline.unshift(...geoNear);
         }
         console.log("Pipeline:", JSON.stringify(pipeline, null, 2));
@@ -1001,12 +1044,12 @@ export const getProviderInfo = async (req: any, res: any) => {
                                 serviceList: "Facial, Styling, Anti-Aging, Face Spa"
                             }]]
                         },
-                        imageGallery: {$ifNull: ["$galleryImages", ['http://localhost:4000']]},
+                        imageGallery: { $ifNull: ["$galleryImages", ['http://localhost:4000']] },
                         scanQrUrl: 1,
                         aboutUs: 1,
                         reviewComments: 1,
-                        address : 1,
-                        aadharAddress : 1
+                        address: 1,
+                        aadharAddress: 1
                     }
                 },
                 {
@@ -1062,24 +1105,24 @@ export const getProviderInfo = async (req: any, res: any) => {
                     }
                 },
                 {
-                    $set : {
-                        reviewComments : {
-                            $sortArray : {
-                                input : "$reviewComments",
-                                sortBy : { timeStamp : -1}
+                    $set: {
+                        reviewComments: {
+                            $sortArray: {
+                                input: "$reviewComments",
+                                sortBy: { timeStamp: -1 }
                             }
                         }
                     }
                 },
                 { $unset: "senders" },
                 {
-                    $project : {
-                        data : {
+                    $project: {
+                        data: {
                             $mergeObjects: [
                                 "$$ROOT",
                                 {
-                                    email : '$phoneNo.email',
-                                    phoneNo : '$phoneNo.phoneNumber'
+                                    email: '$phoneNo.email',
+                                    phoneNo: '$phoneNo.phoneNumber'
                                 }
                             ]
                         }
@@ -1153,7 +1196,7 @@ export const getProviderInfo = async (req: any, res: any) => {
 
             const providerListResponse = providerResponse.filter((provider: any) => provider._id.toString() !== id.toString());
             // data: providerInfo, providerList: providerListResponse
-            return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo2, providerList: providerListResponse});
+            return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo2, providerList: providerListResponse });
         } else {
             return res.status(401).json({ data: { message: 'Provided Id have no info' } });
         }
@@ -1282,7 +1325,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
                 services: provider?.services,
                 imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1747842657687.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
-                isOrderPaid : provider?.orderId?.status === 'paid' ? true : false,
+                isOrderPaid: provider?.orderId?.status === 'paid' ? true : false,
             }
 
             return res.status(200).json({ message: 'Fetched the provider info', data: providerData });

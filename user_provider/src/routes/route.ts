@@ -1,11 +1,10 @@
 import express from "express";
 import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
-import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer, handleReview, getAllReview, sendReviewMsgToUser, deleteOffer, userToProvider, bannerMain} from "../controllers/providerController";
+import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer, handleReview, getAllReview, sendReviewMsgToUser, deleteOffer, userToProvider, bannerMain, providerUserCount, getAllNotification, sendNotificationToAll} from "../controllers/providerController";
 import { getPaymentHistory, webHook } from "../controllers/paymentController";
 import { auth } from "firebase-admin";
 import { adminAuth, authMe } from "../controllers/adminAuth";
-
 
 const router = express.Router();
 
@@ -13,18 +12,16 @@ router.post("/get-otp", getOtp);
 router.post("/verify-otp", verifyOtp);
 router.post("/register-user", registerUser);
 router.post("/register-provider", registerProvider);
-
 router.post('/resgister-admin-provider', uploadMultiple, addProvider);
 router.post('/upload-image', upload.single('image'), handleSingleImageUrl);
 router.post('/upload-gallery', verifyToken, upload.array('images', 6), uploadImages) // gallery wali image upload
-
 router.post('/upload-document', handleImageUrls);
 router.get('/get-provider-info',verifyToken, getProviderInfo)
 router.get('/get-provider-list', getProviderList) // admin api
 router.post('/phone-by-admin', storePhone) // admin api
 router.put('/update-provider-status/:id', updateProviderStatus)
 router.post('/categories', addCategory) // admin api
-router.get('/get-all-category', verifyToken, seeAllCategory)
+router.get('/get-all-category',verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory) // admin api
 router.post('/provider-with-filter', verifyToken, getProviderWithCategory)
 router.put('/update-info', verifyToken, updateProfile)
@@ -48,7 +45,7 @@ router.get('/fetch-all-sent-msg', verifyToken, fetchAllUserSentMsg);
 router.post('/send-enquiry', verifyToken, sendRecentConnectionEnquiry);
 router.get('/get-recent-connection', verifyToken, getRecentConnectedUser);
 router.post('/add-offer', insertOffer);
-router.get('/get-all-offer',verifyToken, getAllOffer);
+router.get('/get-all-offer', verifyToken, getAllOffer);
 router.delete('/delete-offer', deleteOffer);
 router.patch('/update-offer', updateOffer);
 router.post('/post-review', verifyToken, handleReview);
@@ -60,6 +57,10 @@ router.post('/rajorpay/webhook', express.raw({ type: "application/json" }), webH
 router.get('/get-payment-history', verifyToken, getPaymentHistory);
 router.post('/auth', adminAuth);
 router.get('/auth/me', authMe);
+router.get('/count', providerUserCount)
+router.post('/send-notify', sendNotificationToAll)
+router.get('/get-all-notify', getAllNotification)
+
 // if we want to update few values, then use patch
 // if we want to replace entire resource with the current resource, then use put
 
