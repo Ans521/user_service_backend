@@ -162,9 +162,9 @@ export const addBanner = async (req: any, res: any) => {
         const result = await Banner.insertMany(banner);
 
 
-        if(bannerNotify.length > 1){
+        if (bannerNotify.length > 1) {
             sendPushToAll("New Banners Added 🎉", `Check out the latest ${bannerNotify.length} banners in our app.`, bannerNotify[0].imageUrl, "allUsers")
-        }else if(bannerNotify.length === 1){
+        } else if (bannerNotify.length === 1) {
             sendPushToAll(bannerNotify[0].tittle, bannerNotify[0].message, bannerNotify[0].imageUrl, "allUsers")
         }
 
@@ -183,7 +183,7 @@ export const getAllBanner = async (req: any, res: any) => {
         }
 
         let banners;
-        if (position == 'all'){
+        if (position == 'all') {
             banners = await Banner.find().lean();
         } else {
             banners = await Banner.find({ position }).lean();
@@ -195,7 +195,7 @@ export const getAllBanner = async (req: any, res: any) => {
             (banner: any) =>
                 banner.imageUrl && banner.link && banner.imageUrl?.trim() !== "" && banner.link?.trim() !== ""
         );
-        
+
         // const providerIdObj = new Types.ObjectId(String(id));
         if (position === 'all') {
             // const order: any = await Order.findOne({
@@ -219,7 +219,7 @@ export const getAllBanner = async (req: any, res: any) => {
             //     )
             // }
             // }
-            
+
 
 
             const topBanner = validBanners.filter((ban) => ban.position === 'top').map(({ _id, imageUrl, link }) => ({ _id, imageUrl, link }));
@@ -853,9 +853,9 @@ export const insertOffer = async (req: any, res: any) => {
 
         console.log("data", data);
 
-        const {insertPayload, notificationInfo} = data;
+        const { insertPayload, notificationInfo } = data;
 
-        
+
         const validData = insertPayload.filter((item: any) => item.imageUrl && item.price && item.validity)
 
         console.log("validData", validData);
@@ -864,10 +864,10 @@ export const insertOffer = async (req: any, res: any) => {
             return res.status(400).json({ success: false, message: 'Please provide valid data' });
         }
 
-        if(notificationInfo.length > 1){
+        if (notificationInfo.length > 1) {
             sendPushToAll("New Festive Offers 🎉", `Check out the latest ${notificationInfo.length} offers in our app.`, notificationInfo[0].imageUrl, "serviceProviders")
-        }else if(notificationInfo.length === 1){
-              sendPushToAll(notificationInfo[0].tittle, notificationInfo[0].message, notificationInfo[0].imageUrl, "serviceProviders")
+        } else if (notificationInfo.length === 1) {
+            sendPushToAll(notificationInfo[0].tittle, notificationInfo[0].message, notificationInfo[0].imageUrl, "serviceProviders")
         }
 
         const response = await Offer.insertMany(validData);
@@ -875,7 +875,7 @@ export const insertOffer = async (req: any, res: any) => {
         if (!response) {
             return res.status(400).json({ success: false, message: 'Offer not added' });
         }
-      
+
 
         return res.status(200).json({ success: true, message: 'Offer added successfully' });
     } catch (error) {
@@ -932,9 +932,9 @@ export const getAllOffer = async (req: any, res: any) => {
                 { phoneNo: objId },
                 { $unset: { orderId: 1 } }
             )
-            
+
             await Order.deleteOne(
-                {_id: order._id }
+                { _id: order._id }
             )
             return res.status(200).json({
                 message: "Your subscription has been expired.",
@@ -1019,7 +1019,7 @@ export const handleReview = async (req: any, res: any) => {
             sendedBy: phoneId,
             rating,
             comment,
-            time : new Date(),
+            time: new Date(),
         }
 
         const providerIdObj = new Types.ObjectId(String(providerId));
@@ -1111,14 +1111,14 @@ export const getAllReview = async (req: any, res: any) => {
                 $project: {
                     rating: '$reviewComments.rating',
                     name: '$reviewComments.sendedBy.name',
-                    timeStamp: { $ifNull: ['$reviewComments.time', '$$NOW']},
+                    timeStamp: { $ifNull: ['$reviewComments.time', '$$NOW'] },
                     message: { $ifNull: ['$reviewComments.message', ''] },
                     comment: { $ifNull: ['$reviewComments.comment', ''] },
                     senderId: '$reviewComments.sendedBy.phoneNo',
                 }
             },
             {
-                $sort :  {timeStamp : -1}
+                $sort: { timeStamp: -1 }
             },
             {
                 $group: {
@@ -1239,7 +1239,7 @@ export const sendNotificationToAll = async (req: any, res: any) => {
         if (!data) {
             return res.status(400).json({ success: false, message: 'Notification data is missing' });
         }
-        const {tittle, message} = data;
+        const { tittle, message } = data;
 
         if (!tittle || !message) {
             return res.status(400).json({ success: false, message: 'Tittle or message is missing' });
@@ -1255,7 +1255,7 @@ export const sendNotificationToAll = async (req: any, res: any) => {
 
         return res.status(200).json({ success: true, message: 'Notification sent successfully' });
 
-    }catch (error) {
+    } catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
@@ -1266,7 +1266,7 @@ export const getAllNotification = async (req: any, res: any) => {
         const response = await Notify.find().sort({ datetime: -1 });
 
         return res.status(200).json({ success: true, data: response });
-    }catch (error) {
+    } catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
@@ -1275,24 +1275,60 @@ export const getAllNotification = async (req: any, res: any) => {
 
 export const providerUserCount = async (req: any, res: any) => {
     try {
-        const { id } = req.user;
-        if (!id) {
-            return res.status(400).json({ success: false, message: 'Unauthorized' });
+        // const { id } = req.user;
+        // if (!id) {
+        //     return res.status(400).json({ success: false, message: 'Unauthorized' });
+        // }
+
+        const [baseCounts, offerCount, notifyCount] = await Promise.all([
+            Base.aggregate([
+                { $group: { _id: "$role", total: { $sum: 1 } } }
+            ]),
+            Offer.aggregate([
+                { $group: { _id: null, total: { $sum: 1 } } }
+            ]),
+            Notify.aggregate([
+                { $group: { _id: null, total: { $sum: 1 } } }
+            ])
+        ])
+
+        const response = {
+            baseCounts,
+            offerCount,
+            notifyCount
         }
-        
-        const response = await Base.aggregate([
+        return res.status(200).json({ success: true, data: response });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const getAllUser = async (req: any, res: any) => {
+    try {
+        const response = await User.aggregate([
             {
-                $group : {
-                    _id : "$role",
-                    total : {$sum : 1}
+                $lookup:
+                {
+                    from: 'phonenumbers',
+                    localField: 'phoneNo',
+                    foreignField: '_id',
+                    as: 'phoneNo'
+                }
+            },
+            { $unwind: '$phoneNo' },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    phoneNo: '$phoneNo.phoneNumber',
+                    address: 1,
+                    pincode: { $ifNull: ['$phoneNo.pincode', '311342'] },
                 }
             }
         ])
-
-        console.log("response", response);
-
         return res.status(200).json({ success: true, data: response });
-    }catch (error) {
+    } catch (error) {
         console.error('Error fetching user:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }

@@ -12,6 +12,9 @@ const baseSchema = new mongoose.Schema(
       type: mongoose.Types.ObjectId,
       ref: "PhoneNumber",
     },
+    pincode : {
+      type : Number,
+    },
     phoneNo: {
       type: mongoose.Types.ObjectId,
       ref: "PhoneNumber",
