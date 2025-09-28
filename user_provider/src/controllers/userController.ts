@@ -230,9 +230,9 @@ export const verifyOtp = async (req: any, res: any) => {
 }
 
 export const registerUser = async (req: any, res: any) => {
-    const { name, email, address, mpin, phone } = req.body;
+    const { name, email, address, mpin, phone, pincode } = req.body;
 
-    if (!name || !email || !address || !phone) {
+    if (!name || !email || !address || !phone || !pincode) {
         return res.status(400).json({ message: "All fields are required." });
     }
 
@@ -257,7 +257,7 @@ export const registerUser = async (req: any, res: any) => {
         const phoneNoId = userData?._id;
 
         const loggedInBefore = true;
-        const registerData: any = { name, email: phoneNoId, address, loggedInBefore }
+        const registerData: any = { name, email: phoneNoId, address, loggedInBefore, pincode }
 
         if (mpin && typeof mpin === "string") {
             const hashedMpin = await bcrypt.hash(mpin, 10);
@@ -287,9 +287,9 @@ export const registerUser = async (req: any, res: any) => {
 
 
 export const registerProvider = async (req: any, res: any) => {
-    const { name, email, address, address2, category, subcategory, phone }: { name: string; email: string; address: string; address2?: string, category?: string, subcategory?: string, phone: string } = req.body;
+    const { name, email, address, address2, category, subcategory, phone, pincode}: { name: string; email: string; address: string; address2?: string, category?: string, subcategory?: string, phone: string, pincode : number } = req.body;
 
-    if (!name || !email || !address || !phone || !category || !subcategory) {
+    if (!name || !email || !address || !phone || !category || !subcategory || !pincode) {
         return res.status(400).json({ message: "Provide all the fields" });
     }
 
@@ -330,7 +330,7 @@ export const registerProvider = async (req: any, res: any) => {
     }
 
     try {
-        const serviceProviderData: any = { name, email: phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category: categoryId?._id, subcategory: subcategoryId?._id };
+        const serviceProviderData: any = { name, email: phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category: categoryId?._id, subcategory: subcategoryId?._id, pincode };
 
         const newServiceProvider: any = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneNoId },
@@ -494,7 +494,8 @@ export const getProviderList = async (req: any, res: any) => {
             loggedInBefore: 1,
             avgRating: 1,
             totalReviews: 1,
-            status: 1
+            status: 1,
+            pincode : {$ifNull : ["$pincode", '133123']}
         }}
     ]) 
 
@@ -534,7 +535,7 @@ export const storePhone = async (req: any, res: any) => {
 
 export const addProvider = async (req: any, res: any) => {
     try {
-        const { name, email, category, subcategory, address, aadharAddress, phone } = req.body;
+        const { name, category, subcategory, address, aadharAddress, phone } = req.body;
 
         if (!req.files) {
             return res.status(400).send("No file uploaded.");
@@ -563,22 +564,16 @@ export const addProvider = async (req: any, res: any) => {
         const loggedInBefore = true;
         const phoneNo = await PhoneNumber.findOne({ phoneNumber: phone });
 
-        const providerExist = await ServiceProvider.findOne({ email: email });
-
-        if (providerExist) {
-            return res.status(400).json({ message: "Email is already registered." });
-        }
-        if (!name || !email || !address || !category || !subcategory || !aadharAddress) {
+        if (!name || !address || !category || !subcategory || !aadharAddress) {
             return res.status(500).json({ message: "Please provide all the required fields." });
         }
 
         const catResponse = await Category.findOne({ category });
         const categoryId = catResponse?._id;
 
-        const subCatResponse = await SubCategory.findOne({ subcategory });
-        const subcategoryId = subCatResponse?._id;
+        const subcategoryId = subcategory?._id;
 
-        const providerData = { phoneNo: phoneNo?._id, name, email, category: categoryId, subcategory: subcategoryId, address, aadharAddress, files, isUserVerifed, status, loggedInBefore };
+        const providerData = { phoneNo: phoneNo?._id, name, category: categoryId, subcategory: subcategoryId, address, aadharAddress, files, isUserVerifed, status, loggedInBefore };
 
         const newServiceProvider = new ServiceProvider(providerData);
         await newServiceProvider.save();
