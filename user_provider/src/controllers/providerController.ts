@@ -162,11 +162,11 @@ export const addBanner = async (req: any, res: any) => {
         const result = await Banner.insertMany(banner);
 
 
-        if (bannerNotify.length > 1) {
-            sendPushToAll("New Banners Added 🎉", `Check out the latest ${bannerNotify.length} banners in our app.`, bannerNotify[0].imageUrl, "allUsers")
-        } else if (bannerNotify.length === 1) {
-            sendPushToAll(bannerNotify[0].tittle, bannerNotify[0].message, bannerNotify[0].imageUrl, "allUsers")
-        }
+        // if (bannerNotify.length > 1) {
+        //     sendPushToAll("New Banners Added 🎉", `Check out the latest ${bannerNotify.length} banners in our app.`, bannerNotify[0].imageUrl, "allUsers")
+        // } else if (bannerNotify.length === 1) {
+        //     sendPushToAll(bannerNotify[0].tittle, bannerNotify[0].message, bannerNotify[0].imageUrl, "allUsers")
+        // }
 
         return res.status(200).json({ success: true, message: 'Banner added successfully', data: result });
     } catch {

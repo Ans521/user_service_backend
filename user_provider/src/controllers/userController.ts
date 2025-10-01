@@ -19,6 +19,7 @@ import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
+import { NotifyBell } from "../models/notifiybell";
 
 dotenv.config()
 connectDb()
@@ -1509,6 +1510,12 @@ export const userSentMsg = async (req: any, res: any) => {
             data
         }
         console.log("pushPayload", pushPayload)
+        
+    // in this recevierId is the jispe msg bhej rhe hai and also it's a _id.
+    // senderId bhi _id hai
+    
+        await NotifyBell.create({ providerId: receiverId, tittle, message, senderId, isRead: false })
+
         sendPush(pushPayload);
 
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
@@ -1530,3 +1537,45 @@ interface AuthenticatedRequest extends Request<{}, any, EnquiryType> {
     }
 }
 
+export const fetchNotifyBell = async (req: any, res: any) => {
+    try {
+        const { id } = req.user;
+
+        console.log("data")
+
+        const phoneId = new Types.ObjectId(String(id));
+
+        const user : any = await ServiceProvider.findOne({phoneNo: phoneId}).lean();
+
+        const data = await NotifyBell.find({ providerId: user._id, isRead: false }).sort({ datetime: -1 }).lean();
+
+        if(data.length === 0){
+            return res.status(200).json({data : "All notification have been read"});
+        }
+        return res.status(200).json({data});
+    } catch (error) {
+        console.log("error", error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch notifyBell' });
+    }
+}
+
+export const markReadyNotify = async (req: any, res: any) => {
+    try {
+        const { id } = req.user;
+
+        const phoneId = new Types.ObjectId(String(id));
+
+        const user : any = await ServiceProvider.findOne({phoneNo: phoneId}).lean();
+
+        const response = await NotifyBell.updateMany({ providerId: user._id }, { $set: { isRead: true } });
+
+        if(!response){
+            return res.status(400).json({data: "failed"});
+        }
+
+        return res.status(200).json({data: "success"});
+    } catch (error) {
+        console.log("error", error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch notifyBell' });
+    }
+}
