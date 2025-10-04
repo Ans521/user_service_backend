@@ -19,6 +19,8 @@ import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
+import { NotifyBell } from "../models/notifiybell";
+import { Notify } from "../models/notification";
 
 dotenv.config()
 connectDb()
@@ -287,7 +289,7 @@ export const registerUser = async (req: any, res: any) => {
 
 
 export const registerProvider = async (req: any, res: any) => {
-    const { name, email, address, address2, category, subcategory, phone, pincode}: { name: string; email: string; address: string; address2?: string, category?: string, subcategory?: string, phone: string, pincode : number } = req.body;
+    const { name, email, address, address2, category, subcategory, phone, pincode }: { name: string; email: string; address: string; address2?: string, category?: string, subcategory?: string, phone: string, pincode: number } = req.body;
 
     if (!name || !email || !address || !phone || !category || !subcategory || !pincode) {
         return res.status(400).json({ message: "Provide all the fields" });
@@ -466,45 +468,47 @@ export const getProviderList = async (req: any, res: any) => {
                                 }
                             }
                         }
-                ],
-                as : "orderDetails"
+                    ],
+                    as: "orderDetails"
+                },
             },
-        },
-        { $unwind: { path: "$orderDetails", preserveNullAndEmptyArrays: true } },
-         // preserveNullAndEmptyArrays :  keeps the document even if the array is empty or null.
-         {
-            $lookup : {
-            from : "phonenumbers",
-            localField : "phoneNo",
-            foreignField : "_id",
-            as : "phoneNo"
-         }
-        },
-        {$unwind : "$phoneNo"},
-        {$project : {
-            _id: 1,
-            name: 1,
-            phoneNo: "$phoneNo.phoneNumber",
-            address: 1,
-            aadharAddress: 1,
-            orderSubStatus : {$ifNull : ["$orderDetails.status", null]},
-            orderSubActive : {$ifNull : ["$orderDetails.isActive", null]},
-            isUserVerifed: 1, 
-            isProfileCompleted: 1,
-            loggedInBefore: 1,
-            avgRating: 1,
-            totalReviews: 1,
-            status: 1,
-            pincode : {$ifNull : ["$pincode", '133123']}
-        }}
-    ]) 
+            { $unwind: { path: "$orderDetails", preserveNullAndEmptyArrays: true } },
+            // preserveNullAndEmptyArrays :  keeps the document even if the array is empty or null.
+            {
+                $lookup: {
+                    from: "phonenumbers",
+                    localField: "phoneNo",
+                    foreignField: "_id",
+                    as: "phoneNo"
+                }
+            },
+            { $unwind: "$phoneNo" },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    phoneNo: "$phoneNo.phoneNumber",
+                    address: 1,
+                    aadharAddress: 1,
+                    orderSubStatus: { $ifNull: ["$orderDetails.status", null] },
+                    orderSubActive: { $ifNull: ["$orderDetails.isActive", null] },
+                    isUserVerifed: 1,
+                    isProfileCompleted: 1,
+                    loggedInBefore: 1,
+                    avgRating: 1,
+                    totalReviews: 1,
+                    status: 1,
+                    pincode: { $ifNull: ["$pincode", '133123'] }
+                }
+            }
+        ])
 
 
-return res.status(200).json({ success: true, data: providerData });
+        return res.status(200).json({ success: true, data: providerData });
     } catch (error) {
-    console.error('Error fetching service providers:', error);
-    return res.status(500).json({ success: false, message: 'Internal Server Error' });
-}
+        console.error('Error fetching service providers:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
 };
 
 
@@ -674,14 +678,11 @@ export const seeAllCategory = async (req: any, res: any) => {
 
             const searcherId = new mongoose.Types.ObjectId(id);
 
-            console.log("searcherId", searcherId)
-
             const existedLatLong = await Base.findOne({
                 phoneNo: searcherId,
                 location: { $exists: true, $ne: null }
             }).select('location');
 
-            console.log("existedLatLong", existedLatLong)
 
             if (!existedLatLong) {
                 await Base.updateOne(
@@ -723,6 +724,31 @@ export const seeAllCategory = async (req: any, res: any) => {
                 }
             }
         }
+
+        const loginUserId = new Types.ObjectId(String(id));
+
+        const loginId = await Base.findOne({ phoneNo: loginUserId }).select('_id');
+
+
+        const notifyCount = await NotifyBell.countDocuments({
+            $or: [
+                {
+                    providerId: loginId?._id,
+                    isRead: false,
+                },
+                {
+                    providerId: null,
+                    type: "new_offer",
+                    isRead: false,
+                },
+                {
+                    providerId: null,
+                    type: "allUsers",
+                    isRead: false,
+                }
+            ]
+        });
+
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
         const filteredSubcategories = subcategories.map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" });
@@ -736,7 +762,7 @@ export const seeAllCategory = async (req: any, res: any) => {
             _id: cat._id,
             category: cat?.category,
         }))
-        return res.status(200).json({ success: true, data: response, category: sendData, subcategories: filteredSubcategories });
+        return res.status(200).json({ success: true, data: response, category: sendData, subcategories: filteredSubcategories, NotifyCount: notifyCount });
     } catch (error) {
         console.error('Error fetching categories:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
@@ -1417,6 +1443,11 @@ export const userSentMsg = async (req: any, res: any) => {
             _id: receiverId,
             'enquiry.sender': senderId,
         });
+        const tittle = `New message from ${senderData.name}`;
+        const type = "message";
+
+        const response = await NotifyBell.create({ providerId: receiverId, tittle, message, senderId, isRead: false })
+        console.log("response", response)
 
         if (serviceData) {
             // sender already exists → push new message
@@ -1488,8 +1519,7 @@ export const userSentMsg = async (req: any, res: any) => {
                 { new: true }
             )
         }
-        const tittle = `New message from ${senderData.name}`;
-        const type = "message";
+
 
 
         const dataToSend = {
@@ -1509,6 +1539,11 @@ export const userSentMsg = async (req: any, res: any) => {
             data
         }
         console.log("pushPayload", pushPayload)
+
+        // in this recevierId is the jispe msg bhej rhe hai and also it's a _id.
+        // senderId bhi _id hai
+
+
         sendPush(pushPayload);
 
         return res.status(200).json({ data: { message: 'Message sent successfully' } });
@@ -1530,3 +1565,83 @@ interface AuthenticatedRequest extends Request<{}, any, EnquiryType> {
     }
 }
 
+export const fetchNotifyBell = async (req: any, res: any) => {
+    try {
+        const { id } = req.user;
+
+        console.log("data")
+
+        const phoneId = new Types.ObjectId(String(id));
+
+
+        const user: any = await Base.findOne({ phoneNo: phoneId }).lean();
+
+        const data = await NotifyBell.aggregate([
+            {
+                $match: {
+                    $or: [{ providerId: user._id }, { providerId: null }],
+                    isRead: false
+                }
+            },
+            { $sort: { datetime: -1 } },
+            {
+                $lookup: {
+                    from: "bases",             // collection name of User model
+                    localField: "senderId",
+                    foreignField: "_id",
+                    as: "senderId"
+                }
+            },
+            { $unwind: { path: "$senderId", preserveNullAndEmptyArrays: true } }, // preserveNullAndEmptyArrays is used to keep the notify even if senderId is null
+            {
+                $project: {
+                    _id: 1,
+                    tittle: 1,
+                    message: 1,
+                    datetime: 1,
+                    senderName: { $ifNull: ["$senderId.name", null] }
+                }
+            }
+        ]);
+
+        if (data.length === 0) {
+            return res.status(200).json({ data: "All notification have been read" });
+        }
+
+        await NotifyBell.updateMany({
+            $or: [
+                { providerId: user._id },
+                { providerId: null }
+            ],
+            isRead: false
+        }, { $set: { isRead: true } });
+
+        return res.status(200).json({ data });
+    } catch (error) {
+        console.log("error", error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch notifyBell' });
+    }
+}
+
+// no need for this code markReadyNotify
+
+// export const markReadyNotify = async (req: any, res: any) => {
+//     try {
+//         const { id } = req.user;
+
+//         const phoneId = new Types.ObjectId(String(id));
+
+//         const user : any = await ServiceProvider.findOne({phoneNo: phoneId}).lean();
+
+//         const response = await NotifyBell.updateMany({ providerId: user._id }, { $set: { isRead: true } });
+
+//         if(!response){
+//             return res.status(400).json({data: "failed"});
+//         }
+
+//         return res.status(200).json({data: "success"});
+//     } catch (error) {
+//         console.log("error", error);
+//         return res.status(500).json({ success: false, message: 'Failed to fetch notifyBell' });
+//     }
+// }

@@ -11,6 +11,7 @@ import { PushPayload } from "../types/notification.type";
 import { User } from "../models/user";
 import { Order } from "../models/order";
 import { Notify } from "../models/notification";
+import { NotifyBell } from "../models/notifiybell";
 
 export const uploadImages = async (req: any, res: any) => {
     try {
@@ -162,11 +163,11 @@ export const addBanner = async (req: any, res: any) => {
         const result = await Banner.insertMany(banner);
 
 
-        if (bannerNotify.length > 1) {
-            sendPushToAll("New Banners Added 🎉", `Check out the latest ${bannerNotify.length} banners in our app.`, bannerNotify[0].imageUrl, "allUsers")
-        } else if (bannerNotify.length === 1) {
-            sendPushToAll(bannerNotify[0].tittle, bannerNotify[0].message, bannerNotify[0].imageUrl, "allUsers")
-        }
+        // if (bannerNotify.length > 1) {
+        //     sendPushToAll("New Banners Added 🎉", `Check out the latest ${bannerNotify.length} banners in our app.`, bannerNotify[0].imageUrl, "allUsers")
+        // } else if (bannerNotify.length === 1) {
+        //     sendPushToAll(bannerNotify[0].tittle, bannerNotify[0].message, bannerNotify[0].imageUrl, "allUsers")
+        // }
 
         return res.status(200).json({ success: true, message: 'Banner added successfully', data: result });
     } catch {
@@ -746,6 +747,15 @@ export const sendRecentConnectionEnquiry = async (req: CustomRequest, res: any) 
                 data,
             }
 
+            console.log("senderId", userData._id, "providerId", providerId);
+            await NotifyBell.create({
+                providerId: providerId,
+                tittle,
+                message,
+                senderId: userData._id,
+                datetime: Date.now()
+            }) 
+
             return res.status(200).json({ success: true, message: 'Successfully added into recent connection' });
         }
 
@@ -870,6 +880,11 @@ export const insertOffer = async (req: any, res: any) => {
             sendPushToAll(notificationInfo[0].tittle, notificationInfo[0].message, notificationInfo[0].imageUrl, "serviceProviders")
         }
 
+        await NotifyBell.create({
+            tittle : notificationInfo[0].tittle,
+            message : notificationInfo[0].message,
+            type : "new_offer",
+        })
         const response = await Offer.insertMany(validData);
 
         if (!response) {
@@ -1247,11 +1262,14 @@ export const sendNotificationToAll = async (req: any, res: any) => {
 
         sendPushToAll(tittle, message, "", "allUsers")
 
-        await Notify.create({
+        const response = await NotifyBell.create({
             tittle,
             message,
             datetime: new Date(),
+            type: "allUsers"
         })
+
+        console.log("response", response)
 
         return res.status(200).json({ success: true, message: 'Notification sent successfully' });
 

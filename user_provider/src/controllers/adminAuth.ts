@@ -7,18 +7,18 @@ export const adminAuth = async (req: any, res: any) => {
         return res.status(400).json({ status: "error", message: "Email and password are required" });
     }
 
-    if (email !== 'localproo25@gmail.com' || password !== 'pp' && role !== 'admin') {
+    console.log("email", email, "password", password, "role", role);
+    if (email !== 'localproo25@gmail.com' || password !== 'pp' || role !== 'admin') {
         return res.status(400).json({ message: "creadentials are not valid" });
     }
 
-    const token = jwt.sign({ email, role }, secretKey, { expiresIn: '1h' });
+    const token = jwt.sign({ email, role }, secretKey, { expiresIn: '12h' });
 
     if (!token) {
         return res.status(500).json({ status: "error", message: "Failed to generate token" });
     }
 
-
-res.status(200).json({token, message: "Logged in successfully"});
+        res.status(200).json({token, message: "Logged in successfully"});
     }
 
 export const authMe = async (req: any, res: any) => {
