@@ -4,7 +4,6 @@ const notifyBellSchema = new mongoose.Schema({
     providerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ServiceProvider',
-        required: true
     },
     tittle : {
         type : String
@@ -15,11 +14,13 @@ const notifyBellSchema = new mongoose.Schema({
     senderId : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "Base",
-        required : true
     },
     isRead : {
         type : Boolean,
         default : false
+    },
+    type : {
+        type : String,
     },
     datetime : {
         type : Date,

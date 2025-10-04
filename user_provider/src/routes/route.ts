@@ -1,11 +1,9 @@
 import express from "express";
-import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls, fetchNotifyBell, markReadyNotify} from "../controllers/userController";
+import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls, fetchNotifyBell} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer, handleReview, getAllReview, sendReviewMsgToUser, deleteOffer, userToProvider, bannerMain, providerUserCount, getAllNotification, sendNotificationToAll, getAllUser} from "../controllers/providerController";
 import { getPaymentHistory, webHook } from "../controllers/paymentController";
-import { auth } from "firebase-admin";
 import { adminAuth, authMe } from "../controllers/adminAuth";
-import { verify } from "crypto";
 
 const router = express.Router();
 
@@ -63,7 +61,7 @@ router.post('/send-notify', sendNotificationToAll) // admin api
 router.get('/get-all-notify', getAllNotification) // admin api
 router.get('/get-all-users', getAllUser)
 router.get('/get-notify-bell', verifyToken, fetchNotifyBell)
-router.post('/mark-read', verifyToken, markReadyNotify)
+// router.post('/mark-read', verifyToken, markReadyNotify)
 // if we want to update few values, then use patch
 // if we want to replace entire resource with the current resource, then use put
 
