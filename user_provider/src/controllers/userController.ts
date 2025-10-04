@@ -669,11 +669,35 @@ export const addCategory = async (req: any, res: any) => {
 export const seeAllCategory = async (req: any, res: any) => {
     try {
         const { id, role } = req.user;
-
+        let notifyCount;
         if (!role || role !== 'admin') {
             if (!id) {
                 throw new Error("User ID required in request");
             }
+                    const loginUserId = new Types.ObjectId(String(id));
+
+        const loginId = await Base.findOne({ phoneNo: loginUserId }).select('_id');
+
+        console.log("notif")
+        notifyCount = await NotifyBell.countDocuments({
+            $or: [
+                {
+                    providerId: loginId?._id,
+                    isRead: false,
+                },
+                {
+                    providerId: null,
+                    type: "new_offer",
+                    isRead: false,
+                },
+                {
+                    providerId: null,
+                    type: "allUsers",
+                    isRead: false,
+                }
+            ]
+        });
+        console.log("notifyCount", notifyCount)
             const { long, lat } = req.query;
 
             const searcherId = new mongoose.Types.ObjectId(id);
@@ -705,7 +729,6 @@ export const seeAllCategory = async (req: any, res: any) => {
                 console.log("dist between the both cordinates", dist)
 
                 const distKm = dist / 1000; // convert to km
-                console.log("distKm", distKm)
 
                 if (distKm > 3) {
                     await Base.updateOne(
@@ -724,30 +747,8 @@ export const seeAllCategory = async (req: any, res: any) => {
                 }
             }
         }
+        
 
-        const loginUserId = new Types.ObjectId(String(id));
-
-        const loginId = await Base.findOne({ phoneNo: loginUserId }).select('_id');
-
-
-        const notifyCount = await NotifyBell.countDocuments({
-            $or: [
-                {
-                    providerId: loginId?._id,
-                    isRead: false,
-                },
-                {
-                    providerId: null,
-                    type: "new_offer",
-                    isRead: false,
-                },
-                {
-                    providerId: null,
-                    type: "allUsers",
-                    isRead: false,
-                }
-            ]
-        });
 
         const categories = await Category.find();
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
@@ -762,7 +763,7 @@ export const seeAllCategory = async (req: any, res: any) => {
             _id: cat._id,
             category: cat?.category,
         }))
-        return res.status(200).json({ success: true, data: response, category: sendData, subcategories: filteredSubcategories, NotifyCount: notifyCount });
+        return res.status(200).json({ success: true, data: response, category: sendData, subcategories: filteredSubcategories, notifyCount: notifyCount || 0 });
     } catch (error) {
         console.error('Error fetching categories:', error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
