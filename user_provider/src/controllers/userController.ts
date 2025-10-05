@@ -678,7 +678,6 @@ export const seeAllCategory = async (req: any, res: any) => {
 
         const loginId = await Base.findOne({ phoneNo: loginUserId }).select('_id');
 
-        console.log("notif")
         notifyCount = await NotifyBell.countDocuments({
             $or: [
                 {
@@ -1606,7 +1605,7 @@ export const fetchNotifyBell = async (req: any, res: any) => {
         ]);
 
         if (data.length === 0) {
-            return res.status(200).json({ data: "All notification have been read" });
+            return res.status(200).json({ data: [] });
         }
 
         await NotifyBell.updateMany({
