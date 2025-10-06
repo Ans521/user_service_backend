@@ -772,7 +772,20 @@ export const seeAllCategory = async (req: any, res: any) => {
 export const deleteCategory = async (req: any, res: any) => {
     try {
         const { id } = req.params;
-        await Category.findByIdAndDelete(id);
+        const isCategory = req.query.isCategory == "true";
+        if(isCategory){
+            const response = await Category.findByIdAndDelete(id);
+            if (!response) {
+                return res.status(404).json({ data: { message: "Category not found." } });
+            }
+            await SubCategory.deleteMany({ category: id });
+            return res.status(200).json({ data: { message: "Category and its subcategories deleted successfully." } });
+        }else{
+            const response = await SubCategory.findByIdAndDelete(id);
+            if (!response) {
+                return res.status(404).json({ data: { message: "SubCategory not found." } });
+            }
+        }
         return res.status(200).json({ data: { message: "Category deleted successfully." } });
     } catch (error) {
         console.error('Error deleting category:', error);
