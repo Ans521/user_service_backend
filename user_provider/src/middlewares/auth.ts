@@ -5,12 +5,16 @@ const secretKey = '1n1b484n39886ni124114inai';
 const verifyToken = (req: any, res: any, next: any) => {
   const authToken: any = req.headers.authorization;
 
+  console.log("inside the auth middleware before if condition");
+  console.log("authToken", authToken);
+
   if(req.originalUrl.includes("get-all-category") && authToken === undefined){
       req.user = {role : "user"}; // creating temp id for signing user
       console.log("temp id created for get-all-category api")
       return next();
   }
 
+  console.log("after the if condition in the auth middleware");
   let token : any = authToken?.split(" ")[1];
 
   if (!token && req.cookies?.token) {
