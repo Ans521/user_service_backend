@@ -670,7 +670,9 @@ export const seeAllCategory = async (req: any, res: any) => {
     try {
         const { id, role } = req.user;
         let notifyCount;
-        if (role !== 'admin' && id) {
+        console.log("int the see all category api")
+        if (role !== 'admin' && id && role !== 'user') {
+            console.log("in the if condition of see all category api")
             if (!id) {
                 throw new Error("User ID required in request");
             }
@@ -747,7 +749,8 @@ export const seeAllCategory = async (req: any, res: any) => {
                 }
             }
         }
-        
+
+        console.log("if condition outside")
 
 
         const categories = await Category.find();

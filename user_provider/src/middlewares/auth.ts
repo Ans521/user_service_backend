@@ -7,6 +7,7 @@ const verifyToken = (req: any, res: any, next: any) => {
 
   if(req.originalUrl.includes("get-all-category") && authToken === undefined){
       req.user = {role : "user"}; // creating temp id for signing user
+      console.log("temp id created for get-all-category api")
       return next();
   }
 
