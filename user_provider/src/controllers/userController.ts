@@ -670,11 +670,12 @@ export const seeAllCategory = async (req: any, res: any) => {
     try {
         const { id, role } = req.user;
         let notifyCount;
-        if (!role || role !== 'admin') {
+        if (role !== 'admin' && id) {
             if (!id) {
                 throw new Error("User ID required in request");
             }
-                    const loginUserId = new Types.ObjectId(String(id));
+
+        const loginUserId = new Types.ObjectId(String(id));
 
         const loginId = await Base.findOne({ phoneNo: loginUserId }).select('_id');
 

@@ -5,9 +5,9 @@ const secretKey = '1n1b484n39886ni124114inai';
 const verifyToken = (req: any, res: any, next: any) => {
   const authToken: any = req.headers.authorization;
 
-  if (req.query && req.query.isSkipAuth) {
-    req.user = { id: "000", role: "admin" };
-    return next();
+  if(req.originalUrl.includes("get-all-category") && authToken === undefined){
+      req.user = {role : "user"}; // creating temp id for signing user
+      return next();
   }
 
   let token : any = authToken?.split(" ")[1];
