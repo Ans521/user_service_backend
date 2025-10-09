@@ -232,9 +232,9 @@ export const verifyOtp = async (req: any, res: any) => {
 }
 
 export const registerUser = async (req: any, res: any) => {
-    const { name, email, address, mpin, phone, pincode } = req.body;
+    const { name, email, address, mpin, phone, pinCode } = req.body;
 
-    if (!name || !email || !address || !phone || !pincode) {
+    if (!name || !email || !address || !phone || !pinCode) {
         return res.status(400).json({ message: "All fields are required." });
     }
 
@@ -259,7 +259,7 @@ export const registerUser = async (req: any, res: any) => {
         const phoneNoId = userData?._id;
 
         const loggedInBefore = true;
-        const registerData: any = { name, email: phoneNoId, address, loggedInBefore, pincode }
+        const registerData: any = { name, email: phoneNoId, address, loggedInBefore, pinCode }
 
         if (mpin && typeof mpin === "string") {
             const hashedMpin = await bcrypt.hash(mpin, 10);
@@ -289,9 +289,9 @@ export const registerUser = async (req: any, res: any) => {
 
 
 export const registerProvider = async (req: any, res: any) => {
-    const { name, email, address, address2, category, subcategory, phone, pincode }: { name: string; email: string; address: string; address2?: string, category?: string, subcategory?: string, phone: string, pincode: number } = req.body;
+    const { name, email, address, address2, category, subcategory, phone, pinCode }: { name: string; email: string; address: string; address2?: string, category?: string, subcategory?: string, phone: string, pinCode: number } = req.body;
 
-    if (!name || !email || !address || !phone || !category || !subcategory || !pincode) {
+    if (!name || !email || !address || !phone || !category || !subcategory || !pinCode) {
         return res.status(400).json({ message: "Provide all the fields" });
     }
 
@@ -332,7 +332,7 @@ export const registerProvider = async (req: any, res: any) => {
     }
 
     try {
-        const serviceProviderData: any = { name, email: phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category: categoryId?._id, subcategory: subcategoryId?._id, pincode };
+        const serviceProviderData: any = { name, email: phoneNoId, address, aadharAddress: address2, phoneNo: phoneNoId, category: categoryId?._id, subcategory: subcategoryId?._id, pinCode };
 
         const newServiceProvider: any = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneNoId },
@@ -498,7 +498,7 @@ export const getProviderList = async (req: any, res: any) => {
                     avgRating: 1,
                     totalReviews: 1,
                     status: 1,
-                    pincode: { $ifNull: ["$pincode", '133123'] }
+                    pinCode: { $ifNull: ["$pinCode", '133123'] }
                 }
             }
         ])
