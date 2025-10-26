@@ -875,9 +875,9 @@ export const insertOffer = async (req: any, res: any) => {
         }
 
         if (notificationInfo.length > 1) {
-            sendPushToAll("New Festive Offers 🎉", `Check out the latest ${notificationInfo.length} offers in our app.`, notificationInfo[0].imageUrl, "serviceProviders")
+            sendPushToAll("New Festive Offers 🎉", `Check out the latest ${notificationInfo.length} offers in our app.`, notificationInfo[0].imageUrl, "serviceProviders", "notifcation_offer")
         } else if (notificationInfo.length === 1) {
-            sendPushToAll(notificationInfo[0].tittle, notificationInfo[0].message, notificationInfo[0].imageUrl, "serviceProviders")
+            sendPushToAll(notificationInfo[0].tittle, notificationInfo[0].message, notificationInfo[0].imageUrl, "serviceProviders", "notifcation_offer")
         }
 
         await NotifyBell.create({

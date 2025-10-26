@@ -16,27 +16,28 @@ connectDb();
 const app = express();
 const server = http.createServer(app);
 
-(async () => {
-  // await Base.updateMany(
-  //   {
-  //       $or : [
-  //           { location : { $exists : true } },
-  //           { location : null } 
-  //       ]
-  //   },
-  //   {
-  //       $set : {
-  //           location : {
-  //               type : "Point",
-  //               coordinates : [30.707600, 76.715126] 
-  //           }
-  //       }
-  //   }
-// }
-//   )
+// async function syncIndexes() {
+//   try {
+//     const categories = await Category.find(); // or your preferred order
 
-  console.log("Indexes synced ✅");
-})();
+//     for (let i = 0; i < categories.length; i++) {
+//       const category = categories[i];
+//       await Category.updateOne(
+//         { _id: category._id },
+//         { $set: { idx: i } },
+//         { upsert: true }
+//       );
+//       console.log(`Updated ${category._id} → idx: ${i}`);
+//     }
+
+//     console.log("✅ All indexes synced sequentially!");
+//   } catch (err) {
+//     console.error("❌ Error syncing indexes:", err);
+//   }
+// }
+
+// syncIndexes();
+
 
 export const io = new Server(server, {
     cors: {
@@ -65,7 +66,7 @@ io.on('connect', async (socket: any) => {
     });
 });
 app.use(cors({
-  origin: ["http://localhost:3000", "http://82.180.144.143:5000"],
+  origin: ["http://localhost:3000", "http://localhost:5000"],
   credentials: true
 }));
 

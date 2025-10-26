@@ -506,7 +506,7 @@ export const getProviderList = async (req: any, res: any) => {
                     totalReviews: 1,
                     status: 1,
                     pinCode: { $ifNull: ["$pinCode", '133123'] },
-
+                    imageUrl : 1
                 }
             }
         ])
@@ -547,7 +547,7 @@ export const storePhone = async (req: any, res: any) => {
 
 export const addProvider = async (req: any, res: any) => {
     try {
-        const { name, category, subcategory, address, aadharAddress, phone } = req.body;
+        const { name, category, subcategory, address, aadharAddress, phone, pinCode } = req.body;
 
         if (!req.files) {
             return res.status(400).send("No file uploaded.");
@@ -556,19 +556,19 @@ export const addProvider = async (req: any, res: any) => {
         const files: any = {};
 
         if (req.files.AC) {
-            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
+            files["AC"] = `http://82.180.144.143:4000/uploads/${req.files.AC[0].filename}`
         }
 
         if (req.files.ACB) {
-            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
+            files["ACB"] = `http://82.180.144.143:4000/uploads/${req.files.ACB[0].filename}`
         }
 
         if (req.files.PC) {
-            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
+            files["PC"] = `http://82.180.144.143:4000/uploads/${req.files.PC[0].filename}`
         }
 
         if (req.files.PH) {
-            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
+            files["PH"] = `http://82.180.144.143:4000/uploads/${req.files.PH[0].filename}`
         }
 
         const isUserVerifed = true;
@@ -585,12 +585,12 @@ export const addProvider = async (req: any, res: any) => {
 
         const subcategoryId = subcategory?._id;
 
-        const providerData = { phoneNo: phoneNo?._id, name, category: categoryId, subcategory: subcategoryId, address, aadharAddress, files, isUserVerifed, status, loggedInBefore };
+        const providerData = { phoneNo: phoneNo?._id, name, category: categoryId, subcategory: subcategoryId, address, aadharAddress, imageUrl : files, isUserVerifed, status, loggedInBefore, pinCode };
 
         const newServiceProvider = new ServiceProvider(providerData);
         await newServiceProvider.save();
 
-        res.status(200).json({ message: "Service provider registered successfully." });
+        return res.status(200).json({ message: "Service provider registered successfully." });
     } catch (error) {
         console.error('Error adding service provider:', error);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -1002,7 +1002,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
                     experience: { $ifNull: ["$experience", 4] },
                     phone: 1,
-                    providerPic: { $ifNull: ["$imageUrl.photo", "Not available in Db"] },
+                    providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
                     servicePrice: { $ifNull: ["$servicePrice", 100] },
                     workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
                     distance: 1
@@ -1382,7 +1382,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
                 role: user?.role || "User",
-                profilePic: user.profilePic || "http://localhost:4000/uploads/1746613692666.png",
+                profilePic: user.profilePic || "http://82.180.144.143:4000/uploads/1746613692666.png",
                 isEmployeeLogin: user?.isEmployeeLogin || false,
             }
             return res.status(200).json({ message: 'Fetched the user info', data: userData });
