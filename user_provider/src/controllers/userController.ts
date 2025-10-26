@@ -951,6 +951,15 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             { $unwind: "$category" },
             {
                 $lookup: {
+                    from: "subcategories",
+                    localField: "subcategory",
+                    foreignField: "_id",
+                    as: "subcategory"
+                }
+            },
+            { $unwind: "$subcategory" },
+            {
+                $lookup: {
                     from: "phonenumbers",
                     localField: "phoneNo",
                     foreignField: "_id",
@@ -996,6 +1005,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     phoneNumber: "$phoneNo.phoneNumber",
                     email: "$phoneNo.email",
                     category: "$category.category",
+                    subcategory: "$subcategory.name",
                     avgRating: { $ifNull: ["$avgRating", 3.0] },
                     totalReviews: { $ifNull: ["$totalReviews", 1200] },
                     completedTasks: { $ifNull: ["$completedTasks", 0] },
