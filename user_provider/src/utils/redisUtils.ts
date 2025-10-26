@@ -48,7 +48,7 @@ export const sendPush = async ({
 };
 
 
-export const sendPushToAll = async (title: string, message: string, imageUrl: string, topic : string) => {
+export const sendPushToAll = async (title: string, message: string, imageUrl: string, topic : string, type? : string) => {
   try {
 
     const messageToSend: Message = {
@@ -57,6 +57,9 @@ export const sendPushToAll = async (title: string, message: string, imageUrl: st
         title,
         body: message,
       },
+      data : {
+        type : type || 'notification_all',
+      }
       // android: {
       //   notification: {
       //     imageUrl: imageUrl
