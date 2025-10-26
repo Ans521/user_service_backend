@@ -406,6 +406,7 @@ export const handleImageUrls = async (req: any, res: any) => {
     try {
         const { phone, email, imageUrl } = req.body;
 
+        console.log("imageUrl", imageUrl)
         if (!phone || !email || !imageUrl) {
             return res.status(400).json({ message: "Please provide required field" });
         }
@@ -419,23 +420,29 @@ export const handleImageUrls = async (req: any, res: any) => {
         const isUserVerifed = false;
         const isloggedInBefore = true;
 
-        const providerData: any = await ServiceProvider.findOneAndUpdate(
+        console.log("imageUrl", imageUrl)
+
+        const updateFields = {
+            imageUrl,
+            isUserVerifed,
+            loggedInBefore: isloggedInBefore
+        };
+
+        const providerData = await ServiceProvider.findOneAndUpdate(
             { phoneNo: phoneData?._id },
-            {
-                $set: {
-                    imageUrl,
-                    isUserVerifed,
-                    loggedInBefore: isloggedInBefore
-                }
-            }, { new: true }
-        ).select('-phoneNo -email -workingHours -workingDays -avgRating -totalReviews -experience -totalDelivery -aboutUs -galleryImages');
+            { $set: updateFields },
+            { new: true, lean: true }
+        ).select('imageUrl isUserVerifed loggedInBefore');
 
         const token: string = jwt.sign({ id: phoneData?._id.toString(), isEmployeeLogin: true }, secretKey);
         const sentData = {
-            ...providerData.toObject(),
+            ...providerData,
             phone,
             email
         }
+
+        console.log("sentData", sentData)
+
         return res.status(200).json({
             message: "URLs updated successfully.",
             data: sentData,
@@ -498,7 +505,8 @@ export const getProviderList = async (req: any, res: any) => {
                     avgRating: 1,
                     totalReviews: 1,
                     status: 1,
-                    pinCode: { $ifNull: ["$pinCode", '133123'] }
+                    pinCode: { $ifNull: ["$pinCode", '133123'] },
+
                 }
             }
         ])
@@ -548,19 +556,19 @@ export const addProvider = async (req: any, res: any) => {
         const files: any = {};
 
         if (req.files.AC) {
-            files["AC"] = `http://82.180.144.143:4000/uploads/${req.files.AC[0].filename}`
+            files["AC"] = `http://localhost:4000/uploads/${req.files.AC[0].filename}`
         }
 
         if (req.files.ACB) {
-            files["ACB"] = `http://82.180.144.143:4000/uploads/${req.files.ACB[0].filename}`
+            files["ACB"] = `http://localhost:4000/uploads/${req.files.ACB[0].filename}`
         }
 
         if (req.files.PC) {
-            files["PC"] = `http://82.180.144.143:4000/uploads/${req.files.PC[0].filename}`
+            files["PC"] = `http://localhost:4000/uploads/${req.files.PC[0].filename}`
         }
 
         if (req.files.PH) {
-            files["PH"] = `http://82.180.144.143:4000/uploads/${req.files.PH[0].filename}`
+            files["PH"] = `http://localhost:4000/uploads/${req.files.PH[0].filename}`
         }
 
         const isUserVerifed = true;
@@ -670,7 +678,6 @@ export const seeAllCategory = async (req: any, res: any) => {
     try {
         const { id, role } = req.user;
         let notifyCount;
-        console.log("int the see all category api")
         if (role !== 'admin' && id && role !== 'user') {
             console.log("in the if condition of see all category api")
             if (!id) {
@@ -749,17 +756,14 @@ export const seeAllCategory = async (req: any, res: any) => {
                 }
             }
         }
-
-        console.log("if condition outside")
-
-
-        const categories = await Category.find();
+        const categories = await Category.find().sort({ idx: 1 });
         const subcategories = await SubCategory.find().select('_id name category image iconImage');
         const filteredSubcategories = subcategories.map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" });
         const response = await Promise.all(categories.map(async (cat: any) => ({
             category: cat?._doc.category,
             isMain: cat?._doc.isMain || false,
             _id: cat?._doc._id,
+            idx : cat?._doc.idx,
             subcategories: subcategories?.filter((subcat: any) => subcat?.category?.toString() == cat?._id.toString()).map(({ _doc, ...remaining }: any) => _doc ? { name: _doc.name, _id: _doc._id, image: _doc?.image, iconImage: _doc?.iconImage } : { name: "", _id: "" })
         })))
         const sendData = categories.map((cat: any) => ({
@@ -1184,8 +1188,8 @@ export const getProviderInfo = async (req: any, res: any) => {
             //     workingHrs: provider?.workingHours || { start: "10.00", end: "12.00" },
             //     workingDays: provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
             //     aboutus: provider?.aboutUs || "The best service backend developer is Ansh",
-            //     scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
-            //     imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1746613692666.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
+            //     scanQrUrl: provider?.scanQrUrl || "http://localhost:4000/uploads/1747842657687.png",
+            //     imageGallery: provider?.galleryImages || ["http://localhost:4000/uploads/1746613692666.png", "http://localhost:4000/uploads/1746613692666.png"],
             //     services: provider?.services,
             //     reviews: provider?.reviewComments
             // };
@@ -1360,9 +1364,9 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingDays: provider?.workingDays || "Everyday",
                 visitingTime: provider?.visitingTime || "30 min",
                 servicePrice: provider?.servicePrice || 100,
-                scanQrUrl: provider?.scanQrUrl || "http://82.180.144.143:4000/uploads/1747842657687.png",
+                scanQrUrl: provider?.scanQrUrl || "http://localhost:4000/uploads/1747842657687.png",
                 services: provider?.services,
-                imageGallery: provider?.galleryImages || ["http://82.180.144.143:4000/uploads/1747842657687.png", "http://82.180.144.143:4000/uploads/1746613692666.png"],
+                imageGallery: provider?.galleryImages || ["http://localhost:4000/uploads/1747842657687.png", "http://localhost:4000/uploads/1746613692666.png"],
                 isOrderPaid: provider?.orderId?.status === 'paid' ? true : false,
             }
 
@@ -1378,7 +1382,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 email: user?.phoneNo?.email || "ZVv7Q@example.com",
                 phone: user?.phoneNo?.phoneNumber || "123-456-7890",
                 role: user?.role || "User",
-                profilePic: user.profilePic || "http://82.180.144.143:4000/uploads/1746613692666.png",
+                profilePic: user.profilePic || "http://localhost:4000/uploads/1746613692666.png",
                 isEmployeeLogin: user?.isEmployeeLogin || false,
             }
             return res.status(200).json({ message: 'Fetched the user info', data: userData });
@@ -1662,3 +1666,37 @@ export const fetchNotifyBell = async (req: any, res: any) => {
 //         return res.status(500).json({ success: false, message: 'Failed to fetch notifyBell' });
 //     }
 // }
+
+
+export const updateDbIdx = async (req: any, res: any) => {
+    try {
+        const { categories } = req.body; // categories is an array of objects with _id and idx
+        
+        if (!categories || !categories.length) {
+            return res.status(400).json({ message: 'No categories to update' });
+        }
+
+        console.log("categories to update:", categories);
+
+        const bulkOps = categories.map((cat: any) => ({
+            updateOne : {
+                filter : {_id : new Types.ObjectId(String(cat._id))},
+                update : {$set : {idx : cat.idx}}
+            }
+        }))
+
+        console.log("bulkOps:", bulkOps);
+        
+        const result = await Category.bulkWrite(bulkOps);
+
+        console.log("Bulk write result:", result);
+        if(result.modifiedCount === 0){
+            return res.status(400).json({ message: 'No categories were updated' });
+        }
+                
+        return res.status(200).json({ message: 'Category idx updated successfully' });
+    } catch (error) {
+        console.error("Error updating category idx:", error);
+        return res.status(500).json({ success: false, message: 'Failed to update category idx' });
+    }
+}
