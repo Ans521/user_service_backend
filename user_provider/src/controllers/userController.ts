@@ -574,19 +574,19 @@ export const addProvider = async (req: any, res: any) => {
         const isUserVerifed = true;
         const status = "approved";
         const loggedInBefore = true;
+        console.log("phone", phone)
         const phoneNo = await PhoneNumber.findOne({ phoneNumber: phone });
-
+        
         if (!name || !address || !category || !subcategory || !aadharAddress) {
             return res.status(500).json({ message: "Please provide all the required fields." });
         }
-
+        
         const catResponse = await Category.findOne({ category });
         const categoryId = catResponse?._id;
-
-        const subcategoryId = subcategory?._id;
-
-        const providerData = { phoneNo: phoneNo?._id, name, category: categoryId, subcategory: subcategoryId, address, aadharAddress, imageUrl : files, isUserVerifed, status, loggedInBefore, pinCode };
-
+        const subcategoryJson = JSON.parse(subcategory);
+        const subcategoryId = subcategoryJson?._id;
+        
+        const providerData = { phoneNo: phoneNo?._id, email : phoneNo?._id, name, category: categoryId, subcategory: subcategoryId, address, aadharAddress, imageUrl : files, isUserVerifed, status, loggedInBefore, pinCode }; 
         const newServiceProvider = new ServiceProvider(providerData);
         await newServiceProvider.save();
 
