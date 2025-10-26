@@ -66,7 +66,7 @@ io.on('connect', async (socket: any) => {
     });
 });
 app.use(cors({
-  origin: ["http://82.180.144.143:4000", "http://localhost:3000"],
+  origin: ["http://82.180.144.143:5000", "http://localhost:3000", "http://localhost:5000"],
   credentials: true
 }));
 
