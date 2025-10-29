@@ -491,6 +491,15 @@ export const getProviderList = async (req: any, res: any) => {
             },
             { $unwind: "$phoneNo" },
             {
+                $lookup: {
+                    from : "subcategories",
+                    localField : "subcategory",
+                    foreignField : "_id",
+                    as : "subCategory"
+                }
+            },
+            { $unwind : { path: "$subCategory", preserveNullAndEmptyArrays: true } },
+            {
                 $project: {
                     _id: 1,
                     name: 1,
@@ -506,7 +515,8 @@ export const getProviderList = async (req: any, res: any) => {
                     totalReviews: 1,
                     status: 1,
                     pinCode: { $ifNull: ["$pinCode", '133123'] },
-                    imageUrl : 1
+                    imageUrl : 1,
+                    subcategory : { $ifNull: ["$subCategory.name", "Not provided"]}
                 }
             }
         ])
@@ -1056,6 +1066,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
 
 export const getProviderInfo = async (req: any, res: any) => {
     const { id } = req.query;
+    console.log("provider id", id)
     try {
         // const newProvider = await ServiceProvider.findOneAndUpdate(
         //     { _id: id}, 
@@ -1069,6 +1080,7 @@ export const getProviderInfo = async (req: any, res: any) => {
 
         const provider: any = await ServiceProvider.findOne({ _id: id, status: "approved" }).populate(['phoneNo', 'email']);
 
+        console.log("provider", provider)
         if (provider) {
             const providerObjectId = new Types.ObjectId(String(id));
             const providerInfo2 = await ServiceProvider.aggregate([
@@ -1101,7 +1113,8 @@ export const getProviderInfo = async (req: any, res: any) => {
                         aboutUs: 1,
                         reviewComments: 1,
                         address: 1,
-                        aadharAddress: 1
+                        aadharAddress: 1,
+                        subcategory: 1,
                     }
                 },
                 {
@@ -1113,6 +1126,18 @@ export const getProviderInfo = async (req: any, res: any) => {
                     }
                 },
                 { $unwind: "$phoneNo" },
+                {
+                    $lookup : {
+                        from : "subcategories",
+                        localField : "subcategory",
+                        foreignField : "_id",
+                        as : "subcategory"
+                    }
+                },
+                { $unwind: {
+                    path: "$subcategory",
+                    preserveNullAndEmptyArrays: true
+                }},
                 {
                     $lookup: {
                         from: "bases",
@@ -1174,7 +1199,8 @@ export const getProviderInfo = async (req: any, res: any) => {
                                 "$$ROOT",
                                 {
                                     email: '$phoneNo.email',
-                                    phoneNo: '$phoneNo.phoneNumber'
+                                    phoneNo: '$phoneNo.phoneNumber',
+                                    subcategory: '$subcategory.name'
                                 }
                             ]
                         }
@@ -1186,23 +1212,7 @@ export const getProviderInfo = async (req: any, res: any) => {
                     }
                 }
             ])
-            // const providerInfo = {
-            //     _id: provider?.id,
-            //     name: provider?.name || "John doe",
-            //     avgRating: provider?.avgRating || 4.5,
-            //     totalReviews: provider?.totalReviews || 1200,
-            //     experience: provider.experience || 3,
-            //     phone: provider?.phoneNo?.phoneNumber,
-            //     providerPic: provider?.imageUrl?.PH || "Not available",
-            //     completedTasks: provider.completedTasks || 0,
-            //     workingHrs: provider?.workingHours || { start: "10.00", end: "12.00" },
-            //     workingDays: provider?.workingDays || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            //     aboutus: provider?.aboutUs || "The best service backend developer is Ansh",
-            //     scanQrUrl: provider?.scanQrUrl || "http://localhost:4000/uploads/1747842657687.png",
-            //     imageGallery: provider?.galleryImages || ["http://localhost:4000/uploads/1746613692666.png", "http://localhost:4000/uploads/1746613692666.png"],
-            //     services: provider?.services,
-            //     reviews: provider?.reviewComments
-            // };
+            
             const categoryToFind = provider?.subcategory || '';
 
 
