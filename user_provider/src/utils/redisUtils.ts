@@ -2,6 +2,7 @@ import admin from "firebase-admin";
 import dotenv from 'dotenv';
 import { PushPayload } from "../types/notification.type";
 import { Message } from "firebase-admin/messaging";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -11,7 +12,6 @@ serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
 });
-
 
 // ✅ Send push to a specific device
 export const sendPush = async ({
@@ -47,7 +47,6 @@ export const sendPush = async ({
   }
 };
 
-
 export const sendPushToAll = async (title: string, message: string, imageUrl: string, topic : string, type? : string) => {
   try {
 
@@ -79,7 +78,6 @@ export const sendPushToAll = async (title: string, message: string, imageUrl: st
   }
 };
 
-
 export const subscribeToTopic = async (deviceToken: string, topic: string) => {
   try {
     await admin.messaging().subscribeToTopic(deviceToken, topic);
@@ -104,3 +102,32 @@ export const haversine = (lat1: number, lon1: number, lat2: number, lon2: number
 
   return R * c;
 }
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "anshsharma32387@gmail.com",
+    pass: "gzmj xlyy pgnl vxtb",
+  },
+});
+
+const mailOptions : nodemailer.SendMailOptions = {
+  from: '"anshsharma32387@gmail.com',
+  subject: "Hii, Please check your otp",
+  text: "This is a test email sent from Node.js using Nodemailer.",
+};
+
+export const sendOtpMail = async (email: string, otp: string) => {
+    mailOptions.to = email;
+    mailOptions.html = `<p>Your <b>OTP<b> is: <b>${otp}</b></p>`;
+
+    console.log("Sending email to:", mailOptions);
+    try {
+      const info =await transporter.sendMail(mailOptions);
+      console.log("✅ Email sent:", info.response);
+    } catch (error) {
+      console.error("❌ Error sending email:", error);
+   }
+};
+
+
