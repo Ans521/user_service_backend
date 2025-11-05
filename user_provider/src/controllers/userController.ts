@@ -14,7 +14,7 @@ import { SubCategory } from "../models/subCategory";
 import { imagesKey } from "../shortObj";
 import { sendNotification, userSocketMap } from "./socket";
 import { Base } from "../models/baseSchema";
-import { haversine, sendPush, subscribeToTopic } from "../utils/redisUtils"
+import { haversine, sendOtpMail, sendPush, subscribeToTopic } from "../utils/redisUtils"
 import { Request } from "express";
 import { PushPayload } from "../types/notification.type";
 import { Types } from "mongoose";
@@ -60,7 +60,6 @@ export const getOtp = async (req: any, res: any) => {
         // const otp = Math.floor(1000 + Math.random() * 9999);
         const otp: number = 1111;
         const response = await PhoneNumber.findOne({ phoneNumber: phone, email })
-
         //user enter the phone number checking that is in the mongodb or not
         if (!response) {
             const responseEmail = await PhoneNumber.findOne({ email })
@@ -72,12 +71,14 @@ export const getOtp = async (req: any, res: any) => {
 
             await new PhoneNumber({ phoneNumber: phone, email }).save()
             await redisOperation(email, otp)
+            await sendOtpMail(email, otp.toString());
             return res.status(200).json({ data: { message: "otp generated", otp } });
         } else {
             // if phone number is found in mongodb
             const otpRedis = await client.get(`otp:${email}`)
             // const phoneNo = response.phoneNumber;
             const providerEmail = response.email;
+            await sendOtpMail(providerEmail, otp.toString());
             if (!otpRedis) {
                 await redisOperation(providerEmail, otp)
                 return res.status(200).json({ data: { message: "otp generated", otp } })
@@ -492,13 +493,13 @@ export const getProviderList = async (req: any, res: any) => {
             { $unwind: "$phoneNo" },
             {
                 $lookup: {
-                    from : "subcategories",
-                    localField : "subcategory",
-                    foreignField : "_id",
-                    as : "subCategory"
+                    from: "subcategories",
+                    localField: "subcategory",
+                    foreignField: "_id",
+                    as: "subCategory"
                 }
             },
-            { $unwind : { path: "$subCategory", preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true } },
             {
                 $project: {
                     _id: 1,
@@ -1127,17 +1128,19 @@ export const getProviderInfo = async (req: any, res: any) => {
                 },
                 { $unwind: "$phoneNo" },
                 {
-                    $lookup : {
-                        from : "subcategories",
-                        localField : "subcategory",
-                        foreignField : "_id",
-                        as : "subcategory"
+                    $lookup: {
+                        from: "subcategories",
+                        localField: "subcategory",
+                        foreignField: "_id",
+                        as: "subcategory"
                     }
                 },
-                { $unwind: {
-                    path: "$subcategory",
-                    preserveNullAndEmptyArrays: true
-                }},
+                {
+                    $unwind: {
+                        path: "$subcategory",
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
                 {
                     $lookup: {
                         from: "bases",

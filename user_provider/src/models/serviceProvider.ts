@@ -102,8 +102,7 @@ const serviceProviderSchema = new mongoose.Schema({
     }],
   },
   servicePrice: {
-    type: Number,
-    default: 0
+    type: String,
   },
   scanQrUrl: {
     type: String
