@@ -1097,7 +1097,7 @@ export const getProviderInfo = async (req: any, res: any) => {
                         experience: { $ifNull: ["$experience", 4] },
                         phoneNo: 1,
                         providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
-                        servicePrice: { $ifNull: ["$servicePrice", 100] },
+                        servicePrice: { $ifNull: ["$servicePrice"] },
                         workingHrs: { $ifNull: ["$workingHours", { start: "19.00", end: "5.00" }] },
                         services: {
                             $ifNull: ["$services", [{
@@ -1322,11 +1322,14 @@ export const updateProfile = async (req: any, res: any) => {
             updateData.imageUrl = {}
             updateData.imageUrl[imagesKey.photo] = profilePic
         };
+        console.log("updateData", updateData)
         const updatedUser = await ServiceProvider.findOneAndUpdate(
             { phoneNo: id },
             { $set: updateData },
             { upsert: true, new: true }
         )
+
+        console.log("updatedUser", updatedUser)
         return res.status(200).json({
             message: "User info updated successfully",
             data: updatedUser
