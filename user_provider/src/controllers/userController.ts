@@ -1057,6 +1057,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             return res.status(200).json({ success: false, message: "No providers found" });
         }
 
+        console.log("Providers fetched:", providers.length);
         return res.status(200).json({ success: true, message: "Providers fetched successfully", data: providers });
 
     } catch (error) {
@@ -1090,14 +1091,14 @@ export const getProviderInfo = async (req: any, res: any) => {
                     $project: {
                         _id: 1,
                         name: { $ifNull: ["$name", "John doe"] },
-                        avgRating: { $ifNull: ["$avgRating", 3.0] },
-                        totalReviews: { $ifNull: ["$totalReviews", 1200] },
-                        completedTasks: { $ifNull: ["$completedTasks", 1200] },
+                        avgRating: { $ifNull: ["$avgRating", 0.0] },
+                        totalReviews: { $ifNull: ["$totalReviews", 0] },
+                        completedTasks: { $ifNull: ["$completedTasks", 0] },
                         workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
-                        experience: { $ifNull: ["$experience", 4] },
+                        experience: { $ifNull: ["$experience", 0] },
                         phoneNo: 1,
                         providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
-                        servicePrice: { $ifNull: ["$servicePrice"] },
+                        servicePrice: 1,
                         workingHrs: { $ifNull: ["$workingHours", { start: "19.00", end: "5.00" }] },
                         services: {
                             $ifNull: ["$services", [{
