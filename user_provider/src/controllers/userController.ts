@@ -1259,7 +1259,6 @@ export const getProviderInfo = async (req: any, res: any) => {
                 }
             ])
 
-            console.log("providerInfo2", providerInfo2)
             const providerListResponse = providerResponse.filter((provider: any) => provider._id.toString() !== id.toString());
             // data: providerInfo, providerList: providerListResponse
             return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo2, providerList: providerListResponse });
@@ -1371,9 +1370,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 return res.status(404).json({ message: "No provider found" });
             }
 
-            if (provider?.services?.length === 0) {
-                provider.services = [{ service: "Hair Services", serviceList: ["Hair Cut, Styling, HairColoring, Hair Spa"] }, { service: "Skin Services", serviceList: ["Facial, Styling, Anti-Aging, Face Spa"] }]
-            }
+            
             const providerData = {
                 _id: provider?._id,
                 name: provider?.name || "John Doe",
@@ -1388,15 +1385,17 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 workingHrs: provider?.workingHours || { start: "10.00", end: "05.00" },
                 role: provider?.role || "ServiceProvider",
                 isEmployeeLogin: provider?.isEmployeeLogin || true,
-                workingDays: provider?.workingDays || "Everyday",
-                visitingTime: provider?.visitingTime || "30 min",
-                servicePrice: provider?.servicePrice || 100,
-                scanQrUrl: provider?.scanQrUrl || "http://localhost:4000/uploads/1747842657687.png",
+                workingDays: provider?.workingDays,
+                visitingTime: provider?.visitingTime,
+                servicePrice: provider?.servicePrice,
+                scanQrUrl: provider?.scanQrUrl,
                 services: provider?.services,
-                imageGallery: provider?.galleryImages || ["http://localhost:4000/uploads/1747842657687.png", "http://localhost:4000/uploads/1746613692666.png"],
+                imageGallery: provider?.galleryImages,
                 isOrderPaid: provider?.orderId?.status === 'paid' ? true : false,
             }
 
+            console.log("providerData", providerData)
+            
             return res.status(200).json({ message: 'Fetched the provider info', data: providerData });
         } else {
             const user: any = await User.findOne({ phoneNo: findId }).populate(['phoneNo', 'email']);
@@ -1412,6 +1411,8 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 profilePic: user.profilePic || "http://82.180.144.143:4000/uploads/1746613692666.png",
                 isEmployeeLogin: user?.isEmployeeLogin || false,
             }
+
+            console.log("userData", userData)
             return res.status(200).json({ message: 'Fetched the user info', data: userData });
         }
     } catch (error) {
