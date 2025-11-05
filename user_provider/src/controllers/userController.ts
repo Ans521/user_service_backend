@@ -978,53 +978,53 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                 }
             },
             { $unwind: "$phoneNo" },
-            {
-                $lookup: {
-                    from: 'orders',
-                    let: { orderId: "$orderId" },
-                    pipeline: [
-                        {
-                            $match:
-                            {
-                                $expr:
-                                {
-                                    $and:
-                                        [
-                                            { $eq: ["$_id", "$$orderId"] },
-                                            // {$gt : ["$endDate", new Date()]},
-                                            // {$eq : ["$status", "paid"]},
-                                            // { $eq : ["$isActive", true]}
-                                        ]
-                                }
-                            }
-                        },
-                    ],
-                    as: "orderId"
-                }
-            },
+            // {
+            //     $lookup: {
+            //         from: 'orders',
+            //         let: { orderId: "$orderId" },
+            //         pipeline: [
+            //             {
+            //                 $match:
+            //                 {
+            //                     $expr:
+            //                     {
+            //                         $and:
+            //                             [
+            //                                 { $eq: ["$_id", "$$orderId"] },
+            //                                 // {$gt : ["$endDate", new Date()]},
+            //                                 // {$eq : ["$status", "paid"]},
+            //                                 // { $eq : ["$isActive", true]}
+            //                             ]
+            //                     }
+            //                 }
+            //             },
+            //         ],
+            //         as: "orderId"
+            //     }
+            // },
             { $skip: skip },
             { $limit: limit },
-            {
-                $match: {
-                    orderId: { $ne: [] } // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
-                }
-            },
+            // {
+            //     $match: {
+            //         orderId: { $ne: [] } // ye line iss liye hai taki wo provider show na ho jiska order expire ho jaye 
+            //     }
+            // },
             {
                 $project: {
                     _id: 1,
-                    name: { $ifNull: ["$name", "John doe"] },
+                    name: { $ifNull: ["$name", "not available"] },
                     phoneNumber: "$phoneNo.phoneNumber",
                     email: "$phoneNo.email",
                     category: "$category.category",
                     subcategory: "$subcategory.name",
-                    avgRating: { $ifNull: ["$avgRating", 3.0] },
-                    totalReviews: { $ifNull: ["$totalReviews", 1200] },
+                    avgRating: { $ifNull: ["$avgRating", 0.0] },
+                    totalReviews: { $ifNull: ["$totalReviews", 0] },
                     completedTasks: { $ifNull: ["$completedTasks", 0] },
                     workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
-                    experience: { $ifNull: ["$experience", 4] },
+                    experience: { $ifNull: ["$experience", 0] },
                     phone: 1,
-                    providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
-                    servicePrice: { $ifNull: ["$servicePrice", 100] },
+                    providerPic: { $ifNull: ["$imageUrl.PH", "Not available"] },
+                    servicePrice: { $ifNull: ["$servicePrice", "Not available"] },
                     workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
                     distance: 1
                 }
