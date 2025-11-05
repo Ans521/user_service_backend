@@ -1242,23 +1242,24 @@ export const getProviderInfo = async (req: any, res: any) => {
                 {
                     $project: {
                         _id: 1,
-                        name: { $ifNull: ["$name", "John Doe"] },
+                        name: { $ifNull: ["$name", "Not available"] },
                         phoneNumber: "$phoneNo.phoneNumber",
                         email: "$phoneNo.email",
-                        avgRating: { $ifNull: ["$avgRating", 3.0] },
-                        totalReviews: { $ifNull: ["$totalReviews", 1200] },
+                        avgRating: { $ifNull: ["$avgRating", 0.0] },
+                        totalReviews: { $ifNull: ["$totalReviews", 0] },
                         completedTasks: { $ifNull: ["$completedTasks", 0] },
                         workingDays: { $ifNull: ["$workingDays", ["EveryDay"]] },
-                        experience: { $ifNull: ["$experience", 4] },
+                        experience: "$experience",
                         phone: 1,
                         providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
-                        servicePrice: { $ifNull: ["$servicePrice", 100] },
-                        workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
+                        servicePrice: "$servicePrice",
+                        workingHrs: "$workingHours",
                         category: { $ifNull: ["$category.category", "Not available"] }
                     }
                 }
             ])
 
+            console.log("providerInfo2", providerInfo2)
             const providerListResponse = providerResponse.filter((provider: any) => provider._id.toString() !== id.toString());
             // data: providerInfo, providerList: providerListResponse
             return res.status(200).json({ message: 'Fetched the provider info', data: providerInfo2, providerList: providerListResponse });
