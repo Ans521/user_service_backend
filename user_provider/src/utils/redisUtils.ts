@@ -47,7 +47,7 @@ export const sendPush = async ({
   }
 };
 
-export const sendPushToAll = async (title: string, message: string, imageUrl: string, topic : string, type? : string) => {
+export const sendPushToAll = async (title: string, message: string, imageUrl: string, topic: string, type?: string) => {
   try {
 
     const messageToSend: Message = {
@@ -111,23 +111,39 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const mailOptions : nodemailer.SendMailOptions = {
-  from: '"anshsharma32387@gmail.com',
-  subject: "Hii, Please check your otp",
-  text: "This is a test email sent from Node.js using Nodemailer.",
+const mailOptions: nodemailer.SendMailOptions = {
+  from: '"LocalPro" <support@locallpro.in>',
+  subject: "Your OTP from LocalPro"
 };
 
 export const sendOtpMail = async (email: string, otp: string) => {
-    mailOptions.to = email;
-    mailOptions.html = `<p>Your <b>OTP<b> is: <b>${otp}</b></p>`;
+  mailOptions.to = email;
+  mailOptions.html = `
+  <p>Thank you for registering with <strong>LocallPro!</strong></p>
+  <hr />
+    <p>Here is your one-time OTP: <strong>${otp}</strong></p>
+    <p>
+      Please use this code to complete your registration. 
+      If you didn’t request this, please ignore this email.
+    </p>
+    <p>
+      Welcome aboard — we look forward to having you with us!<br>
+        <hr />
+      <strong>Best regards,</strong><br>
+      The LocallPro Team
+    </p>
 
-    console.log("Sending email to:", mailOptions);
-    try {
-      const info =await transporter.sendMail(mailOptions);
-      console.log("✅ Email sent:", info.response);
-    } catch (error) {
-      console.error("❌ Error sending email:", error);
-   }
+`;
+
+  console.log("Sending email to:", mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent:", info.response);
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+  }
 };
 
-
+export const generateOtp = () => {
+  return Math.floor(10000 * Math.random())
+}
