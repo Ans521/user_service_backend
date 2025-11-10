@@ -885,6 +885,7 @@ export const deleteCategory = async (req: any, res: any) => {
 export const getProviderWithCategory = async (req: any, res: any) => {
     try {
         const { rating, subcat, minPrice, maxPrice, search, lat, long } = req.body;
+        console.log("lat long in body", lat, long);
         const { id } = req.user;
         console.log("id", id)
 
@@ -896,6 +897,7 @@ export const getProviderWithCategory = async (req: any, res: any) => {
 
         console.log("After conversion to number", typeof latNum, typeof longNum)
 
+        console.log("latNum longNum in body", latNum, longNum);
         const searcherId = new Types.ObjectId(id);
 
         console.log("searcherId", searcherId)
@@ -1057,7 +1059,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
             return res.status(200).json({ success: false, message: "No providers found" });
         }
 
-        console.log("Providers fetched:", providers.length);
         return res.status(200).json({ success: true, message: "Providers fetched successfully", data: providers });
 
     } catch (error) {
@@ -1253,7 +1254,7 @@ export const getProviderInfo = async (req: any, res: any) => {
                         experience: "$experience",
                         phone: 1,
                         providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
-                        servicePrice: "$servicePrice",
+                        servicePrice: 1,
                         workingHrs: "$workingHours",
                         category: { $ifNull: ["$category.category", "Not available"] }
                     }
