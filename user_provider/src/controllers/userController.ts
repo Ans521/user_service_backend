@@ -21,6 +21,7 @@ import { Types } from "mongoose";
 import mongoose from "mongoose";
 import { NotifyBell } from "../models/notifiybell";
 import { Notify } from "../models/notification";
+import { generateOtp } from "../utils/redisUtils";
 
 dotenv.config()
 connectDb()
@@ -57,7 +58,7 @@ export const getOtp = async (req: any, res: any) => {
         if (!phone || !email) {
             return res.status(400).json({ message: "Please provide phone number and email" })
         }
-        // const otp = Math.floor(1000 + Math.random() * 9999);
+        // const otp = generateOtp()
         const otp: number = 1111;
         const response = await PhoneNumber.findOne({ phoneNumber: phone, email })
         //user enter the phone number checking that is in the mongodb or not
