@@ -1243,6 +1243,16 @@ export const getProviderInfo = async (req: any, res: any) => {
                 },
                 { $unwind: '$category' },
                 {
+                    $lookup : {
+                        from : 'subcategories',
+                        localField : 'subcategory',
+                        foreignField : '_id',
+                        as : 'subcategory'
+                    }
+                },
+                { $unwind: { path: '$subcategory', preserveNullAndEmptyArrays: true },
+                },
+                {
                     $project: {
                         _id: 1,
                         name: { $ifNull: ["$name", "Not available"] },
@@ -1257,7 +1267,8 @@ export const getProviderInfo = async (req: any, res: any) => {
                         providerPic: { $ifNull: ["$imageUrl.PH", "Not available in Db"] },
                         servicePrice: 1,
                         workingHrs: "$workingHours",
-                        category: { $ifNull: ["$category.category", "Not available"] }
+                        category: { $ifNull: ["$category.category", "Not available"] },
+                        subcategory: { $ifNull: ["$subcategory.name", "Not available"] },
                     }
                 }
             ])
