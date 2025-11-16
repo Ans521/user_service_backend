@@ -1742,3 +1742,49 @@ export const updateDbIdx = async (req: any, res: any) => {
         return res.status(500).json({ success: false, message: 'Failed to update category idx' });
     }
 }
+
+export const deleteProvider = async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Provider ID is required' });
+        }
+
+        const providerId = new Types.ObjectId(String(id));
+
+        const provider = await ServiceProvider.findByIdAndDelete(providerId);
+
+        if (!provider) {
+            return res.status(404).json({ success: false, message: 'Provider not found' });
+        }
+
+        return res.status(200).json({ success: true, message: 'Provider deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting provider:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
+export const deleteUser = async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'User ID is required' });
+        }
+
+        const userId = new Types.ObjectId(String(id));
+
+        const user = await User.findByIdAndDelete(userId);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        return res.status(200).json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
