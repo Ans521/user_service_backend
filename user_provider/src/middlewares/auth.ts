@@ -10,13 +10,15 @@ const verifyToken = (req: any, res: any, next: any) => {
 
   // Check if request is from guest user
   const isGuest = req.headers['is-guest'];
-  
+
+  console.log("isGuest", isGuest)
   if (isGuest) {
     req.user = { role: "user", isGuest: true }; // creating guest user object
     console.log("Guest user detected, skipping auth");
     return next();
   }
 
+  console.log("req.originalUrl", req.headers)
   if(req.originalUrl.includes("get-all-category") && !token){
       req.user = {role : "user"}; // creating temp id for signing user
       console.log("temp id created for get-all-category api")
