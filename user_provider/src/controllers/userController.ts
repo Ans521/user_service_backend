@@ -887,8 +887,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
     try {
         const { rating, subcat, minPrice, maxPrice, search, lat, long } = req.body;
         console.log("lat long in body", lat, long);
-        const { id } = req.user;
-        console.log("id", id)
 
         console.log(`lat: ${lat}, long: ${long}`)
 
@@ -899,9 +897,6 @@ export const getProviderWithCategory = async (req: any, res: any) => {
         console.log("After conversion to number", typeof latNum, typeof longNum)
 
         console.log("latNum longNum in body", latNum, longNum);
-        const searcherId = new Types.ObjectId(id);
-
-        console.log("searcherId", searcherId)
 
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;

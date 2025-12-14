@@ -1090,8 +1090,6 @@ export const handleReview = async (req: any, res: any) => {
         }
 
         sendPush(pushPayload)
-
-
         return res.status(200).json({ success: true, message: 'Review added successfully' });
 
     } catch (error) {
