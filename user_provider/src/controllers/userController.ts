@@ -506,6 +506,7 @@ export const getProviderList = async (req: any, res: any) => {
                     _id: 1,
                     name: 1,
                     phoneNo: "$phoneNo.phoneNumber",
+                    email: "$phoneNo.email",
                     address: 1,
                     aadharAddress: 1,
                     orderSubStatus: { $ifNull: ["$orderDetails.status", null] },
