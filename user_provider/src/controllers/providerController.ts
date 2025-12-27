@@ -1340,7 +1340,7 @@ export const getAllUser = async (req: any, res: any) => {
                     phoneNo: '$phoneNo.phoneNumber',
                     email: '$phoneNo.email',
                     address: 1,
-                    pinCode: { $ifNull: ['$phoneNo.pinCode', '311342'] },
+                    pinCode: { $ifNull: ['$phoneNo.pinCode', 'not available'] },
                 }
             }
         ])
