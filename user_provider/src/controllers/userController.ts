@@ -517,7 +517,7 @@ export const getProviderList = async (req: any, res: any) => {
                     avgRating: 1,
                     totalReviews: 1,
                     status: 1,
-                    pinCode: { $ifNull: ["$pinCode", '133123'] },
+                    pinCode: { $ifNull: ["$pinCode", 'not available'] },
                     imageUrl : 1,
                     subcategory : { $ifNull: ["$subCategory.name", "Not provided"]}
                 }
