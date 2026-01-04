@@ -1748,12 +1748,17 @@ export const deleteProvider = async (req: any, res: any) => {
         }
 
         const providerId = new Types.ObjectId(String(id));
-
-        const provider = await ServiceProvider.findByIdAndDelete(providerId);
-
-        if (!provider) {
+        const providerExists : any = await ServiceProvider.findById(providerId);
+        
+        if (!providerExists) {
             return res.status(404).json({ success: false, message: 'Provider not found' });
         }
+        const phoneNoId = providerExists?.phoneNo;
+        const phoneNoIdObj = new Types.ObjectId(String(phoneNoId));
+        await Promise.all([
+                ServiceProvider.findByIdAndDelete(providerId),
+                PhoneNumber.findByIdAndDelete(phoneNoIdObj)
+        ]);
 
         return res.status(200).json({ success: true, message: 'Provider deleted successfully' });
     } catch (error) {
