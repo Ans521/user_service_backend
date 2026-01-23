@@ -514,6 +514,7 @@ export const getProviderList = async (req: any, res: any) => {
                     orderSubStatus: { $ifNull: ["$orderDetails.status", null] },
                     orderSubActive: { $ifNull: ["$orderDetails.isActive", null] },
                     isUserVerifed: 1,
+                    isDocumentVerifed:1,
                     isProfileCompleted: 1,
                     loggedInBefore: 1,
                     avgRating: 1,
