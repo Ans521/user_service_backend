@@ -1,5 +1,5 @@
 import express from "express";
-import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls, fetchNotifyBell, updateDbIdx, deleteProvider, deleteUser} from "../controllers/userController";
+import { getOtp, registerProvider, upload, registerUser, verifyOtp, handleSingleImageUrl, getProviderList, addProvider, uploadMultiple, updateProviderStatus,approveProviderDocument, storePhone, addCategory, seeAllCategory, deleteCategory, getProviderInfo, getProviderWithCategory, updateProfile, userSentMsg, getInfoUserProvider, handleImageUrls, fetchNotifyBell, updateDbIdx, deleteProvider, deleteUser} from "../controllers/userController";
 import verifyToken from "../middlewares/auth";
 import { addSpecialCategory, getAddedSpecialCateogory, updateCategory, uploadImages, removeSpecialCategory, getAllBanner, setServiceList, getServiceList, deleteService, addBanner, deleteBanner, updateBanner, fetchUserSentMsg, fetchAllUserSentMsg, sendRecentConnectionEnquiry, getRecentConnectedUser, insertOffer, getAllOffer, updateOffer, handleReview, getAllReview, sendReviewMsgToUser, deleteOffer, userToProvider, bannerMain, providerUserCount, getAllNotification, sendNotificationToAll, getAllUser} from "../controllers/providerController";
 import { getPaymentHistory, webHook } from "../controllers/paymentController";
@@ -19,6 +19,7 @@ router.get('/get-provider-info',verifyToken, getProviderInfo)
 router.get('/get-provider-list', getProviderList) // admin api
 router.post('/phone-by-admin', storePhone) // admin api
 router.put('/update-provider-status/:id', updateProviderStatus)
+router.put('/approveProviderDocument/:id', approveProviderDocument)
 router.post('/categories', addCategory) // admin api
 router.get('/get-all-category',verifyToken, seeAllCategory)
 router.delete('/delete-category/:id', deleteCategory) // admin api

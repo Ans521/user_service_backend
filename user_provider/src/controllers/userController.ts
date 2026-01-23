@@ -656,6 +656,52 @@ export const updateProviderStatus = async (req: any, res: any) => {
     }
 }
 
+export const approveProviderDocument = async (req: any, res: any) => {
+    const { status } = req.body;
+    const { id } = req.params;
+    const socketId = userSocketMap.get(id);
+    console.log("socketId", socketId)
+    const message = `Your document has been ${status} by admin.`;
+    if (!status || !id) {
+        return res.status(400).json({ success: false, message: 'Status and ID are required' });
+    }
+
+    const type = 'status_update';
+
+    const isDocumentVerifed = status === 'approved' ? true : false;
+    try {
+        const response: any = await ServiceProvider.findOneAndUpdate(
+            { _id: id },
+            { isDocumentVerifed: isDocumentVerifed },
+            { new: true }
+        )
+
+        const tittle = `Document ${status}`;
+
+        if ((status == 'approved' || status == 'rejected') && id != undefined) {
+            if (!response) {
+                return res.status(404).json({ success: false, message: 'Service provider not found' });
+            }
+
+            const pushPayload: PushPayload = {
+                tittle,
+                message,
+                deviceToken: response?.deviceToken || "",
+                status: status,
+                type: type,
+            }
+            sendPush(pushPayload);
+
+            // sendNotification(socketId, message);
+            return res.status(200).json({ success: true, message: 'successfully' });
+        }
+        return res.status(500).json({ success: false, message: 'something went wrong' });
+    } catch (error) {
+        console.error('Error updating service provider:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+}
+
 export const addCategory = async (req: any, res: any) => {
     try {
         const { category, subcategories } = req.body;
