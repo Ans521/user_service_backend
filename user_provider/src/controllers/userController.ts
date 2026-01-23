@@ -183,6 +183,7 @@ export const verifyOtp = async (req: any, res: any) => {
                 phone: providerData?.phoneNo?.phoneNumber || "123-456-7890",
                 loggedInBefore: providerData?.loggedInBefore,
                 isUserVerified: providerData?.isUserVerifed || false,
+                isDocumentVerifed: providerData?.isDocumentVerifed || false,
                 isProfileCompleted: providerData?.isProfileCompleted || false
             }
 
@@ -217,6 +218,7 @@ export const verifyOtp = async (req: any, res: any) => {
                         _id: newProvider?._id,
                         loggedInBefore: newProvider?.loggedInBefore,
                         isUserVerified: newProvider?.isUserVerifed,
+                        isDocumentVerifed: newProvider?.isDocumentVerifed,
                         isProfileCompleted: newProvider?.isProfileCompleted
                     }
                     redisOperation(phoneNo1, userOtp, false);
@@ -1436,6 +1438,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 phone: provider?.phoneNo?.phoneNumber || "123-456-7890",
                 aboutus: provider?.aboutUs || "Hiii I am a service provider",
                 isUserVerified: provider?.isUserVerifed || false,
+                isDocumentVerifed: provider?.isDocumentVerifed || false,
                 isProfileCompleted: provider?.isProfileCompleted || false,
                 experience: provider?.experience || 4,
                 workingHrs: provider?.workingHours || { start: "10.00", end: "05.00" },
