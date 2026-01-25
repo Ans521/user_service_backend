@@ -278,8 +278,7 @@ export const registerUser = async (req: any, res: any) => {
         if (!newUser) {
             return res.status(404).json({ message: "User not found or not registered" });
         }
-        const token = jwt.sign({ id: phoneNoId.toString(), isEmployeeLogin: false }, secretKey)
-
+        const token = jwt.sign({ id: phoneNoId.toString(), isEmployeeLogin: true }, secretKey)
         return res.status(200).json({
             message: "User registered successfully",
             data: newUser,
