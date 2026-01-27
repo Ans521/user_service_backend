@@ -351,7 +351,7 @@ export const registerProvider = async (req: any, res: any) => {
             ...newServiceProvider?.toObject(),
             phone,
             email,
-            token
+            token:token
         }
 
         return res.status(200).json({
