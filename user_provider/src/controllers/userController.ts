@@ -346,7 +346,7 @@ export const registerProvider = async (req: any, res: any) => {
         if (!newServiceProvider) {
             return res.status(404).json({ message: "Service provider not found or not registered" });
         }
-        const token: string = jwt.sign({ id: newServiceProvider?._id.toString(), isEmployeeLogin: true }, secretKey);
+        const token: string = jwt.sign({ id: phoneNoId.toString(), isEmployeeLogin: true }, secretKey);
         const sentData = {
             ...newServiceProvider?.toObject(),
             phone,
