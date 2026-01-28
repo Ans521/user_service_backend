@@ -1077,7 +1077,8 @@ export const getProviderWithCategory = async (req: any, res: any) => {
                     providerPic: { $ifNull: ["$imageUrl.PH", "Not available"] },
                     servicePrice: { $ifNull: ["$servicePrice", "Not available"] },
                     workingHrs: { $ifNull: ["$workingHours", { start: "10AM", end: "5PM" }] },
-                    distance: 1
+                    distance: 1,
+                    isDocumentVerifed:1
                 }
             }
         ]
