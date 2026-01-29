@@ -1455,6 +1455,7 @@ export const getInfoUserProvider = async (req: any, res: any) => {
                 scanQrUrl: provider?.scanQrUrl,
                 services: provider?.services,
                 imageGallery: provider?.galleryImages,
+                imageUrl:provider?.imageUrl,
                 isOrderPaid: provider?.orderId?.status === 'paid' ? true : false,
             }
 
